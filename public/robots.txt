@@ -1,0 +1,36 @@
+User-agent: Googlebot
+Allow: /
+Disallow: /inv/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /dashboard
+
+User-agent: Bingbot
+Allow: /
+Disallow: /inv/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /dashboard
+
+User-agent: Twitterbot
+Allow: /
+Disallow: /inv/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /dashboard
+
+User-agent: facebookexternalhit
+Allow: /
+Disallow: /inv/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /dashboard
+
+User-agent: *
+Allow: /
+Disallow: /inv/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /dashboard
+
+Sitemap: https://shaadilink.com.pk/sitemap.xml

@@ -1,0 +1,42 @@
+<svg width="512" height="512" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E8C766"/>
+      <stop offset="100%" stop-color="#C79A2E"/>
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2A9370"/>
+      <stop offset="100%" stop-color="#155A42"/>
+    </linearGradient>
+  </defs>
+
+  <!-- outer badge rings -->
+  <circle cx="100" cy="100" r="94" fill="none" stroke="url(#goldGrad)" stroke-width="2.5"/>
+  <circle cx="100" cy="100" r="86" fill="none" stroke="url(#goldGrad)" stroke-width="1" opacity="0.55"/>
+
+  <!-- four seal accents -->
+  <g fill="#D4AF37">
+    <path d="M100,4 l3.2,7.2 -3.2,3 -3.2,-3 Z"/>
+    <path d="M100,196 l3.2,-7.2 -3.2,-3 -3.2,3 Z"/>
+    <path d="M4,100 l7.2,3.2 3,-3.2 -3,-3.2 Z"/>
+    <path d="M196,100 l-7.2,3.2 -3,-3.2 3,-3.2 Z"/>
+  </g>
+
+  <!-- interlocked hearts: emerald (left) -->
+  <g transform="translate(77,110) rotate(-16) scale(0.66)">
+    <path d="M50,90 C18,66 4,44 4,24 C4,6 20,-2 36,7 C43,11 47,17 50,24 C53,17 57,11 64,7 C80,-2 96,6 96,24 C96,44 82,66 50,90 Z"
+          transform="translate(-50,-44)"
+          fill="url(#emeraldGrad)" stroke="#0f1a16" stroke-width="3.5" stroke-linejoin="round"/>
+  </g>
+
+  <!-- interlocked hearts: gold (right) -->
+  <g transform="translate(123,110) rotate(16) scale(0.66)">
+    <path d="M50,90 C18,66 4,44 4,24 C4,6 20,-2 36,7 C43,11 47,17 50,24 C53,17 57,11 64,7 C80,-2 96,6 96,24 C96,44 82,66 50,90 Z"
+          transform="translate(-50,-44)"
+          fill="url(#goldGrad)" stroke="#0f1a16" stroke-width="3.5" stroke-linejoin="round"/>
+  </g>
+
+  <!-- center jewel where the hearts meet -->
+  <circle cx="100" cy="76" r="6.5" fill="url(#emeraldGrad)" stroke="url(#goldGrad)" stroke-width="1.8"/>
+  <circle cx="100" cy="76" r="2.2" fill="#F0EAE0" opacity="0.85"/>
+</svg>

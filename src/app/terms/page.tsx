@@ -1,0 +1,77 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { Footer } from "@/components/footer";
+
+export default function TermsOfServicePage() {
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <nav className="border-b border-border/40 backdrop-blur-md sticky top-0 z-50 bg-background/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
+          <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back to Home
+          </Link>
+        </div>
+      </nav>
+
+      <main className="flex-1 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <h1 className="text-4xl font-display font-bold mb-4">Terms of Service</h1>
+        <p className="text-muted-foreground mb-12">Last Updated: August 2026</p>
+
+        <div className="prose prose-slate dark:prose-invert prose-lg max-w-none">
+          <p>
+            Welcome to SwiftVenue. By accessing or using our website, platform, and services, you agree to be bound by these Terms of Service. If you disagree with any part of the terms, then you do not have permission to access the Service.
+          </p>
+
+          <h2>1. Use of Service</h2>
+          <p>
+            SwiftVenue provides an event management platform that allows organizers to create events, sell tickets, and manage attendees. You agree to use the Service only for lawful purposes and in accordance with these Terms.
+          </p>
+          <p>
+            You are responsible for safeguarding the password that you use to access the Service and for any activities or actions under your password.
+          </p>
+
+          <h2>2. User Content</h2>
+          <p>
+            Our Service allows you to post, link, store, share and otherwise make available certain information, text, graphics, videos, or other material ("Content"). You are responsible for the Content that you post to the Service, including its legality, reliability, and appropriateness.
+          </p>
+
+          <h2>3. Payments and Ticketing</h2>
+          <p>
+            When you sell tickets through SwiftVenue, payments are processed by our third-party payment provider (e.g., Safepay). You agree to comply with the terms and conditions of the payment provider. SwiftVenue takes a percentage fee on paid tickets as outlined in our Pricing page. Free events incur no platform fees.
+          </p>
+          <p>
+            Refunds for ticket purchases are handled at the discretion of the event organizer. SwiftVenue platform fees are generally non-refundable unless otherwise required by law.
+          </p>
+
+          <h2>4. Prohibited Uses</h2>
+          <p>
+            You may use the Service only for lawful purposes. You agree not to use the Service:
+          </p>
+          <ul>
+            <li>In any way that violates any applicable national or international law or regulation.</li>
+            <li>For the purpose of exploiting, harming, or attempting to exploit or harm minors in any way.</li>
+            <li>To transmit, or procure the sending of, any advertising or promotional material, including any "junk mail", "chain letter," "spam," or any other similar solicitation.</li>
+            <li>To impersonate or attempt to impersonate SwiftVenue, a SwiftVenue employee, another user, or any other person or entity.</li>
+          </ul>
+
+          <h2>5. Intellectual Property</h2>
+          <p>
+            The Service and its original content (excluding Content provided by users), features, and functionality are and will remain the exclusive property of SwiftVenue and its licensors.
+          </p>
+
+          <h2>6. Termination</h2>
+          <p>
+            We may terminate or suspend your account immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.
+          </p>
+
+          <h2>7. Contact Us</h2>
+          <p>
+            If you have any questions about these Terms, please contact us at: <a href="mailto:legal@swiftvenue.com">legal@swiftvenue.com</a>
+          </p>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
