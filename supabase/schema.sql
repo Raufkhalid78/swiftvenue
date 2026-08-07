@@ -175,3 +175,67 @@ CREATE POLICY "event_images_owner_delete" ON storage.objects
   FOR DELETE USING (
     bucket_id = 'event-images' AND auth.uid()::TEXT = (storage.foldername(name))[1]
   );
+
+-- ─── Phase 1: Real Ticketing Data Model ──────────────────────
+
+-- Ticket types per event (replaces flat events.ticket_price)
+CREATE TABLE IF NOT EXISTS public.ticket_types (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  name            TEXT NOT NULL,               -- "Early Bird", "General Admission", "VIP"
+  description     TEXT,
+  price           NUMERIC(10,2) NOT NULL DEFAULT 0,
+  currency        TEXT DEFAULT 'PKR',
+  quantity_total  INT NOT NULL,                -- total inventory for this tier
+  quantity_sold   INT NOT NULL DEFAULT 0,      -- updated atomically on purchase
+  sales_start     TIMESTAMPTZ,                 -- null = starts immediately
+  sales_end       TIMESTAMPTZ,                 -- null = no end / manual close
+  order_index     INT DEFAULT 0,
+  is_active       BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Link orders to a specific ticket type instead of a bare amount
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS ticket_type_id UUID REFERENCES public.ticket_types(id),
+  ADD COLUMN IF NOT EXISTS quantity INT NOT NULL DEFAULT 1;
+
+-- Same for attendees, replacing the free-text ticket_type column
+ALTER TABLE public.attendees
+  ADD COLUMN IF NOT EXISTS ticket_type_id UUID REFERENCES public.ticket_types(id);
+
+-- Row-Level Security for Ticket Types
+ALTER TABLE public.ticket_types ENABLE ROW LEVEL SECURITY;
+
+-- Public can read ticket types for published events, owner can do everything
+CREATE POLICY "ticket_types_select" ON public.ticket_types FOR SELECT USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid() OR status = 'published')
+);
+CREATE POLICY "ticket_types_insert_own" ON public.ticket_types FOR INSERT WITH CHECK (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
+);
+CREATE POLICY "ticket_types_update_own" ON public.ticket_types FOR UPDATE USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
+);
+CREATE POLICY "ticket_types_delete_own" ON public.ticket_types FOR DELETE USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
+);
+
+-- Atomic inventory control function
+CREATE OR REPLACE FUNCTION public.reserve_ticket(
+  p_ticket_type_id UUID, p_qty INT
+) RETURNS BOOLEAN AS $$
+DECLARE
+  updated_rows INT;
+BEGIN
+  UPDATE public.ticket_types
+  SET quantity_sold = quantity_sold + p_qty
+  WHERE id = p_ticket_type_id
+    AND quantity_sold + p_qty <= quantity_total
+    AND is_active = TRUE
+    AND (sales_start IS NULL OR sales_start <= NOW())
+    AND (sales_end IS NULL OR sales_end >= NOW());
+  GET DIAGNOSTICS updated_rows = ROW_COUNT;
+  RETURN updated_rows > 0;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

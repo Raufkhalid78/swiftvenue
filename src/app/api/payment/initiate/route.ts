@@ -4,9 +4,9 @@ import { createServiceClient } from '@/lib/supabase/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { eventId, guestName, guestEmail, amount } = body;
+    const { eventId, guestName, guestEmail, ticketTypeId, quantity = 1 } = body;
 
-    if (!eventId || !guestName || !guestEmail || amount === undefined) {
+    if (!eventId || !guestName || !guestEmail || !ticketTypeId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -23,6 +23,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event not found or unavailable' }, { status: 404 });
     }
 
+    // Verify the ticket type and get the actual price
+    const { data: ticketType, error: ticketError } = await service
+      .from('ticket_types')
+      .select('id, price, is_active')
+      .eq('id', ticketTypeId)
+      .eq('event_id', eventId)
+      .single();
+
+    if (ticketError || !ticketType || !ticketType.is_active) {
+      return NextResponse.json({ error: 'Invalid or inactive ticket type' }, { status: 400 });
+    }
+
+    // Attempt to atomically reserve the ticket(s)
+    const { data: reserved, error: reserveError } = await service
+      .rpc('reserve_ticket', { 
+        p_ticket_type_id: ticketTypeId, 
+        p_qty: quantity 
+      });
+
+    if (reserveError || !reserved) {
+      return NextResponse.json({ error: 'Tickets sold out or unavailable' }, { status: 409 });
+    }
+
+    // Calculate the real amount securely on the server
+    const amount = Number(ticketType.price) * quantity;
+
     // Create a pending order record for the attendee ticket purchase
     const { data: order, error: orderErr } = await service
       .from('orders')
@@ -33,12 +59,16 @@ export async function POST(request: NextRequest) {
         amount: amount,
         currency: 'PKR',
         status: 'pending',
+        ticket_type_id: ticketTypeId,
+        quantity: quantity
       })
       .select()
       .single();
 
     if (orderErr || !order) {
       console.error('Failed to create pending order:', orderErr);
+      // Rollback reservation on failure
+      await service.rpc('reserve_ticket', { p_ticket_type_id: ticketTypeId, p_qty: -quantity });
       return NextResponse.json({ error: 'Failed to initialize ticket purchase' }, { status: 500 });
     }
 

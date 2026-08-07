@@ -34,6 +34,13 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     .eq("event_id", event.id)
     .order("order_index", { ascending: true });
 
+  const { data: ticketTypes } = await supabase
+    .from("ticket_types")
+    .select("*")
+    .eq("event_id", event.id)
+    .eq("is_active", true)
+    .order("order_index", { ascending: true });
+
   const themeColor = event.theme_color || '#0f172a';
   const rgbTheme = hexToRgb(themeColor);
   const template = event.template_id || 'modern';
@@ -150,7 +157,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 </div>
 
                 <div className="bg-card rounded-2xl border border-border p-1">
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} />
+                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
                 </div>
               </div>
             </div>
@@ -198,7 +205,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <div className="flex justify-center pt-8">
             <div className="w-full max-w-md bg-card p-6 rounded-2xl border border-border shadow-sm text-center">
               <h3 className="font-display text-2xl font-bold mb-4">Secure your spot</h3>
-              <RegistrationWidget eventId={event.id} eventTitle={event.title} />
+              <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
             </div>
           </div>
         </div>
@@ -248,7 +255,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <div className="space-y-8">
                 <div className="bg-muted/30 p-8 rounded-xl border border-border">
                   <h2 className="text-2xl font-serif font-bold mb-6 text-center">Register Now</h2>
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} />
+                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
                 </div>
 
                 {agendaItems && agendaItems.length > 0 && (
