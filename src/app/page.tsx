@@ -18,7 +18,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <Link href="#how-it-works" className="hover:text-foreground transition-colors">How it Works</Link>
             <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
-            <Link href="#pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+            <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
@@ -186,57 +186,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing */}
-        <section id="pricing" className="py-24 bg-muted/30 border-y border-border">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">No hidden fees. Start for free and scale as your events grow.</p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Free Tier */}
-            <div className="p-8 rounded-3xl border border-border bg-card shadow-sm flex flex-col">
-              <h3 className="text-2xl font-bold mb-2">Free</h3>
-              <p className="text-muted-foreground mb-6">Perfect for small, free community events.</p>
-              <div className="text-4xl font-display font-bold mb-6">Rs. 0 <span className="text-lg text-muted-foreground font-normal">/mo</span></div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Unlimited free events</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Up to 100 RSVPs per event</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Basic public page</li>
-              </ul>
-              <Link href="/signup"><Button className="w-full" variant="outline">Get Started</Button></Link>
-            </div>
 
-            {/* Pro Tier */}
-            <div className="p-8 rounded-3xl border-2 border-primary bg-primary/5 shadow-md flex flex-col relative transform md:-translate-y-4">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold tracking-wide">MOST POPULAR</div>
-              <h3 className="text-2xl font-bold mb-2">Professional</h3>
-              <p className="text-muted-foreground mb-6">For organizers selling paid tickets.</p>
-              <div className="text-4xl font-display font-bold mb-2">5% <span className="text-lg text-muted-foreground font-normal">+ Rs. 100</span></div>
-              <p className="text-sm text-muted-foreground mb-6">per paid ticket sold</p>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Everything in Free</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Safepay Integration</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Unlimited RSVPs & Tickets</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Custom branding</li>
-              </ul>
-              <Link href="/signup"><Button className="w-full">Start Selling</Button></Link>
-            </div>
-
-            {/* Enterprise Tier */}
-            <div className="p-8 rounded-3xl border border-border bg-card shadow-sm flex flex-col">
-              <h3 className="text-2xl font-bold mb-2">Enterprise</h3>
-              <p className="text-muted-foreground mb-6">For massive festivals and universities.</p>
-              <div className="text-4xl font-display font-bold mb-6">Custom</div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Volume discounts</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Dedicated account manager</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Custom API integrations</li>
-              </ul>
-              <Link href="/signup"><Button className="w-full" variant="outline">Contact Sales</Button></Link>
-            </div>
-          </div>
-        </section>
 
         {/* FAQ */}
         <section className="py-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

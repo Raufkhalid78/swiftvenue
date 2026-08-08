@@ -35,12 +35,21 @@ export default function TermsOfServicePage() {
             Our Service allows you to post, link, store, share and otherwise make available certain information, text, graphics, videos, or other material ("Content"). You are responsible for the Content that you post to the Service, including its legality, reliability, and appropriateness.
           </p>
 
-          <h2>3. Payments and Ticketing</h2>
+          <h2>3. Payments, Fees, and Payouts</h2>
           <p>
-            When you sell tickets through SwiftVenue, payments are processed by our third-party payment provider (e.g., Safepay). You agree to comply with the terms and conditions of the payment provider. SwiftVenue takes a percentage fee on paid tickets as outlined in our Pricing page. Free events incur no platform fees.
+            When you sell tickets through SwiftVenue, payments are processed by our third-party payment provider (e.g., Safepay). You agree to comply with the terms and conditions of the payment provider. 
           </p>
           <p>
-            Refunds for ticket purchases are handled at the discretion of the event organizer. SwiftVenue platform fees are generally non-refundable unless otherwise required by law.
+            <strong>Platform Fees:</strong> SwiftVenue charges a platform fee on all paid ticket sales based on your subscription tier (Free, Pro, or Enterprise). These fees are automatically calculated at checkout and are non-refundable. Free events incur no platform fees.
+          </p>
+          <p>
+            <strong>Subscription Billing:</strong> Upgrades to premium tiers (such as Pro) are billed in advance. All subscription payments are final and non-refundable, except where required by law. If you downgrade, your premium features will remain active until the end of your billing cycle.
+          </p>
+          <p>
+            <strong>Organizer Payouts:</strong> Revenue from ticket sales (minus SwiftVenue platform fees) is accrued in your account balance. We process organizer payouts in weekly batches. To receive your funds, you must provide valid bank, JazzCash, or EasyPaisa account details in your Organizer Settings. SwiftVenue is not responsible for delayed payouts caused by incorrect account details.
+          </p>
+          <p>
+            <strong>Refunds:</strong> Refunds for ticket purchases are handled entirely at the discretion of the event organizer. Organizers are responsible for issuing refunds to their attendees for cancelled or rescheduled events.
           </p>
 
           <h2>4. Prohibited Uses</h2>
