@@ -2,7 +2,7 @@
 
 export const CONTACT_CONFIG = {
   // Primary email address for customer queries and legal issues
-  email: "hello@shaadilink.com.pk",
+  email: "support@swiftvenue.com",
 
   // Contact phone number displayed on the website
   phone: "+44 7517 879333",
@@ -14,13 +14,13 @@ export const CONTACT_CONFIG = {
   rawPhoneNumber: "447517879333",
 
   // Physical office address
-  address: "Jhelum, Pakistan",
+  address: "London, UK",
 
   // Help desk/contact form response notice
   responseTime: "We typically respond within 24–48 hours",
 
   // Official domain name of the platform
-  domain: "shaadilink.com.pk",
+  domain: "swiftvenue.com",
 
   // Social media handle links
   socials: {

@@ -80,7 +80,7 @@ export function AffiliateDashboardClient({
 
   const shareOnWhatsApp = () => {
     if (!referralCode) return;
-    const text = encodeURIComponent(`Use my code *${referralCode.code}* on ShaadiLink for 10% off your digital wedding invitation! 🎉 https://shaadilink.com.pk`);
+    const text = encodeURIComponent(`Use my code *${referralCode.code}* on SwiftVenue for 10% off your event ticketing fees! 🎉 https://swiftvenue.com`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
@@ -164,7 +164,7 @@ export function AffiliateDashboardClient({
                   Give 10% Off, Earn 10% Commission
                 </h2>
                 <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto">
-                  Share this code with engaged couples. They get a discount on their digital invitation, and you earn cash for the referral.
+                  Share this code with event organizers. They get a discount on their premium ticketing platform, and you earn cash for the referral.
                 </p>
               </div>
 
@@ -364,7 +364,7 @@ IBAN: PK12MEZN000123456789"
                           </div>
                           <h4 className="text-lg font-bold text-foreground">No sales yet</h4>
                           <p className="text-sm text-muted-foreground leading-relaxed">
-                            Your commission history is empty. Start sharing your referral code with couples to earn your first commission!
+                            Your commission history is empty. Start sharing your referral code with event organizers to earn your first commission!
                           </p>
                           {referralCode && (
                             <Button variant="outline" className="mt-2 gap-2" onClick={shareOnWhatsApp}>

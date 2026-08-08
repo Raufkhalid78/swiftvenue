@@ -20,6 +20,7 @@ interface TicketConfirmationEmailProps {
   venueName: string;
   venueAddress: string;
   orderId: string;
+  attendeeId: string;
 }
 
 export const TicketConfirmationEmail = ({
@@ -30,6 +31,7 @@ export const TicketConfirmationEmail = ({
   venueName,
   venueAddress,
   orderId,
+  attendeeId,
 }: TicketConfirmationEmailProps) => {
   return (
     <Html>
@@ -54,6 +56,17 @@ export const TicketConfirmationEmail = ({
             <Text style={ticketDetails}>
               <span style={{ color: '#666' }}>{venueAddress}</span>
             </Text>
+            <Hr style={hr} />
+            <div style={{ textAlign: 'center', margin: '20px 0' }}>
+              <Img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${attendeeId}`} 
+                width="150" 
+                height="150" 
+                alt="Ticket QR Code" 
+                style={{ margin: '0 auto' }}
+              />
+              <Text style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>Scan at door</Text>
+            </div>
             <Hr style={hr} />
             <Text style={orderIdText}>Order ID: {orderId}</Text>
           </Section>

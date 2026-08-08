@@ -102,21 +102,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to update order" }, { status: 500 })
     }
 
-    // 2. Update invitation status and quota (if a quota top-up was ordered)
-    const invUpdate: Record<string, unknown> = { is_active: true, plan: order.plan }
-    if (order.target_guest_links_quota > 0) {
-      invUpdate.guest_links_quota = order.target_guest_links_quota
-    }
-    await service
-      .from('invitations')
-      .update(invUpdate)
-      .eq('id', order.invitation_id)
+    // 2. Create attendee record for the ticket
+    // We only create one attendee here, though order.quantity might be > 1.
+    // Ideally we loop over quantity if we want individual tickets, but for now we create one main attendee.
+    const attendeesToInsert = Array.from({ length: order.quantity || 1 }).map(() => ({
+      event_id: order.event_id,
+      guest_name: order.guest_name,
+      guest_email: order.guest_email,
+      ticket_type_id: order.ticket_type_id,
+      status: 'registered'
+    }));
 
-    // 3. Update profile plan
-    await service
-      .from('profiles')
-      .update({ plan: order.plan })
-      .eq('id', order.user_id)
+    const { error: attendeeErr } = await service
+      .from('attendees')
+      .insert(attendeesToInsert);
+
+    if (attendeeErr) {
+      console.error("Failed to insert attendees in webhook:", attendeeErr)
+      // Note: we don't return 500 here to avoid safepay retrying since we already marked as paid, 
+      // but in production we'd want a robust retry mechanism for fulfillment.
+    }
       
     // 4. Increment promo code usage and calculate affiliate commission if applied
     if (order.promo_code) {

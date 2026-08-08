@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { eventId, guestName, guestEmail, ticketTypeId, quantity = 1 } = body;
+    const { eventId, guestName, guestEmail, ticketTypeId, quantity = 1, promoCode } = body;
 
     if (!eventId || !guestName || !guestEmail || !ticketTypeId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Verify the ticket type and get the actual price
     const { data: ticketType, error: ticketError } = await service
       .from('ticket_types')
-      .select('id, price, is_active')
+      .select('id, price, currency, is_active')
       .eq('id', ticketTypeId)
       .eq('event_id', eventId)
       .single();
@@ -47,7 +47,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate the real amount securely on the server
-    const amount = Number(ticketType.price) * quantity;
+    let amount = Number(ticketType.price) * quantity;
+    let discountAmount = 0;
+
+    // Apply Promo Code if provided
+    if (promoCode && amount > 0) {
+      const { data: promo, error: promoErr } = await service
+        .from('promo_codes')
+        .select('*')
+        .eq('event_id', eventId)
+        .ilike('code', promoCode)
+        .single();
+
+      if (!promoErr && promo && promo.is_active) {
+        // Basic validity checks
+        const now = new Date();
+        const validFrom = promo.valid_from ? new Date(promo.valid_from) : null;
+        const validUntil = promo.valid_until ? new Date(promo.valid_until) : null;
+        
+        const isStarted = !validFrom || validFrom <= now;
+        const isNotExpired = !validUntil || validUntil >= now;
+        const hasUsesLeft = !promo.max_uses || promo.current_uses < promo.max_uses;
+
+        if (isStarted && isNotExpired && hasUsesLeft) {
+          if (promo.discount_type === 'percentage') {
+            discountAmount = amount * (Number(promo.discount_amount) / 100);
+          } else if (promo.discount_type === 'fixed') {
+            discountAmount = Number(promo.discount_amount);
+          }
+          amount = Math.max(0, amount - discountAmount);
+        }
+      }
+    }
 
     // Create a pending order record for the attendee ticket purchase
     const { data: order, error: orderErr } = await service
@@ -57,10 +88,12 @@ export async function POST(request: NextRequest) {
         guest_name: guestName,
         guest_email: guestEmail,
         amount: amount,
-        currency: 'PKR',
+        currency: ticketType.currency || 'PKR',
         status: 'pending',
         ticket_type_id: ticketTypeId,
-        quantity: quantity
+        quantity: quantity,
+        promo_code: promoCode || null,
+        discount_amount: discountAmount
       })
       .select()
       .single();
@@ -102,7 +135,7 @@ export async function POST(request: NextRequest) {
       merchant_api_key: safepayMerchantKey,
       intent: 'CYBERSOURCE',
       mode: 'payment',
-      currency: 'PKR',
+      currency: ticketType.currency || 'PKR',
       amount: Math.round(amount * 100), // Lowest denomination (Paisa)
       metadata: {
         order_id: order.id,

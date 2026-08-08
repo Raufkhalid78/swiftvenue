@@ -239,3 +239,65 @@ BEGIN
   RETURN updated_rows > 0;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- ─── Phase 2 & 3 & 5: Premium Features Tables ────────────────
+
+-- Promo Codes
+CREATE TABLE IF NOT EXISTS public.promo_codes (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  code            TEXT NOT NULL,
+  discount_type   TEXT NOT NULL CHECK (discount_type IN ('percentage', 'fixed')),
+  discount_amount NUMERIC(10,2) NOT NULL,
+  max_uses        INT,
+  current_uses    INT DEFAULT 0,
+  valid_from      TIMESTAMPTZ,
+  valid_until     TIMESTAMPTZ,
+  is_active       BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(event_id, code)
+);
+
+ALTER TABLE public.promo_codes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "promo_codes_select" ON public.promo_codes FOR SELECT USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid() OR status = 'published')
+);
+CREATE POLICY "promo_codes_insert_own" ON public.promo_codes FOR INSERT WITH CHECK (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
+);
+CREATE POLICY "promo_codes_update_own" ON public.promo_codes FOR UPDATE USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
+);
+CREATE POLICY "promo_codes_delete_own" ON public.promo_codes FOR DELETE USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
+);
+
+-- Waitlists
+CREATE TABLE IF NOT EXISTS public.waitlists (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  ticket_type_id  UUID NOT NULL REFERENCES public.ticket_types(id) ON DELETE CASCADE,
+  guest_name      TEXT NOT NULL,
+  guest_email     TEXT NOT NULL,
+  status          TEXT DEFAULT 'waiting' CHECK (status IN ('waiting', 'notified', 'purchased', 'expired')),
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.waitlists ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "waitlists_insert_public" ON public.waitlists FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "waitlists_select_owner" ON public.waitlists FOR SELECT USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
+);
+CREATE POLICY "waitlists_update_owner" ON public.waitlists FOR UPDATE USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
+);
+CREATE POLICY "waitlists_delete_owner" ON public.waitlists FOR DELETE USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
+);
+
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS promo_code TEXT,
+  ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10,2) DEFAULT 0;

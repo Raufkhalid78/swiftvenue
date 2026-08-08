@@ -95,18 +95,35 @@ async function handleCallback(request: NextRequest) {
       return NextResponse.redirect(`${siteUrl}/e/${eventSlug}?paymentError=Database update failed`, { status: 303 });
     }
 
-    // Since the order is paid, generate an attendee record automatically
-    const { error: attendeeErr } = await service.from('attendees').insert({
-      event_id: order.event_id,
-      guest_name: order.guest_name,
-      guest_email: order.guest_email,
-      ticket_type: 'paid',
-      status: 'registered'
-    });
+    // Since the order is paid, we need to ensure the attendee record exists.
+    // The webhook might have created it already.
+    const { data: existingAttendee } = await service
+      .from('attendees')
+      .select('id')
+      .eq('event_id', order.event_id)
+      .eq('guest_email', order.guest_email)
+      .limit(1)
+      .single();
 
-    if (attendeeErr) {
-      console.error("Failed to generate attendee record after payment", attendeeErr);
-    } else {
+    let attendeeId = existingAttendee?.id;
+
+    if (!attendeeId) {
+      const { data: newAttendee, error: attendeeErr } = await service.from('attendees').insert({
+        event_id: order.event_id,
+        guest_name: order.guest_name,
+        guest_email: order.guest_email,
+        ticket_type_id: order.ticket_type_id,
+        status: 'registered'
+      }).select().single();
+
+      if (attendeeErr) {
+        console.error("Failed to generate attendee record after payment", attendeeErr);
+      } else if (newAttendee) {
+        attendeeId = newAttendee.id;
+      }
+    }
+
+    if (attendeeId) {
       // Send the email confirmation using Resend
       if (event) {
         try {
@@ -119,6 +136,7 @@ async function handleCallback(request: NextRequest) {
             venueName: event.venue_name || 'TBD',
             venueAddress: event.venue_address || '',
             orderId: order.id,
+            attendeeId: attendeeId,
           });
         } catch (emailErr) {
           console.error("Failed to send confirmation email:", emailErr);

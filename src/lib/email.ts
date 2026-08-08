@@ -12,6 +12,7 @@ export async function sendTicketConfirmation({
   venueName,
   venueAddress,
   orderId,
+  attendeeId,
 }: {
   to: string;
   guestName: string;
@@ -21,6 +22,7 @@ export async function sendTicketConfirmation({
   venueName: string;
   venueAddress: string;
   orderId: string;
+  attendeeId: string;
 }) {
   if (!process.env.RESEND_API_KEY) {
     console.warn("RESEND_API_KEY is not set. Simulating email send to:", to);
@@ -40,6 +42,7 @@ export async function sendTicketConfirmation({
         venueName,
         venueAddress,
         orderId,
+        attendeeId,
       }) as React.ReactElement,
     });
 

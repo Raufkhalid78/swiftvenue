@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 import { contactLimiter } from '@/lib/rate-limit'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resend = new Resend(process.env.RESEND_API_KEY || 're_mock_key')
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
     try {
       if (process.env.RESEND_API_KEY) {
         const { data, error } = await resend.emails.send({
-          from: 'ShaadiLink Contact <hello@shaadilink.com.pk>',
-          to: 'hello@shaadilink.com.pk', // Using standard admin email
+          from: 'SwiftVenue Contact <support@swiftvenue.com>',
+          to: 'support@swiftvenue.com', // Using standard admin email
           subject: `New Contact Form Message from ${name.trim()}`,
           text: `Name: ${name.trim()}\nEmail: ${email.trim()}\n\nMessage:\n${message.trim()}`,
         })

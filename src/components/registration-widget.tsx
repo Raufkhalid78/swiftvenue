@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Minus, Ticket } from "lucide-react";
+import { Loader2, Plus, Minus, Ticket, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 export function RegistrationWidget({ 
@@ -21,8 +21,39 @@ export function RegistrationWidget({
   const [formData, setFormData] = useState({ name: "", email: "" });
   const [selectedTicketId, setSelectedTicketId] = useState<string>(ticketTypes[0]?.id || "");
   const [quantity, setQuantity] = useState(1);
+  
+  // Promo code state
+  const [promoCode, setPromoCode] = useState("");
+  const [promoData, setPromoData] = useState<{valid: boolean, discount_type?: string, discount_amount?: number} | null>(null);
+  const [validatingPromo, setValidatingPromo] = useState(false);
 
   const selectedTicket = ticketTypes.find(t => t.id === selectedTicketId);
+  const available = selectedTicket ? selectedTicket.quantity_total - selectedTicket.quantity_sold : 0;
+  const isWaitlist = available <= 0;
+
+  async function validatePromo() {
+    if (!promoCode) return;
+    setValidatingPromo(true);
+    try {
+      const res = await fetch('/api/promo/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode, eventId })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Invalid promo code");
+        setPromoData(null);
+      } else {
+        toast.success("Promo code applied!");
+        setPromoData(data);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setValidatingPromo(false);
+    }
+  }
 
   async function handleCheckout(e: React.FormEvent) {
     e.preventDefault();
@@ -30,13 +61,38 @@ export function RegistrationWidget({
       toast.error("Please fill out all fields.");
       return;
     }
-
     if (!selectedTicketId) {
       toast.error("Please select a ticket type.");
       return;
     }
 
     setLoading(true);
+
+    if (isWaitlist) {
+      // Handle Waitlist (Phase 5)
+      try {
+        const response = await fetch('/api/waitlist/join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId,
+            guestName: formData.name,
+            guestEmail: formData.email,
+            ticketTypeId: selectedTicketId,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to join waitlist');
+        toast.success("You've been added to the waitlist!");
+        setIsOpen(false);
+      } catch (error: any) {
+        toast.error(error.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       const response = await fetch('/api/payment/initiate', {
         method: 'POST',
@@ -46,15 +102,21 @@ export function RegistrationWidget({
           guestName: formData.name,
           guestEmail: formData.email,
           ticketTypeId: selectedTicketId,
-          quantity
+          quantity,
+          promoCode: promoData?.valid ? promoCode : undefined
         }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to initiate checkout');
 
-      // Redirect to Safepay Checkout URL
-      window.location.href = data.checkoutUrl;
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        // Handle free tickets
+        toast.success("Ticket registered successfully!");
+        setIsOpen(false);
+      }
     } catch (error: any) {
       toast.error(error.message);
       setLoading(false);
@@ -62,6 +124,23 @@ export function RegistrationWidget({
   }
 
   const hasTickets = ticketTypes && ticketTypes.length > 0;
+  
+  // Calculate total
+  let subtotal = 0;
+  let total = 0;
+  let currency = "PKR";
+  if (selectedTicket) {
+    subtotal = Number(selectedTicket.price) * quantity;
+    total = subtotal;
+    currency = selectedTicket.currency || "PKR";
+    if (promoData?.valid) {
+      if (promoData.discount_type === 'percentage') {
+        total = subtotal - (subtotal * (promoData.discount_amount! / 100));
+      } else if (promoData.discount_type === 'fixed') {
+        total = Math.max(0, subtotal - promoData.discount_amount!);
+      }
+    }
+  }
 
   return (
     <>
@@ -87,37 +166,40 @@ export function RegistrationWidget({
               <div className="space-y-3 mb-6">
                 <Label>Select Ticket Tier</Label>
                 {ticketTypes.map(ticket => {
-                  const available = ticket.quantity_total - ticket.quantity_sold;
-                  const isSoldOut = available <= 0;
+                  const tAvailable = ticket.quantity_total - ticket.quantity_sold;
+                  const tSoldOut = tAvailable <= 0;
                   
                   return (
                     <div 
                       key={ticket.id}
-                      onClick={() => !isSoldOut && setSelectedTicketId(ticket.id)}
+                      onClick={() => {
+                        setSelectedTicketId(ticket.id);
+                        if(tSoldOut) setQuantity(1);
+                      }}
                       className={`
                         p-4 rounded-xl border-2 flex items-start justify-between cursor-pointer transition-all
                         ${selectedTicketId === ticket.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-                        ${isSoldOut ? 'opacity-50 cursor-not-allowed grayscale' : ''}
+                        ${tSoldOut && selectedTicketId !== ticket.id ? 'opacity-50' : ''}
                       `}
                     >
                       <div>
                         <div className="font-semibold flex items-center gap-2">
                           {ticket.name}
-                          {isSoldOut && <span className="text-xs bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">Sold Out</span>}
+                          {tSoldOut && <span className="text-xs bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">Waitlist</span>}
                         </div>
                         {ticket.description && (
                           <div className="text-xs text-muted-foreground mt-1">{ticket.description}</div>
                         )}
                       </div>
                       <div className="font-bold whitespace-nowrap ml-4">
-                        {Number(ticket.price) === 0 ? 'Free' : `Rs. ${Number(ticket.price).toLocaleString()}`}
+                        {Number(ticket.price) === 0 ? 'Free' : `${ticket.currency || 'PKR'} ${Number(ticket.price).toLocaleString()}`}
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {selectedTicket && (
+              {selectedTicket && !isWaitlist && (
                 <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl mb-4">
                   <Label className="mb-0">Quantity</Label>
                   <div className="flex items-center gap-3">
@@ -168,13 +250,47 @@ export function RegistrationWidget({
                 />
               </div>
               
-              <div className="flex justify-between items-center py-4 border-t border-border mt-4">
-                <div className="text-sm text-muted-foreground">Total</div>
-                <div className="text-xl font-bold">
-                  {selectedTicket && Number(selectedTicket.price) > 0 
-                    ? `Rs. ${(Number(selectedTicket.price) * quantity).toLocaleString()}`
-                    : 'Free'
-                  }
+              {!isWaitlist && (
+                <div className="space-y-2 pt-2">
+                  <Label htmlFor="promo">Promo Code (Optional)</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input 
+                        id="promo" 
+                        placeholder="SUMMER2024" 
+                        value={promoCode}
+                        onChange={e => {
+                          setPromoCode(e.target.value.toUpperCase());
+                          setPromoData(null);
+                        }}
+                        className="pl-9"
+                      />
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="secondary" 
+                      onClick={validatePromo}
+                      disabled={validatingPromo || !promoCode || promoData?.valid}
+                    >
+                      {validatingPromo ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex flex-col py-4 border-t border-border mt-4 gap-1">
+                {promoData?.valid && (
+                  <div className="flex justify-between items-center text-sm text-primary">
+                    <div>Discount</div>
+                    <div>- {currency} {(subtotal - total).toLocaleString()}</div>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-muted-foreground">Total</div>
+                  <div className="text-xl font-bold">
+                    {isWaitlist ? "Waitlist" : total > 0 ? `${currency} ${total.toLocaleString()}` : "Free"}
+                  </div>
                 </div>
               </div>
 
@@ -183,8 +299,13 @@ export function RegistrationWidget({
                   Cancel
                 </Button>
                 <Button type="submit" className="flex-1" disabled={loading || !selectedTicket}>
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ticket className="w-4 h-4 mr-2" />}
-                  Checkout
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : isWaitlist ? (
+                    "Join Waitlist"
+                  ) : (
+                    <><Ticket className="w-4 h-4 mr-2" /> Checkout</>
+                  )}
                 </Button>
               </div>
             </form>

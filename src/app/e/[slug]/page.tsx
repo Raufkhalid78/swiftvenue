@@ -61,6 +61,35 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
         .theme-bg-soft { background-color: rgba(var(--theme-primary), 0.1); }
       `}} />
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Event",
+            name: event.title,
+            description: event.description,
+            startDate: event.date,
+            location: {
+              "@type": "Place",
+              name: event.venue_name,
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: event.venue_address
+              }
+            },
+            image: event.hero_image_url ? [event.hero_image_url] : undefined,
+            offers: {
+              "@type": "Offer",
+              price: event.ticket_price || 0,
+              priceCurrency: "PKR",
+              availability: "https://schema.org/InStock",
+              url: `https://swiftvenue.com/e/${event.slug}`
+            }
+          })
+        }}
+      />
+
       {/* --- MODERN TEMPLATE --- */}
       {template === 'modern' && (
         <>

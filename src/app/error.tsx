@@ -24,7 +24,7 @@ export default function Error({
           <div className="relative w-24 h-24 mb-4">
             <Image 
               src="/logo.svg" 
-              alt="ShaadiLink Logo"
+              alt="SwiftVenue Logo"
               fill
               className="object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.3)]" 
               priority
