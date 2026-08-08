@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
     try {
       if (process.env.RESEND_API_KEY) {
         const { data, error } = await resend.emails.send({
-          from: 'SwiftVenue Contact <support@swiftvenue.com>',
-          to: 'support@swiftvenue.com', // Using standard admin email
+          from: 'SwiftVenue Contact <support@swiftvenuehq.com>',
+          to: 'support@swiftvenuehq.com', // Using standard admin email
           subject: `New Contact Form Message from ${name.trim()}`,
           text: `Name: ${name.trim()}\nEmail: ${email.trim()}\n\nMessage:\n${message.trim()}`,
         })

@@ -18,7 +18,7 @@ export function RegistrationWidget({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ name: "", email: "" });
+  const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
   const [selectedTicketId, setSelectedTicketId] = useState<string>(ticketTypes[0]?.id || "");
   const [quantity, setQuantity] = useState(1);
   
@@ -101,6 +101,7 @@ export function RegistrationWidget({
           eventId,
           guestName: formData.name,
           guestEmail: formData.email,
+          guestPhone: formData.phone,
           ticketTypeId: selectedTicketId,
           quantity,
           promoCode: promoData?.valid ? promoCode : undefined
@@ -247,6 +248,16 @@ export function RegistrationWidget({
                   placeholder="jane@example.com" 
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number (Optional)</Label>
+                <Input 
+                  id="phone" 
+                  type="tel" 
+                  placeholder="+923001234567" 
+                  value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
               

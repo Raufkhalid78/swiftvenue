@@ -109,8 +109,10 @@ export async function POST(request: NextRequest) {
       event_id: order.event_id,
       guest_name: order.guest_name,
       guest_email: order.guest_email,
+      guest_phone: order.guest_phone || null,
       ticket_type_id: order.ticket_type_id,
-      status: 'registered'
+      status: 'registered',
+      order_id: order.id
     }));
 
     const { error: attendeeErr } = await service
@@ -149,6 +151,28 @@ export async function POST(request: NextRequest) {
           status: 'pending'
         });
         if (commErr) console.error('Failed to save affiliate commission:', commErr);
+        if (commErr) console.error('Failed to save affiliate commission:', commErr);
+      }
+    }
+
+    // 5. Send WhatsApp notification
+    if (order.guest_phone) {
+      const { data: eventDetails } = await service
+        .from('events')
+        .select('title')
+        .eq('id', order.event_id)
+        .single();
+        
+      if (eventDetails) {
+        const { sendTicketViaWhatsApp } = require('@/lib/whatsapp');
+        const host = request.headers.get('host') || 'localhost:3000';
+        const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+        await sendTicketViaWhatsApp(
+          order.guest_phone,
+          order.guest_name,
+          eventDetails.title,
+          `${protocol}://${host}/e/preview-${order.id}`
+        );
       }
     }
 

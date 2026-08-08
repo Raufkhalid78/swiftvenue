@@ -75,7 +75,7 @@ export default function TermsOfServicePage() {
 
           <h2>7. Contact Us</h2>
           <p>
-            If you have any questions about these Terms, please contact us at: <a href="mailto:legal@swiftvenue.com">legal@swiftvenue.com</a>
+            If you have any questions about these Terms, please contact us at: <a href="mailto:legal@swiftvenuehq.com">legal@swiftvenuehq.com</a>
           </p>
         </div>
       </main>

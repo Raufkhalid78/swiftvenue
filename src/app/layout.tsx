@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://swiftvenue.com"),
+  metadataBase: new URL("https://swiftvenuehq.com"),
   applicationName: "SwiftVenue",
   title: "SwiftVenue — Modern Event Management SaaS",
   description: "Seamlessly manage corporate, social, cultural, and educational events with our modern, highly intuitive event platform.",

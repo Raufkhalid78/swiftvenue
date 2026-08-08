@@ -284,6 +284,8 @@ CREATE TABLE IF NOT EXISTS public.waitlists (
   guest_name      TEXT NOT NULL,
   guest_email     TEXT NOT NULL,
   status          TEXT DEFAULT 'waiting' CHECK (status IN ('waiting', 'notified', 'purchased', 'expired')),
+  notified_at     TIMESTAMPTZ,
+  offer_expires_at TIMESTAMPTZ,
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -299,6 +301,24 @@ CREATE POLICY "waitlists_update_owner" ON public.waitlists FOR UPDATE USING (
 CREATE POLICY "waitlists_delete_owner" ON public.waitlists FOR DELETE USING (
   event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
 );
+
+CREATE OR REPLACE FUNCTION public.notify_next_waitlist_entry(p_ticket_type_id UUID)
+RETURNS UUID AS $$
+DECLARE v_entry_id UUID;
+BEGIN
+  SELECT id INTO v_entry_id FROM public.waitlists
+  WHERE ticket_type_id = p_ticket_type_id AND status = 'waiting'
+  ORDER BY created_at ASC LIMIT 1;
+
+  IF v_entry_id IS NOT NULL THEN
+    UPDATE public.waitlists
+    SET status = 'notified', notified_at = NOW(), offer_expires_at = NOW() + INTERVAL '15 minutes'
+    WHERE id = v_entry_id;
+  END IF;
+
+  RETURN v_entry_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS promo_code TEXT,
@@ -381,3 +401,88 @@ CREATE POLICY "upgrade_requests_select_admin" ON public.upgrade_requests FOR SEL
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE)
 );
 
+
+-- --- Sprint 2: Refunds & Team Collaboration ------------------
+
+-- 1. Phone numbers and refund tracking
+ALTER TABLE public.attendees
+  ADD COLUMN IF NOT EXISTS guest_phone TEXT;
+
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS guest_phone TEXT,
+  ADD COLUMN IF NOT EXISTS refund_status TEXT DEFAULT 'none' CHECK (refund_status IN ('none', 'requested', 'refunded')),
+  ADD COLUMN IF NOT EXISTS refund_amount NUMERIC(10, 2) DEFAULT 0.00;
+
+-- 2. Team Accounts
+CREATE TABLE IF NOT EXISTS public.event_collaborators (
+  event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  user_id         UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  role            TEXT DEFAULT 'editor' CHECK (role IN ('editor', 'viewer')),
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (event_id, user_id)
+);
+
+ALTER TABLE public.event_collaborators ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "event_collaborators_select" ON public.event_collaborators FOR SELECT USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid()) OR user_id = auth.uid()
+);
+CREATE POLICY "event_collaborators_insert" ON public.event_collaborators FOR INSERT WITH CHECK (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid())
+);
+CREATE POLICY "event_collaborators_delete" ON public.event_collaborators FOR DELETE USING (
+  event_id IN (SELECT id FROM public.events WHERE user_id = auth.uid()) OR user_id = auth.uid()
+);
+
+-- Access helper for policies
+CREATE OR REPLACE FUNCTION public.check_event_access(p_event_id UUID)
+RETURNS BOOLEAN AS $body
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.events WHERE id = p_event_id AND user_id = auth.uid()
+  ) OR EXISTS (
+    SELECT 1 FROM public.event_collaborators WHERE event_id = p_event_id AND user_id = auth.uid()
+  );
+END;
+$body LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Update Events RLS
+DROP POLICY IF EXISTS "events_update_own" ON public.events;
+CREATE POLICY "events_update_own" ON public.events FOR UPDATE USING (
+  user_id = auth.uid() OR EXISTS (
+    SELECT 1 FROM public.event_collaborators WHERE event_id = id AND user_id = auth.uid() AND role = 'editor'
+  )
+);
+
+-- Update Orders RLS
+DROP POLICY IF EXISTS "orders_select_owner" ON public.orders;
+CREATE POLICY "orders_select_owner" ON public.orders FOR SELECT USING (
+  public.check_event_access(event_id)
+);
+
+-- Update Attendees RLS
+DROP POLICY IF EXISTS "attendees_select_owner" ON public.attendees;
+CREATE POLICY "attendees_select_owner" ON public.attendees FOR SELECT USING (
+  public.check_event_access(event_id)
+);
+
+-- Update Ticket Types RLS
+DROP POLICY IF EXISTS "ticket_types_select" ON public.ticket_types;
+CREATE POLICY "ticket_types_select" ON public.ticket_types FOR SELECT USING (
+  public.check_event_access(event_id) OR event_id IN (SELECT id FROM public.events WHERE status = 'published')
+);
+
+DROP POLICY IF EXISTS "ticket_types_insert_own" ON public.ticket_types;
+CREATE POLICY "ticket_types_insert_own" ON public.ticket_types FOR INSERT WITH CHECK (
+  public.check_event_access(event_id)
+);
+
+DROP POLICY IF EXISTS "ticket_types_update_own" ON public.ticket_types;
+CREATE POLICY "ticket_types_update_own" ON public.ticket_types FOR UPDATE USING (
+  public.check_event_access(event_id)
+);
+
+DROP POLICY IF EXISTS "ticket_types_delete_own" ON public.ticket_types;
+CREATE POLICY "ticket_types_delete_own" ON public.ticket_types FOR DELETE USING (
+  public.check_event_access(event_id)
+);

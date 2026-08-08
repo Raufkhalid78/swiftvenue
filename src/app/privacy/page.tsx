@@ -60,7 +60,7 @@ export default function PrivacyPolicyPage() {
 
           <h2>6. Contact Us</h2>
           <p>
-            If you have questions or comments about this Privacy Policy, please contact us at: <a href="mailto:privacy@swiftvenue.com">privacy@swiftvenue.com</a>
+            If you have questions or comments about this Privacy Policy, please contact us at: <a href="mailto:privacy@swiftvenuehq.com">privacy@swiftvenuehq.com</a>
           </p>
         </div>
       </main>

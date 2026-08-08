@@ -35,7 +35,7 @@ Key Features of SwiftVenue:
 - Broadcast Messaging: Organizers can send mass email updates to all their attendees.
 - Analytics & Dashboard: Real-time insights into ticket sales and check-ins.
 
-If a customer asks a complex question you cannot answer, or if they explicitly ask to speak to a human, apologize and politely tell them they can reach our human support team directly at support@swiftvenue.com. Keep your answers reasonably concise. Never make up features or pricing that isn't listed here.`;
+If a customer asks a complex question you cannot answer, or if they explicitly ask to speak to a human, apologize and politely tell them they can reach our human support team directly at support@swiftvenuehq.com. Keep your answers reasonably concise. Never make up features or pricing that isn't listed here.`;
 
     const result = await streamText({
       model: openrouter('google/gemini-2.5-flash'),

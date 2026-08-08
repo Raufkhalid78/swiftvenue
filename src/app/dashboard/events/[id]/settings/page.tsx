@@ -90,7 +90,7 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
           <div className="space-y-2">
             <Label>URL Slug</Label>
             <Input value={event.slug} onChange={e => setEvent({...event, slug: e.target.value})} required />
-            <p className="text-xs text-muted-foreground">swiftvenue.com/e/{event.slug}</p>
+            <p className="text-xs text-muted-foreground">swiftvenuehq.com/e/{event.slug}</p>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Description</Label>

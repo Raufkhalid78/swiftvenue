@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import TicketConfirmationEmail from '@/emails/TicketConfirmation';
+import WaitlistOfferEmail from '@/emails/WaitlistOffer';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_mock_key');
 
@@ -31,7 +32,7 @@ export async function sendTicketConfirmation({
 
   try {
     const data = await resend.emails.send({
-      from: 'SwiftVenue <tickets@swiftvenue.com>', // Assuming verified domain
+      from: 'SwiftVenue <tickets@swiftvenuehq.com>', // Assuming verified domain
       to: [to],
       subject: `Your ticket for ${eventName}`,
       react: TicketConfirmationEmail({
@@ -49,6 +50,53 @@ export async function sendTicketConfirmation({
     return data;
   } catch (error) {
     console.error("Failed to send ticket confirmation email:", error);
+    throw error;
+  }
+}
+
+export async function sendWaitlistOffer({
+  to,
+  guestName,
+  eventName,
+  eventDate,
+  eventTime,
+  ticketName,
+  checkoutUrl,
+  expiresAt,
+}: {
+  to: string;
+  guestName: string;
+  eventName: string;
+  eventDate: string;
+  eventTime: string;
+  ticketName: string;
+  checkoutUrl: string;
+  expiresAt: string;
+}) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("RESEND_API_KEY is not set. Simulating email send to:", to);
+    return { id: "mock_id" };
+  }
+
+  try {
+    const data = await resend.emails.send({
+      from: 'SwiftVenue <tickets@swiftvenuehq.com>',
+      to: [to],
+      subject: `A ticket opened up for ${eventName}!`,
+      react: WaitlistOfferEmail({
+        guestName,
+        eventName,
+        eventDate,
+        eventTime,
+        ticketName,
+        checkoutUrl,
+        expiresAt,
+      }) as React.ReactElement,
+    });
+
+    return data;
+  } catch (error) {
+    console.error("Failed to send waitlist offer email:", error);
     throw error;
   }
 }

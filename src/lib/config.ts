@@ -2,7 +2,7 @@
 
 export const CONTACT_CONFIG = {
   // Primary email address for customer queries and legal issues
-  email: "support@swiftvenue.com",
+  email: "support@swiftvenuehq.com",
 
   // Contact phone number displayed on the website
   phone: "+44 7517 879333",
@@ -20,7 +20,7 @@ export const CONTACT_CONFIG = {
   responseTime: "We typically respond within 24–48 hours",
 
   // Official domain name of the platform
-  domain: "swiftvenue.com",
+  domain: "swiftvenuehq.com",
 
   // Social media handle links
   socials: {

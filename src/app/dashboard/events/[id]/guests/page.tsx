@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Download, UserPlus, MoreHorizontal, CheckCircle2, XCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function GuestsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -17,7 +18,7 @@ export default function GuestsPage({ params }: { params: Promise<{ id: string }>
       const supabase = createClient();
       const { data } = await supabase
         .from('attendees')
-        .select('*')
+        .select('*, orders(refund_status)')
         .eq('event_id', resolvedParams.id)
         .order('created_at', { ascending: false });
       
@@ -26,6 +27,21 @@ export default function GuestsPage({ params }: { params: Promise<{ id: string }>
     }
     loadGuests();
   }, [resolvedParams.id]);
+
+  const handleApproveRefund = async (orderId: string) => {
+    try {
+      const res = await fetch('/api/payment/refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, action: 'approve' })
+      });
+      if (res.ok) {
+        setGuests(guests.map(g => g.order_id === orderId ? { ...g, status: 'cancelled', orders: { ...g.orders, refund_status: 'refunded' } } : g));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const stats = {
     total: guests.length,
@@ -123,9 +139,24 @@ export default function GuestsPage({ params }: { params: Promise<{ id: string }>
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>View Details</DropdownMenuItem>
+                          {guest.orders?.refund_status === 'requested' && (
+                            <DropdownMenuItem className="text-amber-600 focus:text-amber-700" onClick={() => handleApproveRefund(guest.order_id)}>
+                              Approve Refund
+                            </DropdownMenuItem>
+                          )}
+                          {guest.orders?.refund_status === 'refunded' && (
+                            <DropdownMenuItem disabled>Refunded</DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))

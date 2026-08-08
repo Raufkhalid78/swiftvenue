@@ -57,7 +57,7 @@ export function Footer() {
           <p>© {new Date().getFullYear()} SwiftVenue. All rights reserved.</p>
           <div className="flex items-center gap-2">
             <Mail className="w-4 h-4" /> 
-            <a href="mailto:hello@swiftvenue.com" className="hover:text-primary transition-colors">hello@swiftvenue.com</a>
+            <a href="mailto:hello@swiftvenuehq.com" className="hover:text-primary transition-colors">hello@swiftvenuehq.com</a>
           </div>
         </div>
       </div>

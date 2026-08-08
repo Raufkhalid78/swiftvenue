@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
       const emailChunk = emails.slice(i, i + chunkSize);
       
       const { error: sendError } = await resend.emails.send({
-        from: `SwiftVenue <updates@swiftvenue.com>`,
-        to: ['updates@swiftvenue.com'], // The main to address
+        from: `SwiftVenue <updates@swiftvenuehq.com>`,
+        to: ['updates@swiftvenuehq.com'], // The main to address
         bcc: emailChunk, // Hide attendee emails from each other
         subject: `${subject} - ${event.title}`,
         text: body,

@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { Users, Eye, CreditCard, TrendingUp, Calendar, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 export default function EventOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -11,6 +12,8 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
   const [event, setEvent] = useState<any>(null);
   const [metrics, setMetrics] = useState({ rsvps: 0, sales: 0, views: 0 });
   const [recentAttendees, setRecentAttendees] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<{ day: string; count: number }[]>([]);
+  const [ticketData, setTicketData] = useState<{ name: string; value: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,17 +48,33 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
         // Fetch Recent Attendees
         const { data: attendees } = await supabase
           .from('attendees')
-          .select('*')
+          .select('*, ticket_types(name)')
           .eq('event_id', eventId)
-          .order('created_at', { ascending: false })
-          .limit(5);
+          .order('created_at', { ascending: false });
 
         setMetrics({
           rsvps: rsvpCount || 0,
           sales: totalSales,
           views: 0, // Views tracking not implemented yet
         });
-        setRecentAttendees(attendees || []);
+        setRecentAttendees((attendees || []).slice(0, 5));
+
+        if (attendees) {
+          // Group for line/bar chart by day
+          const countsByDay: Record<string, number> = {};
+          const countsByTicket: Record<string, number> = {};
+
+          attendees.forEach(a => {
+            const day = new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            countsByDay[day] = (countsByDay[day] || 0) + 1;
+            
+            const ticketName = (a.ticket_types as any)?.name || 'General';
+            countsByTicket[ticketName] = (countsByTicket[ticketName] || 0) + 1;
+          });
+
+          setChartData(Object.entries(countsByDay).map(([day, count]) => ({ day, count })));
+          setTicketData(Object.entries(countsByTicket).map(([name, value]) => ({ name, value })));
+        }
       }
       
       setLoading(false);
@@ -122,6 +141,47 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
           <p className="text-sm font-medium text-muted-foreground mb-2">Conversion Rate</p>
           <div className="relative w-16 h-16 rounded-full border-4 border-primary flex items-center justify-center">
             <span className="font-bold">0%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="rounded-xl border border-border bg-card shadow-sm p-6">
+          <h3 className="font-semibold text-lg font-display mb-6">Registrations Over Time</h3>
+          <div className="h-64">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <XAxis dataKey="day" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => String(value)} />
+                  <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Bar dataKey="count" fill="#0f172a" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No data to display</div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card shadow-sm p-6">
+          <h3 className="font-semibold text-lg font-display mb-6">Ticket Types Breakdown</h3>
+          <div className="h-64">
+            {ticketData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={ticketData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5}>
+                    {ticketData.map((entry, index) => (
+                      <Cell key={'cell-' + index} fill={['#0f172a', '#334155', '#64748b', '#94a3b8'][index % 4]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No data to display</div>
+            )}
           </div>
         </div>
       </div>

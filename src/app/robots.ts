@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/dashboard/', '/admin/', '/api/'],
     },
-    sitemap: 'https://swiftvenue.com/sitemap.xml',
+    sitemap: 'https://swiftvenuehq.com/sitemap.xml',
   }
 }

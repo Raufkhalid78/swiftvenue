@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, use } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ export default function EventDashboardLayout({
     { name: "Overview", href: `/dashboard/events/${eventId}`, icon: LayoutDashboard },
     { name: "Agenda", href: `/dashboard/events/${eventId}/agenda`, icon: CalendarDays },
     { name: "Guests", href: `/dashboard/events/${eventId}/guests`, icon: Users },
+    { name: "Team", href: `/dashboard/events/${eventId}/team`, icon: Shield },
     { name: "Settings", href: `/dashboard/events/${eventId}/settings`, icon: Settings },
   ];
 

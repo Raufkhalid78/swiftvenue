@@ -80,7 +80,7 @@ export function AffiliateDashboardClient({
 
   const shareOnWhatsApp = () => {
     if (!referralCode) return;
-    const text = encodeURIComponent(`Use my code *${referralCode.code}* on SwiftVenue for 10% off your event ticketing fees! 🎉 https://swiftvenue.com`);
+    const text = encodeURIComponent(`Use my code *${referralCode.code}* on SwiftVenue for 10% off your event ticketing fees! 🎉 https://swiftvenuehq.com`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 

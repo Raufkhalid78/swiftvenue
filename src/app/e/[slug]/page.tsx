@@ -84,7 +84,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               price: event.ticket_price || 0,
               priceCurrency: "PKR",
               availability: "https://schema.org/InStock",
-              url: `https://swiftvenue.com/e/${event.slug}`
+              url: `https://swiftvenuehq.com/e/${event.slug}`
             }
           })
         }}

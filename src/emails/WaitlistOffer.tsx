@@ -6,80 +6,62 @@ import {
   Container,
   Section,
   Text,
-  Img,
   Heading,
   Hr,
   Button,
 } from '@react-email/components';
 
-interface TicketConfirmationEmailProps {
+interface WaitlistOfferEmailProps {
   guestName: string;
   eventName: string;
   eventDate: string;
   eventTime: string;
-  venueName: string;
-  venueAddress: string;
-  orderId: string;
-  attendeeId: string;
+  ticketName: string;
+  checkoutUrl: string;
+  expiresAt: string;
 }
 
-export const TicketConfirmationEmail = ({
+export const WaitlistOfferEmail = ({
   guestName,
   eventName,
   eventDate,
   eventTime,
-  venueName,
-  venueAddress,
-  orderId,
-  attendeeId,
-}: TicketConfirmationEmailProps) => {
+  ticketName,
+  checkoutUrl,
+  expiresAt,
+}: WaitlistOfferEmailProps) => {
   return (
     <Html>
       <Head />
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>You're in!</Heading>
+          <Heading style={h1}>Good news! A ticket opened up.</Heading>
           <Text style={text}>Hi {guestName},</Text>
           <Text style={text}>
-            Your payment was successful and your spot for <strong>{eventName}</strong> is confirmed. We can't wait to see you there!
+            You were on the waitlist for <strong>{eventName}</strong>, and a spot just became available!
           </Text>
 
           <Section style={ticketBox}>
-            <Text style={ticketTitle}>🎟️ General Admission Ticket</Text>
+            <Text style={ticketTitle}>🎫 {ticketName}</Text>
             <Hr style={hr} />
             <Text style={ticketDetails}>
               <strong>Date:</strong> {eventDate} at {eventTime}
             </Text>
             <Text style={ticketDetails}>
-              <strong>Location:</strong> {venueName}
+              <strong>Important:</strong> This offer expires at {new Date(expiresAt).toLocaleString()}. 
+              If you don't claim it by then, we'll offer the spot to the next person on the waitlist.
             </Text>
-            <Text style={ticketDetails}>
-              <span style={{ color: '#666' }}>{venueAddress}</span>
-            </Text>
-            <Hr style={hr} />
-            <div style={{ textAlign: 'center', margin: '20px 0' }}>
-              <Img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${attendeeId}`} 
-                width="150" 
-                height="150" 
-                alt="Ticket QR Code" 
-                style={{ margin: '0 auto' }}
-              />
-              <Text style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>Scan at door</Text>
-            </div>
-            <Hr style={hr} />
-            <Text style={orderIdText}>Order ID: {orderId}</Text>
+          </Section>
+
+          <Section style={buttonContainer}>
+            <Button style={button} href={checkoutUrl}>
+              Claim Your Ticket
+            </Button>
           </Section>
 
           <Text style={text}>
-            Please keep this email handy, as you may be asked to show your Order ID at the door.
+            If you can no longer attend, you can simply ignore this email.
           </Text>
-
-          <Section style={buttonContainer}>
-            <Button style={button} href={`https://swiftvenuehq.com/e/preview-${orderId}`}>
-              View Event Details
-            </Button>
-          </Section>
 
           <Hr style={hr} />
           <Text style={footer}>
@@ -91,7 +73,7 @@ export const TicketConfirmationEmail = ({
   );
 };
 
-export default TicketConfirmationEmail;
+export default WaitlistOfferEmail;
 
 const main = {
   backgroundColor: '#f6f9fc',
@@ -141,13 +123,6 @@ const ticketDetails = {
   fontSize: '15px',
   color: '#0f172a',
   margin: '8px 0',
-};
-
-const orderIdText = {
-  fontSize: '13px',
-  color: '#64748b',
-  margin: '16px 0 0',
-  fontFamily: 'monospace',
 };
 
 const buttonContainer = {

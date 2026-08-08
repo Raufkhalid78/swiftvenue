@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
+import { calculatePlatformFee } from '@/lib/fees';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { eventId, guestName, guestEmail, ticketTypeId, quantity = 1, promoCode } = body;
+    const { eventId, guestName, guestEmail, guestPhone, ticketTypeId, quantity = 1, promoCode } = body;
 
     if (!eventId || !guestName || !guestEmail || !ticketTypeId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Verify the event exists and is published
     const { data: event, error: eventError } = await service
       .from('events')
-      .select('id, title, status, user_id, date, time, venue_name, venue_address, profiles(plan)')
+      .select('id, title, slug, status, user_id, date, time, venue_name, venue_address, profiles(plan)')
       .eq('id', eventId)
       .single();
 
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Verify the ticket type and get the actual price
     const { data: ticketType, error: ticketError } = await service
       .from('ticket_types')
-      .select('id, price, currency, is_active')
+      .select('id, name, price, currency, is_active')
       .eq('id', ticketTypeId)
       .eq('event_id', eventId)
       .single();
@@ -89,9 +90,7 @@ export async function POST(request: NextRequest) {
       .eq('id', organizerPlan || 'free')
       .single();
 
-    const platformFee = amount > 0
-      ? (amount * (Number(planConfig?.fee_percent ?? 7) / 100)) + (Number(planConfig?.fee_fixed ?? 30) * quantity)
-      : 0;
+    const platformFee = calculatePlatformFee(amount, quantity, planConfig);
 
     const totalCharged = amount + platformFee;
 
@@ -102,6 +101,7 @@ export async function POST(request: NextRequest) {
         event_id: eventId,
         guest_name: guestName,
         guest_email: guestEmail,
+        guest_phone: guestPhone || null,
         amount: totalCharged,
         currency: ticketType.currency || 'PKR',
         status: 'pending',
@@ -119,6 +119,30 @@ export async function POST(request: NextRequest) {
       console.error('Failed to create pending order:', orderErr);
       // Rollback reservation on failure
       await service.rpc('reserve_ticket', { p_ticket_type_id: ticketTypeId, p_qty: -quantity });
+      
+      const releasedEntryId = await service.rpc('notify_next_waitlist_entry', { p_ticket_type_id: ticketTypeId });
+      if (releasedEntryId.data) {
+        const { data: entry } = await service.from('waitlists').select('*').eq('id', releasedEntryId.data).single();
+        if (entry && event) {
+          try {
+            const { sendWaitlistOffer } = require('@/lib/email');
+            const host = request.headers.get('host') || 'localhost:3000';
+            const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+            await sendWaitlistOffer({ 
+              to: entry.guest_email, 
+              guestName: entry.guest_name, 
+              eventName: event.title,
+              eventDate: event.date,
+              eventTime: event.time || 'TBD',
+              ticketName: ticketType.name || 'General Admission',
+              checkoutUrl: `${protocol}://${host}/e/${event.slug}?ticket=${ticketTypeId}`,
+              expiresAt: entry.offer_expires_at 
+            });
+          } catch (e) {
+            console.error('Waitlist offer email failed:', e);
+          }
+        }
+      }
       return NextResponse.json({ error: 'Failed to initialize ticket purchase' }, { status: 500 });
     }
 
@@ -130,6 +154,7 @@ export async function POST(request: NextRequest) {
         event_id: eventId,
         guest_name: guestName,
         guest_email: guestEmail,
+        guest_phone: guestPhone || null,
         ticket_type_id: ticketTypeId,
         status: 'registered',
         order_id: order.id
@@ -151,6 +176,18 @@ export async function POST(request: NextRequest) {
             orderId: order.id,
             attendeeId: attendeeId,
           });
+
+          if (guestPhone) {
+            const { sendTicketViaWhatsApp } = require('@/lib/whatsapp');
+            const host = request.headers.get('host') || 'localhost:3000';
+            const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+            await sendTicketViaWhatsApp(
+              guestPhone,
+              guestName,
+              event.title,
+              `${protocol}://${host}/e/preview-${order.id}`
+            );
+          }
         } catch (e) {
           console.error('Free ticket email failed:', e);
         }
@@ -223,6 +260,29 @@ export async function POST(request: NextRequest) {
       });
     } catch (err: any) {
       await service.rpc('reserve_ticket', { p_ticket_type_id: ticketTypeId, p_qty: -quantity });
+      const releasedEntryId = await service.rpc('notify_next_waitlist_entry', { p_ticket_type_id: ticketTypeId });
+      if (releasedEntryId.data) {
+        const { data: entry } = await service.from('waitlists').select('*').eq('id', releasedEntryId.data).single();
+        if (entry && event) {
+          try {
+            const { sendWaitlistOffer } = require('@/lib/email');
+            const host = request.headers.get('host') || 'localhost:3000';
+            const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+            await sendWaitlistOffer({ 
+              to: entry.guest_email, 
+              guestName: entry.guest_name, 
+              eventName: event.title,
+              eventDate: event.date,
+              eventTime: event.time || 'TBD',
+              ticketName: ticketType.name || 'General Admission',
+              checkoutUrl: `${protocol}://${host}/e/${event.slug}?ticket=${ticketTypeId}`,
+              expiresAt: entry.offer_expires_at 
+            });
+          } catch (e) {
+            console.error('Waitlist offer email failed:', e);
+          }
+        }
+      }
       console.error('Checkout initialization failed, reservation released:', err);
       return NextResponse.json({ error: 'Failed to initialize checkout' }, { status: 500 });
     }

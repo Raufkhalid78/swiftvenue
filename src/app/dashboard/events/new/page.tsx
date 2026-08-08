@@ -239,7 +239,7 @@ export default function CreateEventWizard() {
                 <Label htmlFor="slug">Custom URL Slug</Label>
                 <div className="flex items-center">
                   <span className="bg-muted px-3 py-2 border border-r-0 border-border rounded-l-md text-muted-foreground text-sm">
-                    swiftvenue.com/e/
+                    swiftvenuehq.com/e/
                   </span>
                   <Input 
                     id="slug" 
