@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LayoutDashboard, Calendar, Users, Settings, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Settings, LogOut, Menu, DollarSign, CreditCard } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
     { name: "My Events", href: "/dashboard/events", icon: Calendar },
     { name: "Guest Lists", href: "/dashboard/guests", icon: Users },
+    { name: "Earnings", href: "/dashboard/earnings", icon: DollarSign },
+    { name: "Billing & Plans", href: "/dashboard/billing", icon: CreditCard },
   ];
 
   const SidebarContent = () => (

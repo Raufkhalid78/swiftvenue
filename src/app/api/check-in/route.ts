@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Fetch attendee to ensure it exists and get current status
     const { data: attendee, error: fetchError } = await service
       .from("attendees")
-      .select("*, events(title, organizer_id), ticket_types(name)")
+      .select("*, events(title, user_id), ticket_types(name)")
       .eq("id", attendeeId)
       .single();
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     // For attendees to events, it's a many-to-one, so it's a single object.
     const event = Array.isArray(attendee.events) ? attendee.events[0] : attendee.events;
     
-    if (event?.organizer_id !== user.id) {
+    if (event?.user_id !== user.id) {
       return NextResponse.json({ error: "Forbidden: You do not own the event for this ticket." }, { status: 403 });
     }
 

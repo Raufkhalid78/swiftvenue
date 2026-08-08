@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     // Fetch the event
     const { data: event, error: eventErr } = await service
       .from("events")
-      .select("title, organizer_id")
+      .select("title, user_id")
       .eq("id", eventId)
       .single();
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    if (event.organizer_id !== user.id) {
+    if (event.user_id !== user.id) {
       return NextResponse.json({ error: "Forbidden: You do not own this event" }, { status: 403 });
     }
 

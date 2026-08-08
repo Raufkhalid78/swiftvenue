@@ -18,7 +18,7 @@ export default async function EventsDirectory({
 
   let query = supabase
     .from("events")
-    .select("*, ticket_types(price, is_active)")
+    .select("id, title, slug, type, description, date, time, venue_name, venue_address, hero_image_url, theme_color, ticket_price, ticket_types(price, is_active)")
     .eq("status", "published")
     .order("created_at", { ascending: false });
 

@@ -161,7 +161,7 @@ export function AffiliateDashboardClient({
               
               <div className="space-y-2">
                 <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
-                  Give 10% Off, Earn 10% Commission
+                  Give 10% Off, Earn 30% of Platform Fees
                 </h2>
                 <p className="text-muted-foreground text-sm sm:text-base max-w-lg mx-auto">
                   Share this code with event organizers. They get a discount on their premium ticketing platform, and you earn cash for the referral.
@@ -249,7 +249,7 @@ export function AffiliateDashboardClient({
                 {[
                   { title: "Get Your Code", desc: "Generate your unique 10% discount code." },
                   { title: "Share With Couples", desc: "Share via WhatsApp, Instagram, or your blog." },
-                  { title: "Earn Cash", desc: "You earn 10% commission when they purchase." }
+                  { title: "Earn Cash", desc: "You earn a 30% commission on the platform fee when they purchase." }
                 ].map((step, i) => (
                   <div key={i} className="relative flex items-start gap-4">
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background border-2 border-emerald text-emerald font-bold text-sm z-10 shadow-sm shrink-0">

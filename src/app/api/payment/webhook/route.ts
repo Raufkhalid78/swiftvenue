@@ -138,8 +138,9 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (refCode?.user_id) {
-        // Calculate 10% commission of the final order amount
-        const commissionAmount = order.amount * 0.10;
+        // Calculate 30% commission of the platform fee, not gross order amount
+        const AFFILIATE_COMMISSION_RATE = 0.30;
+        const commissionAmount = Number(order.platform_fee_amount || 0) * AFFILIATE_COMMISSION_RATE;
         const { error: commErr } = await service.from('affiliate_commissions').insert({
           affiliate_id: refCode.user_id,
           order_id: order.id,

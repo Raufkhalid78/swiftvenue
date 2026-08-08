@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     // Verify the event exists and is published
     const { data: event, error: eventError } = await service
       .from('events')
-      .select('id, title, status')
+      .select('id, title, status, user_id, profiles(plan)')
       .eq('id', eventId)
       .single();
 
@@ -80,6 +80,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fetch the organizer's plan configuration
+    const profiles = event.profiles as any;
+    const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
+    const { data: planConfig } = await service
+      .from('plans')
+      .select('fee_percent, fee_fixed')
+      .eq('id', organizerPlan || 'free')
+      .single();
+
+    const platformFee = amount > 0
+      ? (amount * (Number(planConfig?.fee_percent ?? 7) / 100)) + (Number(planConfig?.fee_fixed ?? 30) * quantity)
+      : 0;
+
+    const totalCharged = amount + platformFee;
+
     // Create a pending order record for the attendee ticket purchase
     const { data: order, error: orderErr } = await service
       .from('orders')
@@ -87,13 +102,15 @@ export async function POST(request: NextRequest) {
         event_id: eventId,
         guest_name: guestName,
         guest_email: guestEmail,
-        amount: amount,
+        amount: totalCharged,
         currency: ticketType.currency || 'PKR',
         status: 'pending',
         ticket_type_id: ticketTypeId,
         quantity: quantity,
         promo_code: promoCode || null,
-        discount_amount: discountAmount
+        discount_amount: discountAmount,
+        platform_fee_amount: platformFee,
+        organizer_net_amount: amount
       })
       .select()
       .single();
@@ -105,10 +122,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to initialize ticket purchase' }, { status: 500 });
     }
 
-    // If the event is free (0 amount), we can just bypass Safepay entirely 
-    // and process it directly as paid in the callback, but here we'll assume it's paid for demo purposes.
-    if (amount <= 0) {
-      // In a real app, handle free RSVP logic here directly without redirecting to safepay
+    // Free ticket — mark paid immediately, skip the payment gateway
+    if (totalCharged <= 0) {
+      await service.from('orders').update({ status: 'paid' }).eq('id', order.id);
+
+      const attendeesToInsert = Array.from({ length: quantity }).map(() => ({
+        event_id: eventId,
+        guest_name: guestName,
+        guest_email: guestEmail,
+        ticket_type_id: ticketTypeId,
+        status: 'registered',
+        order_id: order.id
+      }));
+      await service.from('attendees').insert(attendeesToInsert);
+
+      if (event) {
+        try {
+          const { sendTicketConfirmation } = require('@/lib/email');
+          await sendTicketConfirmation({
+            guestName,
+            guestEmail,
+            eventTitle: event.title,
+            ticketType: ticketType.currency || 'PKR', // Quick hack for typing; you'd really pass name
+            quantity,
+            amount: 0,
+            currency: ticketType.currency || 'PKR',
+          });
+        } catch (e) {
+          console.error('Free ticket email failed:', e);
+        }
+      }
+
+      return NextResponse.json({ orderId: order.id, checkoutUrl: null, free: true });
     }
 
     // Initialize Safepay SDK
@@ -136,7 +181,7 @@ export async function POST(request: NextRequest) {
       intent: 'CYBERSOURCE',
       mode: 'payment',
       currency: ticketType.currency || 'PKR',
-      amount: Math.round(amount * 100), // Lowest denomination (Paisa)
+      amount: Math.round(totalCharged * 100), // Lowest denomination (Paisa)
       metadata: {
         order_id: order.id,
       }

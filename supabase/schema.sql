@@ -301,3 +301,75 @@ CREATE POLICY "waitlists_delete_owner" ON public.waitlists FOR DELETE USING (
 ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS promo_code TEXT,
   ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10,2) DEFAULT 0;
+
+-- --- Pricing Model & Payouts (Phase 1) -----------------------
+
+CREATE TABLE IF NOT EXISTS public.plans (
+  id                TEXT PRIMARY KEY,
+  name              TEXT NOT NULL,
+  monthly_price     NUMERIC(10,2),
+  yearly_price      NUMERIC(10,2),
+  fee_percent       NUMERIC(5,2) NOT NULL,
+  fee_fixed         NUMERIC(10,2) NOT NULL,
+  max_concurrent_paid_events INT,
+  remove_branding   BOOLEAN DEFAULT FALSE,
+  broadcast_limit   INT
+);
+
+INSERT INTO public.plans (id, name, monthly_price, yearly_price, fee_percent, fee_fixed, max_concurrent_paid_events, remove_branding, broadcast_limit) VALUES
+  ('free', 'Free', 0, 0, 7.00, 30.00, 1, FALSE, 1),
+  ('pro', 'Pro', 3500, 35000, 3.00, 15.00, NULL, TRUE, NULL),
+  ('enterprise', 'Enterprise', NULL, NULL, 2.00, 0.00, NULL, TRUE, NULL)
+ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_plan_fk FOREIGN KEY (plan) REFERENCES public.plans(id);
+
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS platform_fee_amount NUMERIC(10,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS organizer_net_amount NUMERIC(10,2);
+
+CREATE TABLE IF NOT EXISTS public.organizer_payout_methods (
+  user_id       UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+  method        TEXT CHECK (method IN ('bank', 'jazzcash', 'easypaisa')),
+  account_details JSONB,
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.payouts (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id       UUID NOT NULL REFERENCES public.profiles(id),
+  amount        NUMERIC(10,2) NOT NULL,
+  order_ids     UUID[] NOT NULL,
+  status        TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'paid', 'failed')),
+  paid_at       TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS for Organizer Payouts
+ALTER TABLE public.organizer_payout_methods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payouts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "org_payout_methods_select_own" ON public.organizer_payout_methods FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "org_payout_methods_insert_own" ON public.organizer_payout_methods FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "org_payout_methods_update_own" ON public.organizer_payout_methods FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "payouts_select_own" ON public.payouts FOR SELECT USING (auth.uid() = user_id);
+
+
+-- --- Upgrade Requests (Phase 4) -----------------------
+
+CREATE TABLE IF NOT EXISTS public.upgrade_requests (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id         UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  plan_id         TEXT NOT NULL REFERENCES public.plans(id),
+  reference_number TEXT NOT NULL,
+  status          TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.upgrade_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "upgrade_requests_select_own" ON public.upgrade_requests FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "upgrade_requests_insert_own" ON public.upgrade_requests FOR INSERT WITH CHECK (auth.uid() = user_id);
+

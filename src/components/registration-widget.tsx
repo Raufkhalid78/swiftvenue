@@ -115,7 +115,7 @@ export function RegistrationWidget({
       } else {
         // Handle free tickets
         toast.success("Ticket registered successfully!");
-        setIsOpen(false);
+        window.location.href = `${window.location.pathname}/success?order=${data.orderId}`;
       }
     } catch (error: any) {
       toast.error(error.message);
