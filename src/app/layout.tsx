@@ -30,9 +30,6 @@ export const metadata: Metadata = {
   title: "SwiftVenue — Modern Event Management SaaS",
   description: "Seamlessly manage corporate, social, cultural, and educational events with our modern, highly intuitive event platform.",
   keywords: ["SwiftVenue", "event management", "event SaaS", "corporate events", "social events"],
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({

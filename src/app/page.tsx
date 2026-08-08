@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Footer } from "@/components/footer";
-import { CalendarDays, Users, CreditCard, Sparkles, CheckCircle2 } from "lucide-react";
+import { CalendarDays, Users, CreditCard, Sparkles, CheckCircle2, QrCode } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import Image from "next/image";
 
 export default async function LandingPage() {
   const supabase = await createClient();
@@ -23,6 +24,8 @@ export default async function LandingPage() {
             <Link href="#how-it-works" className="hover:text-foreground transition-colors">How it Works</Link>
             <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
             <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+            <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
+            <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
@@ -68,17 +71,12 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* Social Proof / Trust Bar */}
+        {/* Positioning Bar */}
         <section className="border-y border-border bg-muted/20 py-10 overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-sm font-medium text-muted-foreground mb-6 uppercase tracking-widest">Trusted by innovative teams worldwide</p>
-            <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all">
-              <div className="font-display font-bold text-2xl">Acme Corp</div>
-              <div className="font-display font-bold text-2xl">Globex</div>
-              <div className="font-display font-bold text-2xl">Soylent</div>
-              <div className="font-display font-bold text-2xl">Initech</div>
-              <div className="font-display font-bold text-2xl">Umbrella</div>
-            </div>
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+              Pakistan's modern event & ticketing platform
+            </p>
           </div>
         </section>
 
@@ -112,6 +110,7 @@ export default async function LandingPage() {
         <section id="features" className="py-24 bg-muted/30 border-y border-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-32">
             
+            {/* Feature 1: Agenda */}
             <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-24">
               <div className="flex-1 space-y-6">
                 <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center"><CalendarDays className="w-6 h-6" /></div>
@@ -123,16 +122,17 @@ export default async function LandingPage() {
                   <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Multi-day schedule support</li>
                 </ul>
               </div>
-              <div className="flex-1 w-full aspect-square md:aspect-[4/3] bg-background rounded-3xl border border-border shadow-lg overflow-hidden flex items-center justify-center p-8">
-                {/* Abstract visualization of an agenda */}
-                <div className="w-full space-y-4">
-                  <div className="w-full h-16 bg-muted rounded-lg flex items-center px-4 gap-4"><div className="w-16 h-6 rounded bg-primary/20"></div><div className="h-4 flex-1 rounded bg-border"></div></div>
-                  <div className="w-full h-16 bg-muted rounded-lg flex items-center px-4 gap-4"><div className="w-16 h-6 rounded bg-primary/20"></div><div className="h-4 flex-1 rounded bg-border"></div></div>
-                  <div className="w-full h-16 bg-muted rounded-lg flex items-center px-4 gap-4"><div className="w-16 h-6 rounded bg-primary/20"></div><div className="h-4 flex-1 rounded bg-border"></div></div>
-                </div>
+              <div className="flex-1 w-full aspect-square md:aspect-[4/3] bg-muted/50 rounded-3xl border border-border overflow-hidden relative shadow-lg">
+                <Image 
+                  src="/mockups/agenda_builder_mockup_1786220553907.jpg"
+                  alt="SwiftVenue drag-and-drop agenda builder interface"
+                  fill
+                  className="object-cover object-center"
+                />
               </div>
             </div>
 
+            {/* Feature 2: Safepay Ticketing */}
             <div className="flex flex-col md:flex-row-reverse items-center gap-12 lg:gap-24">
               <div className="flex-1 space-y-6">
                 <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center"><CreditCard className="w-6 h-6" /></div>
@@ -144,57 +144,107 @@ export default async function LandingPage() {
                   <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Secure checkout redirection</li>
                 </ul>
               </div>
-              <div className="flex-1 w-full aspect-square md:aspect-[4/3] bg-background rounded-3xl border border-border shadow-lg overflow-hidden flex items-center justify-center p-8">
-                {/* Abstract visualization of a checkout */}
-                <div className="w-full max-w-sm bg-card border border-border rounded-xl shadow-sm p-6 space-y-4">
-                  <div className="h-6 w-32 bg-border rounded mb-6"></div>
-                  <div className="h-10 w-full bg-muted rounded"></div>
-                  <div className="h-10 w-full bg-muted rounded"></div>
-                  <div className="h-12 w-full bg-emerald-500/20 rounded mt-4"></div>
-                </div>
+              <div className="flex-1 w-full aspect-square md:aspect-[4/3] bg-muted/50 rounded-3xl border border-border overflow-hidden relative shadow-lg">
+                <Image 
+                  src="/mockups/safepay_ticketing_mockup_1786220564427.jpg"
+                  alt="SwiftVenue ticket checkout flow with Safepay"
+                  fill
+                  className="object-cover object-center"
+                />
+              </div>
+            </div>
+
+            {/* Feature 3: Waitlist */}
+            <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-24">
+              <div className="flex-1 space-y-6">
+                <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center"><Users className="w-6 h-6" /></div>
+                <h2 className="text-3xl md:text-4xl font-display font-bold">Never Lose a Sale to a Sellout</h2>
+                <p className="text-lg text-muted-foreground">When tickets sell out, guests join a waitlist automatically. The moment a ticket frees up — from a refund or a released hold — the next person in line gets a time-limited offer to buy, recovering lost demand automatically.</p>
+                <ul className="space-y-3 pt-4">
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-blue-500" /> Automatic waitlist-to-purchase conversion</li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-blue-500" /> Time-limited purchase windows</li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-blue-500" /> Live ticket inventory management</li>
+                </ul>
+              </div>
+              <div className="flex-1 w-full aspect-square md:aspect-[4/3] bg-muted/50 rounded-3xl border border-border overflow-hidden relative shadow-lg">
+                <Image 
+                  src="/mockups/waitlist_management_mockup_1786220574365.jpg"
+                  alt="SwiftVenue waitlist and capacity management interface"
+                  fill
+                  className="object-cover object-center"
+                />
+              </div>
+            </div>
+
+            {/* Feature 4: Check-in */}
+            <div className="flex flex-col md:flex-row-reverse items-center gap-12 lg:gap-24">
+              <div className="flex-1 space-y-6">
+                <div className="w-12 h-12 bg-purple-500/10 text-purple-500 rounded-xl flex items-center justify-center"><QrCode className="w-6 h-6" /></div>
+                <h2 className="text-3xl md:text-4xl font-display font-bold">Flawless Guest Check-In</h2>
+                <p className="text-lg text-muted-foreground">Keep the lines moving fast at the door. Scan digital QR tickets with any device, manually check off VIPs from the guest list, and track live attendance stats from your dashboard.</p>
+                <ul className="space-y-3 pt-4">
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-purple-500" /> Lightning-fast QR code scanning</li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-purple-500" /> Searchable digital guest list</li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-purple-500" /> Real-time attendance tracking</li>
+                </ul>
+              </div>
+              <div className="flex-1 w-full aspect-square md:aspect-[4/3] bg-muted/50 rounded-3xl border border-border overflow-hidden relative shadow-lg">
+                <Image 
+                  src="/mockups/checkin_management_mockup_1786220585615.jpg"
+                  alt="SwiftVenue check-in and QR scanner interface"
+                  fill
+                  className="object-cover object-center"
+                />
               </div>
             </div>
 
           </div>
         </section>
 
-        {/* Testimonials */}
+        {/* Pricing Preview */}
         <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-border">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Loved by Organizers</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">See what event professionals are saying about SwiftVenue.</p>
+            <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Simple, Transparent Pricing</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">Start for free, upgrade when you need more power.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* These are static previews of the actual plans on /pricing */}
             <div className="p-8 rounded-3xl bg-card border border-border shadow-sm flex flex-col">
-              <div className="flex gap-1 mb-4 text-yellow-400">
-                {Array(5).fill("").map((_, i) => <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
+              <h3 className="text-xl font-semibold mb-2">Free</h3>
+              <p className="text-3xl font-bold mb-1">Rs 0 <span className="text-lg font-normal text-muted-foreground">/mo</span></p>
+              <p className="text-muted-foreground mb-6">Perfect for small community events.</p>
+              <ul className="space-y-3 mb-8 flex-1">
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Up to 100 guests per event</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Basic analytics</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Safepay ticketing</li>
+              </ul>
+            </div>
+            <div className="p-8 rounded-3xl bg-primary text-primary-foreground shadow-md flex flex-col relative scale-105">
+              <div className="absolute top-0 right-8 transform -translate-y-1/2">
+                <span className="bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-full">Most Popular</span>
               </div>
-              <p className="text-muted-foreground mb-6 flex-1 italic">"SwiftVenue completely transformed how we handle our annual university tech fest. The ticketing was seamless and the templates made us look incredibly professional."</p>
-              <div>
-                <p className="font-semibold text-foreground">Sarah Jenkins</p>
-                <p className="text-sm text-muted-foreground">Event Director, TechFest</p>
-              </div>
+              <h3 className="text-xl font-semibold mb-2">Pro</h3>
+              <p className="text-3xl font-bold mb-1">Rs 4,999 <span className="text-lg font-normal text-primary-foreground/70">/mo</span></p>
+              <p className="text-primary-foreground/80 mb-6">For professional event organizers.</p>
+              <ul className="space-y-3 mb-8 flex-1">
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary-foreground" /> Up to 1,000 guests per event</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary-foreground" /> Waitlist management</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary-foreground" /> Premium templates</li>
+              </ul>
             </div>
             <div className="p-8 rounded-3xl bg-card border border-border shadow-sm flex flex-col">
-              <div className="flex gap-1 mb-4 text-yellow-400">
-                {Array(5).fill("").map((_, i) => <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
-              </div>
-              <p className="text-muted-foreground mb-6 flex-1 italic">"The Safepay integration is flawless. We collected PKR payments without any of the usual hassle. Best platform for Pakistani organizers."</p>
-              <div>
-                <p className="font-semibold text-foreground">Ali Raza</p>
-                <p className="text-sm text-muted-foreground">Corporate Events Lead</p>
-              </div>
+              <h3 className="text-xl font-semibold mb-2">Enterprise</h3>
+              <p className="text-3xl font-bold mb-1">Rs 14,999 <span className="text-lg font-normal text-muted-foreground">/mo</span></p>
+              <p className="text-muted-foreground mb-6">For agencies and large festivals.</p>
+              <ul className="space-y-3 mb-8 flex-1">
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Unlimited guests</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Team collaboration</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Priority support</li>
+              </ul>
             </div>
-            <div className="p-8 rounded-3xl bg-card border border-border shadow-sm flex flex-col">
-              <div className="flex gap-1 mb-4 text-yellow-400">
-                {Array(5).fill("").map((_, i) => <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
-              </div>
-              <p className="text-muted-foreground mb-6 flex-1 italic">"I created a beautiful, branded event page in exactly 2 minutes. The Classic template fits our executive offsites perfectly."</p>
-              <div>
-                <p className="font-semibold text-foreground">Aisha Khan</p>
-                <p className="text-sm text-muted-foreground">Startup Founder</p>
-              </div>
-            </div>
+          </div>
+          <div className="text-center mt-12">
+            <Link href="/pricing"><Button variant="outline" size="lg">See full pricing details</Button></Link>
           </div>
         </section>
 
@@ -209,7 +259,7 @@ export default async function LandingPage() {
           <div className="space-y-6">
             <div className="p-6 rounded-2xl bg-card border border-border shadow-sm">
               <h3 className="text-lg font-semibold mb-2">How does the Safepay integration work?</h3>
-              <p className="text-muted-foreground">We partner directly with Safepay for secure payment processing. Funds from your ticket sales are collected in PKR and deposited directly into your linked local bank account after a standard holding period.</p>
+              <p className="text-muted-foreground">SwiftVenue currently supports PKR payments via Safepay, built specifically for Pakistani organizers and their guests. Funds from your ticket sales are collected in PKR and deposited directly into your linked local bank account after a standard holding period. Multi-currency support is on our roadmap as we expand.</p>
             </div>
             <div className="p-6 rounded-2xl bg-card border border-border shadow-sm">
               <h3 className="text-lg font-semibold mb-2">Can I change my event template later?</h3>
