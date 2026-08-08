@@ -3,6 +3,14 @@ import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Blog — SwiftVenue",
+  description: "Insights, updates, and event planning tips from the SwiftVenue team.",
+  alternates: { canonical: "https://swiftvenuehq.com/blog" },
+};
+
 export default function BlogPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">

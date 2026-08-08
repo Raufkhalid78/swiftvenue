@@ -8,7 +8,33 @@ function hexToRgb(hex: string) {
   return result ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(result[3], 16)}` : "15 23 42";
 }
 
+import { Metadata } from "next";
+import { createServiceClient } from "@/lib/supabase/server";
+
 // Using server component to fetch public event data
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const service = createServiceClient();
+  const { data: event } = await service
+    .from('events')
+    .select('title, description, hero_image_url')
+    .eq('slug', slug)
+    .single();
+
+  if (!event) return { title: 'Event Not Found — SwiftVenue' };
+
+  return {
+    title: `${event.title} — SwiftVenue`,
+    description: event.description?.slice(0, 160) || `Join ${event.title} on SwiftVenue.`,
+    openGraph: {
+      title: event.title,
+      description: event.description?.slice(0, 160),
+      images: event.hero_image_url ? [event.hero_image_url] : undefined,
+    },
+    alternates: { canonical: `https://swiftvenuehq.com/e/${slug}` },
+  };
+}
+
 export default async function PublicEventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   

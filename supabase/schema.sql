@@ -486,3 +486,82 @@ DROP POLICY IF EXISTS "ticket_types_delete_own" ON public.ticket_types;
 CREATE POLICY "ticket_types_delete_own" ON public.ticket_types FOR DELETE USING (
   public.check_event_access(event_id)
 );
+
+-- --- Phase 0: Contact Messages ---------------------------------
+CREATE TABLE IF NOT EXISTS public.contact_messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT, 
+  email TEXT, 
+  message TEXT,
+  status TEXT DEFAULT 'new' CHECK (status IN ('new', 'read', 'resolved')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "contact_messages_insert" ON public.contact_messages FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "contact_messages_select_admin" ON public.contact_messages FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE)
+);
+CREATE POLICY "contact_messages_update_admin" ON public.contact_messages FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE)
+);
+
+-- --- Phase 1: Admin Audit Log ---------------------------------
+CREATE TABLE IF NOT EXISTS public.admin_audit_log (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  admin_id UUID NOT NULL REFERENCES public.profiles(id),
+  action TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id TEXT,
+  details JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "admin_audit_log_select_admin" ON public.admin_audit_log FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE)
+);
+CREATE POLICY "admin_audit_log_insert_admin" ON public.admin_audit_log FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE)
+);
+
+-- --- Phase 2: User Management ---------------------------------
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE;
+
+-- --- Phase 4: Organizer Payouts -------------------------------
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS payout_status TEXT DEFAULT 'pending' CHECK (payout_status IN ('pending', 'processing', 'paid'));
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bank_details JSONB DEFAULT NULL;
+
+-- --- Phase 5: Affiliates, Messages, Refunds -------------------
+
+CREATE TABLE IF NOT EXISTS public.affiliate_applications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id),
+  name TEXT,
+  email TEXT,
+  website TEXT,
+  audience TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  payout_details TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.referral_codes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id),
+  code TEXT UNIQUE,
+  discount_percent NUMERIC(5,2),
+  max_uses INT,
+  current_uses INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.affiliate_commissions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  affiliate_id UUID REFERENCES public.profiles(id),
+  order_id UUID REFERENCES public.orders(id),
+  commission_amount NUMERIC(10,2),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'cleared', 'paid')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+

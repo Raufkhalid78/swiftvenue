@@ -1,4 +1,4 @@
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { BillingClient } from "./billing-client";
 
@@ -7,15 +7,15 @@ export const metadata = {
 };
 
 export default async function BillingPage() {
-  const service = createServiceClient();
-  const { data: { user }, error: authErr } = await service.auth.getUser();
+  const supabase = await createClient();
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
 
   if (authErr || !user) {
     redirect("/login");
   }
 
   // Fetch the user's current plan
-  const { data: profile } = await service
+  const { data: profile } = await supabase
     .from('profiles')
     .select('plan')
     .eq('id', user.id)
@@ -24,13 +24,13 @@ export default async function BillingPage() {
   const currentPlan = profile?.plan || 'free';
 
   // Fetch all available plans
-  const { data: plans } = await service
+  const { data: plans } = await supabase
     .from('plans')
     .select('*')
     .order('monthly_price', { ascending: true });
 
   // Fetch any pending upgrade requests
-  const { data: upgradeRequests } = await service
+  const { data: upgradeRequests } = await supabase
     .from('upgrade_requests')
     .select('plan_id, status, created_at')
     .eq('user_id', user.id)

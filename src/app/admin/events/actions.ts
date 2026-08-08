@@ -1,0 +1,44 @@
+'use server';
+
+import { createServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
+import { logAdminAction } from '@/lib/admin/audit';
+import { revalidatePath } from 'next/cache';
+
+async function checkAdmin() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+  
+  const service = createServiceClient();
+  const { data: admin } = await service.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!admin?.is_admin) throw new Error('Forbidden');
+  
+  return { user, service };
+}
+
+export async function deleteEvent(eventId: string) {
+  try {
+    const { user: admin, service } = await checkAdmin();
+
+    const { error } = await service
+      .from('events')
+      .delete()
+      .eq('id', eventId);
+
+    if (error) throw error;
+
+    await logAdminAction({
+      adminId: admin.id,
+      action: 'delete_event',
+      targetType: 'event',
+      targetId: eventId,
+    });
+
+    revalidatePath('/admin/events');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to delete event:', error);
+    return { success: false, error: error.message };
+  }
+}

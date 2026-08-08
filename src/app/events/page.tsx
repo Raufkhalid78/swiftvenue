@@ -4,6 +4,14 @@ import { MapPin, Calendar, Search, Tag } from "lucide-react";
 
 export const revalidate = 60; // Revalidate every minute
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Events Directory — SwiftVenue",
+  description: "Find and book tickets for the best corporate, social, and cultural events happening near you.",
+  alternates: { canonical: "https://swiftvenuehq.com/events" },
+};
+
 export default async function EventsDirectory({
   searchParams,
 }: {

@@ -1,7 +1,7 @@
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, ArrowUpRight, Wallet, History } from "lucide-react";
+import { DollarSign, ArrowUpRight, Wallet, History, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -10,26 +10,26 @@ export const metadata = {
 };
 
 export default async function EarningsPage() {
-  const service = createServiceClient();
-  const { data: { user }, error: authErr } = await service.auth.getUser();
+  const supabase = await createClient();
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
 
   if (authErr || !user) {
     redirect("/login");
   }
 
-  // Fetch all orders for this organizer to calculate earnings
-  const { data: events } = await service
+  // Fetch all events for this organizer to calculate earnings and payouts
+  const { data: events } = await supabase
     .from('events')
-    .select('id')
+    .select('id, title, payout_status, date')
     .eq('user_id', user.id);
 
   const eventIds = events?.map(e => e.id) || [];
   
   let orders: any[] = [];
   if (eventIds.length > 0) {
-    const { data: fetchedOrders } = await service
+    const { data: fetchedOrders } = await supabase
       .from('orders')
-      .select('id, amount, organizer_net_amount, status, created_at')
+      .select('id, amount, organizer_net_amount, status, created_at, event_id, refund_status')
       .in('event_id', eventIds)
       .eq('status', 'paid');
     if (fetchedOrders) {
@@ -38,21 +38,32 @@ export default async function EarningsPage() {
   }
 
   // Calculate totals
-  const totalSales = orders.reduce((sum, order) => sum + Number(order.amount), 0);
-  const totalNet = orders.reduce((sum, order) => sum + Number(order.organizer_net_amount || 0), 0);
+  const validOrders = orders.filter(o => o.refund_status !== 'refunded');
+  const totalSales = validOrders.reduce((sum, order) => sum + Number(order.amount), 0);
+  const totalNet = validOrders.reduce((sum, order) => sum + Number(order.organizer_net_amount || 0), 0);
 
-  // Fetch payouts
-  const { data: payouts } = await service
-    .from('payouts')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
+  // Generate payouts history from events with non-pending payouts
+  const payouts = (events || [])
+    .map(event => {
+      const eventOrders = validOrders.filter(o => o.event_id === event.id);
+      const eventPayoutAmount = eventOrders.reduce((sum, o) => sum + Number(o.organizer_net_amount || 0), 0);
+      return {
+        id: event.id,
+        title: event.title,
+        amount: eventPayoutAmount,
+        status: event.payout_status,
+        date: event.date
+      };
+    })
+    .filter(p => p.amount > 0) // Only show events with earnings
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const totalPaidOut = (payouts || [])
+  const totalPaidOut = payouts
     .filter(p => p.status === 'paid')
-    .reduce((sum, p) => sum + Number(p.amount), 0);
+    .reduce((sum, p) => sum + p.amount, 0);
 
   const pendingBalance = totalNet - totalPaidOut;
+  const recentPayout = payouts.find(p => p.status === 'paid');
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -63,10 +74,19 @@ export default async function EarningsPage() {
         </div>
         <Button asChild variant="outline" className="gap-2 shrink-0">
           <Link href="/dashboard/settings">
-            <Wallet className="w-4 h-4" /> Manage Payout Settings
+            <Wallet className="w-4 h-4" /> Manage Bank Details
           </Link>
         </Button>
       </div>
+
+      {recentPayout && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 p-4 rounded-xl flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-medium">
+            Success! Your payout of Rs {recentPayout.amount.toLocaleString()} for "{recentPayout.title}" has been wired to your bank account.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-emerald-950/10 border-emerald/20 shadow-sm relative overflow-hidden group">
@@ -78,7 +98,7 @@ export default async function EarningsPage() {
               </div>
             </div>
             <h3 className="text-3xl font-bold text-foreground">Rs {pendingBalance.toLocaleString()}</h3>
-            <p className="text-sm text-muted-foreground mt-2">Next automated payout on Friday</p>
+            <p className="text-sm text-muted-foreground mt-2">To be wired to your bank account</p>
           </CardContent>
         </Card>
 
@@ -104,46 +124,43 @@ export default async function EarningsPage() {
               </div>
             </div>
             <h3 className="text-3xl font-bold text-foreground">Rs {totalPaidOut.toLocaleString()}</h3>
-            <p className="text-sm text-muted-foreground mt-2">Successfully processed</p>
+            <p className="text-sm text-muted-foreground mt-2">Successfully processed by admin</p>
           </CardContent>
         </Card>
       </div>
 
       <Card className="border-border shadow-sm">
         <div className="p-6 border-b border-border">
-          <h3 className="text-xl font-bold font-display">Payout History</h3>
+          <h3 className="text-xl font-bold font-display">Payout History by Event</h3>
         </div>
         <div className="p-0">
           {!payouts || payouts.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
-              <p>No payouts have been processed yet.</p>
-              <p className="text-sm mt-1">Payouts are generated automatically when you have a positive balance.</p>
+              <p>No earnings or payouts yet.</p>
+              <p className="text-sm mt-1">Once you sell tickets to an event, your earnings will appear here.</p>
             </div>
           ) : (
             <table className="w-full text-sm text-left">
               <thead className="bg-muted/30 border-b border-border">
                 <tr>
-                  <th className="px-6 py-4 font-semibold text-muted-foreground">Date</th>
-                  <th className="px-6 py-4 font-semibold text-muted-foreground">Amount</th>
+                  <th className="px-6 py-4 font-semibold text-muted-foreground">Event</th>
+                  <th className="px-6 py-4 font-semibold text-muted-foreground">Date Ended</th>
+                  <th className="px-6 py-4 font-semibold text-muted-foreground">Net Payout</th>
                   <th className="px-6 py-4 font-semibold text-muted-foreground text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {payouts.map(payout => (
                   <tr key={payout.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 text-foreground">
-                      {new Date(payout.created_at).toLocaleDateString('en-PK', {
-                        day: 'numeric', month: 'short', year: 'numeric'
-                      })}
-                    </td>
-                    <td className="px-6 py-4 font-bold text-foreground">Rs {Number(payout.amount).toLocaleString()}</td>
+                    <td className="px-6 py-4 font-medium text-foreground">{payout.title}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{payout.date}</td>
+                    <td className="px-6 py-4 font-bold text-foreground">Rs {payout.amount.toLocaleString()}</td>
                     <td className="px-6 py-4 text-right">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold tracking-wider capitalize
                         ${payout.status === 'paid' ? 'bg-emerald/10 text-emerald' : 
-                          payout.status === 'processing' ? 'bg-blue-500/10 text-blue-500' :
                           'bg-amber-500/10 text-amber-500'}`}
                       >
-                        {payout.status}
+                        {payout.status || 'pending'}
                       </span>
                     </td>
                   </tr>

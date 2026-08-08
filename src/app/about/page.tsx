@@ -3,6 +3,14 @@ import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About Us — SwiftVenue",
+  description: "Learn more about SwiftVenue's mission to simplify event management for professionals, creators, and communities worldwide.",
+  alternates: { canonical: "https://swiftvenuehq.com/about" },
+};
+
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
