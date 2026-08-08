@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { sendTicketConfirmation } from '@/lib/email';
 import crypto from 'crypto';
 
 function secureCompare(a: string, b: string) {
@@ -39,114 +38,54 @@ async function handleCallback(request: NextRequest) {
       }
     }
 
-    let isSignatureValid = false;
-    let signatureError = '';
-
-    if (tracker && sig && orderId) {
-      const secret = process.env.SAFEPAY_V1_SECRET;
-      if (!secret) {
-        signatureError = 'Payment gateway secret key is not configured';
-      } else {
-        const computedSig = crypto.createHmac('sha256', secret).update(tracker).digest('hex');
-        isSignatureValid = secureCompare(computedSig, sig);
-        if (!isSignatureValid) {
-          signatureError = 'Invalid payment signature verification failed';
-        }
-      }
-    } else if (!orderId) {
+    if (!orderId) {
       return NextResponse.redirect(`${siteUrl}?paymentError=Missing order ID`, { status: 303 });
     }
 
     const service = createServiceClient();
 
-    // Fetch the order
-    const { data: order, error: orderErr } = await service
+    // Fetch the order event slug first
+    const { data: initialOrder } = await service
       .from('orders')
-      .select('*')
+      .select('event_id, status')
       .eq('id', orderId)
       .single();
 
-    if (orderErr || !order) {
+    if (!initialOrder) {
       return NextResponse.redirect(`${siteUrl}?paymentError=Order record not found`, { status: 303 });
     }
 
-    const { data: event } = await service.from('events').select('*').eq('id', order.event_id).single();
+    const { data: event } = await service.from('events').select('slug').eq('id', initialOrder.event_id).single();
     const eventSlug = event?.slug || '';
 
-    // If order was already paid, redirect to success page
-    if (order.status === 'paid') {
-      return NextResponse.redirect(`${siteUrl}/e/${eventSlug}/success?order=${order.id}`, { status: 303 });
+    // If order was already paid/failed (maybe by webhook), redirect immediately
+    if (initialOrder.status === 'paid') {
+      return NextResponse.redirect(`${siteUrl}/e/${eventSlug}/success?order=${orderId}`, { status: 303 });
+    }
+    if (initialOrder.status === 'failed') {
+      return NextResponse.redirect(`${siteUrl}/e/${eventSlug}?paymentError=Payment failed`, { status: 303 });
     }
 
-    if (!isSignatureValid) {
-      if (signatureError) {
-        return NextResponse.redirect(`${siteUrl}/e/${eventSlug}?paymentError=${encodeURIComponent(signatureError)}`, { status: 303 });
+    // Otherwise, poll for up to 3 seconds to see if the webhook finishes it
+    let finalOrder: any = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const { data } = await service.from('orders').select('status').eq('id', orderId).single();
+      if (data?.status === 'paid' || data?.status === 'failed') { 
+        finalOrder = data; 
+        break; 
       }
-      return NextResponse.redirect(`${siteUrl}/e/${eventSlug}?paymentError=Processing`, { status: 303 });
+      await new Promise(r => setTimeout(r, 500));
     }
 
-    // Update order status to paid
-    const { error: updateOrderErr } = await service
-      .from('orders')
-      .update({ status: 'paid' })
-      .eq('id', orderId);
-
-    if (updateOrderErr) {
-      return NextResponse.redirect(`${siteUrl}/e/${eventSlug}?paymentError=Database update failed`, { status: 303 });
+    if (finalOrder?.status === 'paid') {
+      return NextResponse.redirect(`${siteUrl}/e/${eventSlug}/success?order=${orderId}`, { status: 303 });
+    } else if (finalOrder?.status === 'failed') {
+      return NextResponse.redirect(`${siteUrl}/e/${eventSlug}?paymentError=Payment failed`, { status: 303 });
+    } else {
+      // Still pending — the webhook hasn't processed it yet, redirect to the polling confirming page
+      return NextResponse.redirect(`${siteUrl}/e/${eventSlug}/confirming?order=${orderId}`, { status: 303 });
     }
 
-    // Since the order is paid, we need to ensure the attendee record exists.
-    // The webhook might have created it already.
-    const { data: existingAttendee } = await service
-      .from('attendees')
-      .select('id')
-      .eq('event_id', order.event_id)
-      .eq('guest_email', order.guest_email)
-      .limit(1)
-      .single();
-
-    let attendeeId = existingAttendee?.id;
-
-    if (!attendeeId) {
-      const { data: newAttendee, error: attendeeErr } = await service.from('attendees').insert({
-        event_id: order.event_id,
-        guest_name: order.guest_name,
-        guest_email: order.guest_email,
-        ticket_type_id: order.ticket_type_id,
-        status: 'registered'
-      }).select().single();
-
-      if (attendeeErr) {
-        console.error("Failed to generate attendee record after payment", attendeeErr);
-      } else if (newAttendee) {
-        attendeeId = newAttendee.id;
-      }
-    }
-
-    if (attendeeId) {
-      // Send the email confirmation using Resend
-      if (event) {
-        try {
-          await sendTicketConfirmation({
-            to: order.guest_email,
-            guestName: order.guest_name,
-            eventName: event.title,
-            eventDate: event.date,
-            eventTime: event.time || 'TBD',
-            venueName: event.venue_name || 'TBD',
-            venueAddress: event.venue_address || '',
-            orderId: order.id,
-            attendeeId: attendeeId,
-          });
-        } catch (emailErr) {
-          console.error("Failed to send confirmation email:", emailErr);
-          // We don't fail the checkout if the email fails
-        }
-      }
-    }
-
-    // Successful checkout: redirect browser to Success step on the public event page
-    return NextResponse.redirect(`${siteUrl}/e/${eventSlug}/success?order=${order.id}`, { status: 303 });
   } catch (error) {
     console.error('Safepay payment callback exception:', error);
     return NextResponse.redirect(`${siteUrl}?paymentError=Internal error`, { status: 303 });

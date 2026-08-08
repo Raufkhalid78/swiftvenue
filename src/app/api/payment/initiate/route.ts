@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     // Verify the event exists and is published
     const { data: event, error: eventError } = await service
       .from('events')
-      .select('id, title, status, user_id, profiles(plan)')
+      .select('id, title, status, user_id, date, time, venue_name, venue_address, profiles(plan)')
       .eq('id', eventId)
       .single();
 
@@ -134,19 +134,22 @@ export async function POST(request: NextRequest) {
         status: 'registered',
         order_id: order.id
       }));
-      await service.from('attendees').insert(attendeesToInsert);
+      const { data: insertedAttendees } = await service.from('attendees').insert(attendeesToInsert).select();
+      const attendeeId = insertedAttendees?.[0]?.id;
 
       if (event) {
         try {
           const { sendTicketConfirmation } = require('@/lib/email');
           await sendTicketConfirmation({
+            to: guestEmail,
             guestName,
-            guestEmail,
-            eventTitle: event.title,
-            ticketType: ticketType.currency || 'PKR', // Quick hack for typing; you'd really pass name
-            quantity,
-            amount: 0,
-            currency: ticketType.currency || 'PKR',
+            eventName: event.title,
+            eventDate: event.date,
+            eventTime: event.time || 'TBD',
+            venueName: event.venue_name || 'TBD',
+            venueAddress: event.venue_address || '',
+            orderId: order.id,
+            attendeeId: attendeeId,
           });
         } catch (e) {
           console.error('Free ticket email failed:', e);
@@ -157,66 +160,72 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize Safepay SDK
-    const safepaySecret = process.env.SAFEPAY_V1_SECRET || process.env.SAFEPAY_SECRET_KEY;
-    const safepayMerchantKey = process.env.SAFEPAY_API_KEY || process.env.SAFEPAY_MERCHANT_API_KEY;
+    try {
+      const safepaySecret = process.env.SAFEPAY_V1_SECRET || process.env.SAFEPAY_SECRET_KEY;
+      const safepayMerchantKey = process.env.SAFEPAY_API_KEY || process.env.SAFEPAY_MERCHANT_API_KEY;
 
-    if (!safepaySecret || !safepayMerchantKey) {
-      console.error("Safepay credentials are not configured in environment variables.");
-      return NextResponse.json({ error: 'Payment gateway configuration error' }, { status: 500 });
-    }
-
-    const safepayFactory = require('@sfpy/node-core');
-    const safepay = safepayFactory(safepaySecret, {
-      authType: 'secret',
-      host: process.env.SAFEPAY_ENVIRONMENT === 'sandbox' ? 'https://sandbox.api.getsafepay.com' : 'https://api.getsafepay.com',
-    });
-
-    const host = request.headers.get('host') || 'localhost:3000';
-    const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
-    const siteUrl = `${protocol}://${host}`;
-
-    // Create Safepay Session
-    const sessionResponse = await safepay.payments.session.setup({
-      merchant_api_key: safepayMerchantKey,
-      intent: 'CYBERSOURCE',
-      mode: 'payment',
-      currency: ticketType.currency || 'PKR',
-      amount: Math.round(totalCharged * 100), // Lowest denomination (Paisa)
-      metadata: {
-        order_id: order.id,
+      if (!safepaySecret || !safepayMerchantKey) {
+        console.error("Safepay credentials are not configured in environment variables.");
+        throw new Error('Payment gateway configuration error');
       }
-    });
 
-    const trackerToken = sessionResponse.data?.tracker?.token || sessionResponse.data?.token || sessionResponse.tracker?.token;
-    if (!trackerToken) {
-      throw new Error(`Safepay failed to return a tracker token.`);
+      const safepayFactory = require('@sfpy/node-core');
+      const safepay = safepayFactory(safepaySecret, {
+        authType: 'secret',
+        host: process.env.SAFEPAY_ENVIRONMENT === 'sandbox' ? 'https://sandbox.api.getsafepay.com' : 'https://api.getsafepay.com',
+      });
+
+      const host = request.headers.get('host') || 'localhost:3000';
+      const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+      const siteUrl = `${protocol}://${host}`;
+
+      // Create Safepay Session
+      const sessionResponse = await safepay.payments.session.setup({
+        merchant_api_key: safepayMerchantKey,
+        intent: 'CYBERSOURCE',
+        mode: 'payment',
+        currency: ticketType.currency || 'PKR',
+        amount: Math.round(totalCharged * 100), // Lowest denomination (Paisa)
+        metadata: {
+          order_id: order.id,
+        }
+      });
+
+      const trackerToken = sessionResponse.data?.tracker?.token || sessionResponse.data?.token || sessionResponse.tracker?.token;
+      if (!trackerToken) {
+        throw new Error(`Safepay failed to return a tracker token.`);
+      }
+
+      // Update order with the tracker token for webhook/callback reconciliation
+      await service.from('orders').update({ tracker: trackerToken }).eq('id', order.id);
+
+      // Create a short-lived auth token
+      const passportResponse = await safepay.client.passport.create();
+      const tbt = passportResponse.data;
+      if (!tbt) {
+        throw new Error(`Safepay failed to return an auth token.`);
+      }
+
+      // Generate Checkout URL
+      const env = process.env.SAFEPAY_ENVIRONMENT === 'production' ? 'production' : 'sandbox';
+      const checkoutUrl = safepay.checkout.createCheckoutUrl({
+        env,
+        tracker: trackerToken,
+        tbt,
+        cancel_url: `${siteUrl}/e/checkout-cancel`,
+        redirect_url: `${siteUrl}/api/payment/callback`,
+        source: 'hosted',
+      });
+
+      return NextResponse.json({
+        orderId: order.id,
+        checkoutUrl: checkoutUrl
+      });
+    } catch (err: any) {
+      await service.rpc('reserve_ticket', { p_ticket_type_id: ticketTypeId, p_qty: -quantity });
+      console.error('Checkout initialization failed, reservation released:', err);
+      return NextResponse.json({ error: 'Failed to initialize checkout' }, { status: 500 });
     }
-
-    // Update order with the tracker token for webhook/callback reconciliation
-    await service.from('orders').update({ tracker: trackerToken }).eq('id', order.id);
-
-    // Create a short-lived auth token
-    const passportResponse = await safepay.client.passport.create();
-    const tbt = passportResponse.data;
-    if (!tbt) {
-      throw new Error(`Safepay failed to return an auth token.`);
-    }
-
-    // Generate Checkout URL
-    const env = process.env.SAFEPAY_ENVIRONMENT === 'production' ? 'production' : 'sandbox';
-    const checkoutUrl = safepay.checkout.createCheckoutUrl({
-      env,
-      tracker: trackerToken,
-      tbt,
-      cancel_url: `${siteUrl}/e/checkout-cancel`,
-      redirect_url: `${siteUrl}/api/payment/callback`,
-      source: 'hosted',
-    });
-
-    return NextResponse.json({
-      orderId: order.id,
-      checkoutUrl: checkoutUrl
-    });
   } catch (error: any) {
     console.error('POST /api/payment/initiate error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });

@@ -4,12 +4,24 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Footer } from "@/components/footer";
 import { CheckCircle2, Sparkles, Building2, Zap } from "lucide-react";
 
+import { createClient } from '@/lib/supabase/server';
+
 export const metadata = {
   title: "Pricing - SwiftVenue",
   description: "Simple, transparent pricing for event organizers.",
 };
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const supabase = await createClient();
+  const { data: plans } = await supabase
+    .from('plans')
+    .select('*')
+    .order('monthly_price', { ascending: true, nullsFirst: true });
+
+  const freePlan = plans?.find(p => p.id === 'free');
+  const proPlan = plans?.find(p => p.id === 'pro');
+  const enterprisePlan = plans?.find(p => p.id === 'enterprise');
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Navigation */}
@@ -58,7 +70,7 @@ export default function PricingPage() {
               
               <div className="bg-muted/50 p-4 rounded-xl border border-border mb-6">
                 <p className="text-sm font-semibold mb-1">Ticket Sales Fee</p>
-                <p className="text-lg font-bold text-primary">7% + Rs 30 <span className="text-xs font-normal text-muted-foreground">per ticket</span></p>
+                <p className="text-lg font-bold text-primary">{freePlan?.fee_percent ?? 7}% + Rs {freePlan?.fee_fixed ?? 30} <span className="text-xs font-normal text-muted-foreground">per ticket</span></p>
               </div>
 
               <ul className="space-y-4 mb-8 flex-1">
@@ -86,7 +98,7 @@ export default function PricingPage() {
               
               <div className="bg-background p-4 rounded-xl border border-primary/20 mb-6 shadow-sm">
                 <p className="text-sm font-semibold mb-1">Ticket Sales Fee</p>
-                <p className="text-xl font-bold text-primary">3% + Rs 15 <span className="text-xs font-normal text-muted-foreground">per ticket</span></p>
+                <p className="text-xl font-bold text-primary">{proPlan?.fee_percent ?? 3}% + Rs {proPlan?.fee_fixed ?? 15} <span className="text-xs font-normal text-muted-foreground">per ticket</span></p>
               </div>
 
               <ul className="space-y-4 mb-8 flex-1">
@@ -110,7 +122,7 @@ export default function PricingPage() {
               
               <div className="bg-muted/50 p-4 rounded-xl border border-border mb-6">
                 <p className="text-sm font-semibold mb-1">Ticket Sales Fee</p>
-                <p className="text-lg font-bold text-primary">As low as 2% <span className="text-xs font-normal text-muted-foreground">per ticket</span></p>
+                <p className="text-lg font-bold text-primary">As low as {enterprisePlan?.fee_percent ?? 2}% <span className="text-xs font-normal text-muted-foreground">per ticket</span></p>
               </div>
 
               <ul className="space-y-4 mb-8 flex-1">
@@ -146,9 +158,9 @@ export default function PricingPage() {
                 <tbody className="divide-y divide-border">
                   <tr className="bg-background hover:bg-muted/30 transition-colors">
                     <td className="py-4 px-6 font-medium">Ticket Platform Fee</td>
-                    <td className="py-4 px-6 text-center text-muted-foreground">7% + Rs 30</td>
-                    <td className="py-4 px-6 text-center font-bold text-primary bg-primary/5">3% + Rs 15</td>
-                    <td className="py-4 px-6 text-center text-muted-foreground">2% flat (custom)</td>
+                    <td className="py-4 px-6 text-center text-muted-foreground">{freePlan?.fee_percent ?? 7}% + Rs {freePlan?.fee_fixed ?? 30}</td>
+                    <td className="py-4 px-6 text-center font-bold text-primary bg-primary/5">{proPlan?.fee_percent ?? 3}% + Rs {proPlan?.fee_fixed ?? 15}</td>
+                    <td className="py-4 px-6 text-center text-muted-foreground">{enterprisePlan?.fee_percent ?? 2}% flat (custom)</td>
                   </tr>
                   <tr className="bg-background hover:bg-muted/30 transition-colors">
                     <td className="py-4 px-6 font-medium">Concurrent Paid Events</td>

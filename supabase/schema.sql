@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email       TEXT,
   plan        TEXT DEFAULT 'free',
   created_at  TIMESTAMPTZ DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ DEFAULT NOW()
+  updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  is_admin    BOOLEAN DEFAULT FALSE
 );
 
 -- ─── Events ──────────────────────────────────────────────────
@@ -58,6 +59,7 @@ CREATE TABLE IF NOT EXISTS public.attendees (
   guest_email     TEXT,
   ticket_type     TEXT DEFAULT 'general',
   status          TEXT NOT NULL CHECK (status IN ('registered', 'attended', 'cancelled')),
+  order_id        UUID REFERENCES public.orders(id),
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -325,6 +327,9 @@ ON CONFLICT (id) DO NOTHING;
 ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_plan_fk FOREIGN KEY (plan) REFERENCES public.plans(id);
 
+ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "plans_select_public" ON public.plans FOR SELECT USING (TRUE);
+
 ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS platform_fee_amount NUMERIC(10,2) DEFAULT 0,
   ADD COLUMN IF NOT EXISTS organizer_net_amount NUMERIC(10,2);
@@ -372,4 +377,7 @@ CREATE TABLE IF NOT EXISTS public.upgrade_requests (
 ALTER TABLE public.upgrade_requests ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "upgrade_requests_select_own" ON public.upgrade_requests FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "upgrade_requests_insert_own" ON public.upgrade_requests FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "upgrade_requests_select_admin" ON public.upgrade_requests FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE)
+);
 
