@@ -45,12 +45,7 @@ export async function GET(request: NextRequest) {
         if (state === 'TRACKER_ENDED') {
           await service.from('orders').update({ status: 'paid' }).eq('id', order.id)
 
-          const invUpdate: Record<string, unknown> = { is_active: true, plan: order.plan }
-          if (order.target_guest_links_quota > 0) {
-            invUpdate.guest_links_quota = order.target_guest_links_quota
-          }
-          await service.from('invitations').update(invUpdate).eq('id', order.invitation_id)
-          await service.from('profiles').update({ plan: order.plan }).eq('id', order.user_id)
+
 
           order.status = 'paid'
         }
@@ -60,7 +55,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ status: order.status, invitationId: order.invitation_id })
+    return NextResponse.json({ status: order.status })
   } catch (error) {
     console.error('GET /api/payment/status error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
