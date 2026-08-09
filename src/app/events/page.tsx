@@ -121,7 +121,7 @@ export default async function EventsDirectory({
                   <div className="bg-card rounded-2xl border border-border overflow-hidden h-full flex flex-col hover:shadow-lg transition-shadow duration-300">
                     <div className="w-full aspect-[4/3] bg-muted relative overflow-hidden">
                       {event.hero_image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
+                         
                         <img 
                           src={event.hero_image_url} 
                           alt={event.title} 

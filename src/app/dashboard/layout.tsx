@@ -8,26 +8,24 @@ import { createClient } from "@/lib/supabase/client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const navItems = [
+  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "My Events", href: "/dashboard/events", icon: Calendar },
+  { name: "Guest Lists", href: "/dashboard/guests", icon: Users },
+  { name: "Earnings", href: "/dashboard/earnings", icon: DollarSign },
+  { name: "Billing & Plans", href: "/dashboard/billing", icon: CreditCard },
+];
 
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/");
-  };
-
-  const navItems = [
-    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "My Events", href: "/dashboard/events", icon: Calendar },
-    { name: "Guest Lists", href: "/dashboard/guests", icon: Users },
-    { name: "Earnings", href: "/dashboard/earnings", icon: DollarSign },
-    { name: "Billing & Plans", href: "/dashboard/billing", icon: CreditCard },
-  ];
-
-  const SidebarContent = () => (
+function SidebarContent({
+  pathname,
+  handleSignOut,
+  setMobileMenuOpen
+}: {
+  pathname: string;
+  handleSignOut: () => void;
+  setMobileMenuOpen: (val: boolean) => void;
+}) {
+  return (
     <>
       <div className="h-16 flex items-center px-6 border-b border-border/50 shrink-0">
         <Link href="/" className="flex items-center">
@@ -80,12 +78,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
     </>
   );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+  };
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
       {/* Desktop Sidebar */}
       <aside className="w-64 border-r border-border bg-card hidden md:flex flex-col h-screen sticky top-0">
-        <SidebarContent />
+        <SidebarContent pathname={pathname} handleSignOut={handleSignOut} setMobileMenuOpen={setMobileMenuOpen} />
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -93,7 +103,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="fixed inset-0 z-50 md:hidden flex">
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
           <aside className="relative w-64 max-w-[80%] h-full bg-card border-r border-border flex flex-col shadow-xl">
-            <SidebarContent />
+            <SidebarContent pathname={pathname} handleSignOut={handleSignOut} setMobileMenuOpen={setMobileMenuOpen} />
           </aside>
         </div>
       )}

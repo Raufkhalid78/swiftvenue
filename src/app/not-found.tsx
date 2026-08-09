@@ -8,7 +8,7 @@ export default function NotFound() {
       <div className="max-w-md w-full space-y-8">
         <div className="flex justify-center">
           <div className="relative w-20 h-20 mb-4 rounded-xl shadow-lg border border-border/50 overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img 
               src="/logo.jpg" 
               alt="SwiftVenue Logo"

@@ -365,7 +365,7 @@ export default function CreateEventWizard() {
 
               <div className="pt-4 p-6 border-2 border-dashed border-border rounded-xl text-center space-y-2 bg-muted/30 relative overflow-hidden">
                 {formData.hero_image_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img src={formData.hero_image_url} alt="Hero" className="absolute inset-0 w-full h-full object-cover opacity-50" />
                 )}
                 <div className="relative z-10">

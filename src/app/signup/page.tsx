@@ -66,7 +66,7 @@ export default function SignupPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-6">
           <Link href="/" className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img src="/logo.jpg" alt="SwiftVenue Logo" className="w-10 h-10 rounded-lg object-cover shadow-sm border border-border/50" />
             <span className="font-display font-bold text-2xl tracking-tight">SwiftVenue</span>
           </Link>
