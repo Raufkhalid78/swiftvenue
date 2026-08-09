@@ -42,7 +42,12 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
         date: event.date,
         time: event.time,
         venue_name: event.venue_name,
-        status: event.status
+        status: event.status,
+        video_url: event.video_url,
+        venue_lat: event.venue_lat ? parseFloat(event.venue_lat) : null,
+        venue_lng: event.venue_lng ? parseFloat(event.venue_lng) : null,
+        organizer_bio: event.organizer_bio,
+        social_links: event.social_links
       })
       .eq('id', event.id);
 
@@ -115,6 +120,39 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
           <div className="space-y-2 md:col-span-2">
             <Label>Venue Name</Label>
             <Input value={event.venue_name} onChange={e => setEvent({...event, venue_name: e.target.value})} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Latitude (Optional)</Label>
+            <Input type="number" step="any" value={event.venue_lat || ''} onChange={e => setEvent({...event, venue_lat: e.target.value})} placeholder="34.0522" />
+          </div>
+          <div className="space-y-2">
+            <Label>Longitude (Optional)</Label>
+            <Input type="number" step="any" value={event.venue_lng || ''} onChange={e => setEvent({...event, venue_lng: e.target.value})} placeholder="-118.2437" />
+          </div>
+        </div>
+
+        <h3 className="text-lg font-semibold border-b border-border pb-3 pt-4">Rich Media & Organizer</h3>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-2 md:col-span-2">
+            <Label>Promo Video URL (Optional)</Label>
+            <Input value={event.video_url || ''} onChange={e => setEvent({...event, video_url: e.target.value})} placeholder="https://youtube.com/..." />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Organizer Bio (Optional)</Label>
+            <Textarea 
+              value={event.organizer_bio || ''} 
+              onChange={e => setEvent({...event, organizer_bio: e.target.value})}
+              rows={3} 
+              placeholder="Tell attendees about yourself or your organization..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Instagram Handle</Label>
+            <Input value={event.social_links?.instagram || ''} onChange={e => setEvent({...event, social_links: {...(event.social_links || {}), instagram: e.target.value}})} placeholder="@swiftvenue" />
+          </div>
+          <div className="space-y-2">
+            <Label>Twitter/X Handle</Label>
+            <Input value={event.social_links?.twitter || ''} onChange={e => setEvent({...event, social_links: {...(event.social_links || {}), twitter: e.target.value}})} placeholder="@swiftvenue" />
           </div>
         </div>
 

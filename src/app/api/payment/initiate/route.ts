@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { calculatePlatformFee } from '@/lib/fees';
 import { checkGuestLimit } from '@/lib/plans';
+import { createReferralCode } from '@/lib/referral';
 
 export async function POST(request: NextRequest) {
   try {
@@ -151,6 +152,12 @@ export async function POST(request: NextRequest) {
         }
       }
       return NextResponse.json({ error: 'Failed to initialize ticket purchase' }, { status: 500 });
+    }
+
+    // Generate referral code for this attendee
+    const refCode = await createReferralCode(service, eventId, guestName, order.id);
+    if (refCode) {
+      await service.from('orders').update({ referral_code: refCode }).eq('id', order.id);
     }
 
     // Free ticket — mark paid immediately, skip the payment gateway

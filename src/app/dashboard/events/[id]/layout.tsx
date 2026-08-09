@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, use } from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft, Shield } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft, Shield, Image as ImageIcon, Mic2, Briefcase, HelpCircle, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -33,6 +33,11 @@ export default function EventDashboardLayout({
   const navigation = [
     { name: "Overview", href: `/dashboard/events/${eventId}`, icon: LayoutDashboard },
     { name: "Agenda", href: `/dashboard/events/${eventId}/agenda`, icon: CalendarDays },
+    { name: "Gallery", href: `/dashboard/events/${eventId}/gallery`, icon: ImageIcon },
+    { name: "Speakers", href: `/dashboard/events/${eventId}/speakers`, icon: Mic2 },
+    { name: "Sponsors", href: `/dashboard/events/${eventId}/sponsors`, icon: Briefcase },
+    { name: "FAQ", href: `/dashboard/events/${eventId}/faq`, icon: HelpCircle },
+    { name: "Updates", href: `/dashboard/events/${eventId}/updates`, icon: Megaphone },
     { name: "Guests", href: `/dashboard/events/${eventId}/guests`, icon: Users },
     { name: "Team", href: `/dashboard/events/${eventId}/team`, icon: Shield },
     { name: "Settings", href: `/dashboard/events/${eventId}/settings`, icon: Settings },

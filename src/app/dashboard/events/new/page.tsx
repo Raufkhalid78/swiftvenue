@@ -173,8 +173,8 @@ export default function CreateEventWizard() {
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <h2 className="text-xl font-semibold font-display">Choose a Template</h2>
             <p className="text-sm text-muted-foreground">Select the layout structure for your public event page.</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              {['modern', 'minimalist', 'classic'].map((tpl) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              {['modern', 'minimalist', 'classic', 'festival', 'gala', 'workshop'].map((tpl) => (
                 <div 
                   key={tpl}
                   className={`border-2 rounded-xl p-4 cursor-pointer transition-all flex flex-col items-center text-center gap-4 ${formData.template_id === tpl ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
@@ -207,6 +207,27 @@ export default function CreateEventWizard() {
                         </div>
                       </div>
                     )}
+                    {tpl === 'festival' && (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-pink-500/20 to-purple-500/20 p-2">
+                        <div className="h-4 w-2/3 bg-foreground/80 rounded mb-2 rotate-[-2deg]"/>
+                        <div className="h-8 w-1/2 bg-foreground/80 rounded rotate-[1deg]"/>
+                      </div>
+                    )}
+                    {tpl === 'gala' && (
+                      <div className="w-full h-full flex flex-col bg-zinc-950 p-2 items-center justify-center">
+                        <div className="h-4 w-1/2 bg-yellow-500/50 rounded mb-2"/>
+                        <div className="h-2 w-1/3 bg-zinc-500/50 rounded"/>
+                      </div>
+                    )}
+                    {tpl === 'workshop' && (
+                      <div className="w-full h-full flex flex-col p-2 gap-1 bg-white">
+                        <div className="h-4 w-1/3 bg-primary/40 rounded mb-1"/>
+                        <div className="flex-1 border rounded bg-muted/30 p-1 space-y-1">
+                          <div className="h-2 w-full bg-muted-foreground/20 rounded"/>
+                          <div className="h-2 w-full bg-muted-foreground/20 rounded"/>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h3 className="font-semibold capitalize">{tpl}</h3>
@@ -214,6 +235,9 @@ export default function CreateEventWizard() {
                       {tpl === 'modern' && 'Sidebar registration & hero header.'}
                       {tpl === 'minimalist' && 'Clean, centered text focus.'}
                       {tpl === 'classic' && 'Traditional conference layout.'}
+                      {tpl === 'festival' && 'Vibrant, bold colors.'}
+                      {tpl === 'gala' && 'Dark, elegant, formal.'}
+                      {tpl === 'workshop' && 'Dense, agenda-first layout.'}
                     </p>
                   </div>
                 </div>
