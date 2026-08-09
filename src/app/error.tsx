@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Home, RotateCcw } from "lucide-react";
-import Link from "next/link";
 import Image from "next/image";
 
 export default function Error({

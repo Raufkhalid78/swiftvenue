@@ -22,7 +22,6 @@ import {
   CheckCircle2, 
   MessageSquare,
   TicketIcon,
-  ChevronRight,
   Info
 } from 'lucide-react';
 import { toast } from 'sonner';

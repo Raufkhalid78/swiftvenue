@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { DollarSign, ArrowUpRight, Wallet, History, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -39,7 +39,7 @@ export default async function EarningsPage() {
 
   // Calculate totals
   const validOrders = orders.filter(o => o.refund_status !== 'refunded');
-  const totalSales = validOrders.reduce((sum, order) => sum + Number(order.amount), 0);
+  
   const totalNet = validOrders.reduce((sum, order) => sum + Number(order.organizer_net_amount || 0), 0);
 
   // Generate payouts history from events with non-pending payouts

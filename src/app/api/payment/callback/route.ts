@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import crypto from 'crypto';
 
-function secureCompare(a: string, b: string) {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
-}
+
 
 async function handleCallback(request: NextRequest) {
   const host = request.headers.get('host') || 'localhost:3000';
@@ -15,8 +10,6 @@ async function handleCallback(request: NextRequest) {
   
   try {
     const searchParams = request.nextUrl.searchParams;
-    let tracker = searchParams.get('tracker') || '';
-    let sig = searchParams.get('sig') || '';
     let orderId = searchParams.get('order_id') || searchParams.get('reference') || '';
 
     if (request.method === 'POST') {
@@ -24,13 +17,9 @@ async function handleCallback(request: NextRequest) {
         const contentType = request.headers.get('content-type') || '';
         if (contentType.includes('application/x-www-form-urlencoded')) {
           const formData = await request.formData();
-          tracker = tracker || (formData.get('tracker') as string) || '';
-          sig = sig || (formData.get('sig') as string) || '';
           orderId = orderId || (formData.get('order_id') as string) || (formData.get('reference') as string) || '';
         } else if (contentType.includes('application/json')) {
           const body = await request.json();
-          tracker = tracker || body.tracker || '';
-          sig = sig || body.sig || '';
           orderId = orderId || body.order_id || body.reference || '';
         }
       } catch (e) {

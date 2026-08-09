@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, CheckCircle2, Calendar, MapPin, Type, Image as ImageIcon, LayoutTemplate } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Calendar, Type, Image as ImageIcon, LayoutTemplate } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";

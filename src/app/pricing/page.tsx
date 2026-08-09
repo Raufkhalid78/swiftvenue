@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Footer } from "@/components/footer";
-import { CheckCircle2, Sparkles, Building2, Zap } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 
 import { createClient } from '@/lib/supabase/server';
 

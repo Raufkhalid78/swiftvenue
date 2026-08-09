@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import React, { useState } from "react";
+
 import { Scanner } from "@yudiel/react-qr-scanner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CheckInPage() {
-  const params = useParams();
-  const eventId = params.id as string;
+  
   const [loading, setLoading] = useState(false);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<{
@@ -55,7 +53,7 @@ export default function CheckInPage() {
         });
         toast.error(data.error || "Check-in failed");
       }
-    } catch (err: any) {
+    } catch {
       setScanResult({ success: false, message: "Network error occurred." });
       toast.error("Network error");
     } finally {

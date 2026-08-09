@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, use } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -16,7 +16,7 @@ export default function EventDashboardLayout({
   params: Promise<{ id: string }>;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
+  
   const resolvedParams = use(params);
   const eventId = resolvedParams.id;
   const [slug, setSlug] = useState<string | null>(null);

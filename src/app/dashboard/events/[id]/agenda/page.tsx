@@ -21,7 +21,7 @@ export default function AgendaPage({ params }: { params: Promise<{ id: string }>
 
   useEffect(() => {
     loadAgenda();
-   
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedParams.id]);
 
   async function loadAgenda() {

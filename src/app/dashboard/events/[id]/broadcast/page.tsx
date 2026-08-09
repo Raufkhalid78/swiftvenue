@@ -43,7 +43,7 @@ export default function BroadcastPage() {
       } else {
         toast.error(data.error || "Failed to send broadcast");
       }
-    } catch (err: any) {
+    } catch {
       toast.error("Network error occurred");
     } finally {
       setLoading(false);
