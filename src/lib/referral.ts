@@ -4,7 +4,7 @@ export async function createReferralCode(
   supabase: SupabaseClient, 
   eventId: string, 
   guestName: string, 
-  orderId: string
+  _orderId: string
 ) {
   // Generate a code like JANE-10-XY9Z
   const prefix = guestName.split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '');

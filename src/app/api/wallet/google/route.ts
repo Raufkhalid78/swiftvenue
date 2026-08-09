@@ -45,7 +45,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const event = order.events;
     const objectId = `${GOOGLE_WALLET_ISSUER_ID}.${order.id}`;
 
     // Define the EventTicketObject payload

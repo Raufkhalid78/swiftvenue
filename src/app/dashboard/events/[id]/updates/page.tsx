@@ -3,7 +3,6 @@
 import { useEffect, useState, use } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,24 +21,23 @@ export default function UpdatesPage({ params }: { params: Promise<{ id: string }
   const [isPinned, setIsPinned] = useState(false);
 
   useEffect(() => {
+    async function fetchUpdates() {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("event_updates")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        toast.error("Failed to load updates");
+      } else {
+        setUpdates(data || []);
+      }
+      setLoading(false);
+    }
     fetchUpdates();
   }, [eventId]);
-
-  async function fetchUpdates() {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("event_updates")
-      .select("*")
-      .eq("event_id", eventId)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      toast.error("Failed to load updates");
-    } else {
-      setUpdates(data || []);
-    }
-    setLoading(false);
-  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
