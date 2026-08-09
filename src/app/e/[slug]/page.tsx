@@ -234,7 +234,6 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
           {event.hero_image_url && (
             <div className="w-full aspect-[21/9] relative rounded-3xl overflow-hidden shadow-lg border border-border">
-              { }
               <img src={event.hero_image_url} alt={event.title} className="absolute inset-0 w-full h-full object-cover" />
             </div>
           )}
@@ -286,7 +285,6 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <div className="max-w-5xl mx-auto px-4 py-16">
             {event.hero_image_url && (
               <div className="mb-16 -mt-32 relative z-10 w-full aspect-video rounded-xl overflow-hidden shadow-2xl border-4 border-background">
-                { }
                 <img src={event.hero_image_url} alt={event.title} className="w-full h-full object-cover" />
               </div>
             )}
