@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { checkGuestLimit } from '../plans';
-import { NextResponse } from 'next/server';
 
 // Mock NextResponse
 vi.mock('next/server', () => ({

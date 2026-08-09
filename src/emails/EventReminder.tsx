@@ -8,7 +8,6 @@ import {
   Text,
   Heading,
   Hr,
-  Button,
 } from '@react-email/components';
 
 interface EventReminderEmailProps {
