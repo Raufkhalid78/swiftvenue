@@ -11,6 +11,7 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
   const eventId = resolvedParams.id;
   const [event, setEvent] = useState<any>(null);
   const [metrics, setMetrics] = useState({ rsvps: 0, sales: 0, views: 0 });
+  const [guestLimit, setGuestLimit] = useState<number | null>(null);
   const [recentAttendees, setRecentAttendees] = useState<any[]>([]);
   const [chartData, setChartData] = useState<{ day: string; count: number }[]>([]);
   const [ticketData, setTicketData] = useState<{ name: string; value: number }[]>([]);
@@ -23,7 +24,7 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
       // Fetch Event
       const { data: eventData } = await supabase
         .from('events')
-        .select('*')
+        .select('*, profiles(plan)')
         .eq('id', eventId)
         .single();
       
@@ -51,6 +52,20 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
           .select('*, ticket_types(name)')
           .eq('event_id', eventId)
           .order('created_at', { ascending: false });
+
+        const profiles = eventData.profiles as any;
+        const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
+        
+        if (organizerPlan) {
+          const { data: planData } = await supabase
+            .from('plans')
+            .select('max_guests_per_event')
+            .eq('id', organizerPlan)
+            .single();
+          if (planData?.max_guests_per_event) {
+            setGuestLimit(planData.max_guests_per_event);
+          }
+        }
 
         setMetrics({
           rsvps: rsvpCount || 0,
@@ -125,8 +140,8 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-3 text-muted-foreground mb-2">
             <Users className="w-4 h-4" /> <span className="text-sm font-medium">Total RSVPs</span>
           </div>
-          <h3 className="text-3xl font-bold">{metrics.rsvps}</h3>
-          <p className="text-xs text-muted-foreground mt-2">Capacity: Unlimited</p>
+          <h3 className="text-3xl font-bold">{metrics.rsvps} {guestLimit ? `/ ${guestLimit}` : ''}</h3>
+          <p className="text-xs text-muted-foreground mt-2">Capacity: {guestLimit ? 'Limited' : 'Unlimited'}</p>
         </div>
         
         <div className="p-6 rounded-xl border border-border bg-card shadow-sm">

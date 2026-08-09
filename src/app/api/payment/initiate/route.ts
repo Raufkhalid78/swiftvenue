@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { calculatePlatformFee } from '@/lib/fees';
+import { checkGuestLimit } from '@/lib/plans';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,6 +36,14 @@ export async function POST(request: NextRequest) {
     if (ticketError || !ticketType || !ticketType.is_active) {
       return NextResponse.json({ error: 'Invalid or inactive ticket type' }, { status: 400 });
     }
+
+    // Extract organizer plan earlier for guest limit check
+    const profiles = event.profiles as any;
+    const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
+
+    // Check plan guest limits before reserving tickets
+    const limitResponse = await checkGuestLimit(service, eventId, organizerPlan || 'free');
+    if (limitResponse) return limitResponse;
 
     // Attempt to atomically reserve the ticket(s)
     const { data: reserved, error: reserveError } = await service
@@ -81,9 +90,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fetch the organizer's plan configuration
-    const profiles = event.profiles as any;
-    const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
+    // Fetch the organizer's plan configuration (plan ID was extracted above)
     const { data: planConfig } = await service
       .from('plans')
       .select('fee_percent, fee_fixed')

@@ -335,14 +335,19 @@ CREATE TABLE IF NOT EXISTS public.plans (
   fee_fixed         NUMERIC(10,2) NOT NULL,
   max_concurrent_paid_events INT,
   remove_branding   BOOLEAN DEFAULT FALSE,
-  broadcast_limit   INT
+  broadcast_limit   INT,
+  max_guests_per_event INT
 );
 
-INSERT INTO public.plans (id, name, monthly_price, yearly_price, fee_percent, fee_fixed, max_concurrent_paid_events, remove_branding, broadcast_limit) VALUES
-  ('free', 'Free', 0, 0, 7.00, 30.00, 1, FALSE, 1),
-  ('pro', 'Pro', 3500, 35000, 3.00, 15.00, NULL, TRUE, NULL),
-  ('enterprise', 'Enterprise', NULL, NULL, 2.00, 0.00, NULL, TRUE, NULL)
-ON CONFLICT (id) DO NOTHING;
+-- Ensure column exists if table was already created
+ALTER TABLE public.plans ADD COLUMN IF NOT EXISTS max_guests_per_event INT;
+
+INSERT INTO public.plans (id, name, monthly_price, yearly_price, fee_percent, fee_fixed, max_concurrent_paid_events, remove_branding, broadcast_limit, max_guests_per_event) VALUES
+  ('free', 'Free', 0, 0, 7.00, 30.00, 1, FALSE, 1, 100),
+  ('pro', 'Pro', 3500, 35000, 3.00, 15.00, NULL, TRUE, NULL, 1000),
+  ('enterprise', 'Enterprise', NULL, NULL, 2.00, 0.00, NULL, TRUE, NULL, NULL)
+ON CONFLICT (id) DO UPDATE SET 
+  max_guests_per_event = EXCLUDED.max_guests_per_event;
 
 ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_plan_fk FOREIGN KEY (plan) REFERENCES public.plans(id);

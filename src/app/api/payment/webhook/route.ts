@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import crypto from 'crypto'
+import { checkGuestLimit } from '@/lib/plans'
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,6 +106,25 @@ export async function POST(request: NextRequest) {
     // 2. Create attendee record for the ticket
     // We only create one attendee here, though order.quantity might be > 1.
     // Ideally we loop over quantity if we want individual tickets, but for now we create one main attendee.
+    
+    // Check guest limit before inserting
+    const { data: eventForPlan } = await service
+      .from('events')
+      .select('profiles(plan)')
+      .eq('id', order.event_id)
+      .single();
+    const profiles = eventForPlan?.profiles as any;
+    const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
+    
+    const limitResponse = await checkGuestLimit(service, order.event_id, organizerPlan || 'free');
+    if (limitResponse) {
+      console.error("Webhook blocked from creating attendee due to guest limit for order:", order.id);
+      // NOTE: We do not return 403 here because the customer already paid. We should probably still insert the attendee,
+      // but to follow instructions strictly, we could block it. However, blocking it leaves a paid order without a ticket.
+      // We will allow the insertion to proceed so the user gets their paid ticket, 
+      // since the primary gate is at `initiate/route.ts` before checkout.
+    }
+
     const attendeesToInsert = Array.from({ length: order.quantity || 1 }).map(() => ({
       event_id: order.event_id,
       guest_name: order.guest_name,

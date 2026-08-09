@@ -10,6 +10,15 @@ export default async function LandingPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  const { data: plans } = await supabase
+    .from('plans')
+    .select('*')
+    .order('monthly_price', { ascending: true, nullsFirst: true });
+
+  const freePlan = plans?.find(p => p.id === 'free');
+  const proPlan = plans?.find(p => p.id === 'pro');
+  const enterprisePlan = plans?.find(p => p.id === 'enterprise');
+
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 flex flex-col">
       {/* Navigation */}
@@ -208,14 +217,13 @@ export default async function LandingPage() {
             <p className="text-muted-foreground max-w-2xl mx-auto">Start for free, upgrade when you need more power.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* These are static previews of the actual plans on /pricing */}
             <div className="p-8 rounded-3xl bg-card border border-border shadow-sm flex flex-col">
               <h3 className="text-xl font-semibold mb-2">Free</h3>
               <p className="text-3xl font-bold mb-1">Rs 0 <span className="text-lg font-normal text-muted-foreground">/mo</span></p>
               <p className="text-muted-foreground mb-6">Perfect for small community events.</p>
               <ul className="space-y-3 mb-8 flex-1">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Up to 100 guests per event</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Basic analytics</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> {freePlan?.fee_percent ?? 7}% + Rs {freePlan?.fee_fixed ?? 30} per paid ticket</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Unlimited free events</li>
                 <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Safepay ticketing</li>
               </ul>
             </div>
@@ -224,22 +232,24 @@ export default async function LandingPage() {
                 <span className="bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-full">Most Popular</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">Pro</h3>
-              <p className="text-3xl font-bold mb-1">Rs 4,999 <span className="text-lg font-normal text-primary-foreground/70">/mo</span></p>
+              <p className="text-3xl font-bold mb-1">
+                Rs {proPlan?.monthly_price?.toLocaleString() ?? '3,500'} <span className="text-lg font-normal text-primary-foreground/70">/mo</span>
+              </p>
               <p className="text-primary-foreground/80 mb-6">For professional event organizers.</p>
               <ul className="space-y-3 mb-8 flex-1">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary-foreground" /> Up to 1,000 guests per event</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary-foreground" /> Waitlist management</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary-foreground" /> Premium templates</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary-foreground" /> {proPlan?.fee_percent ?? 3}% + Rs {proPlan?.fee_fixed ?? 15} per paid ticket</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary-foreground" /> Unlimited concurrent paid events</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary-foreground" /> Branding removed, unlimited broadcasts</li>
               </ul>
             </div>
             <div className="p-8 rounded-3xl bg-card border border-border shadow-sm flex flex-col">
               <h3 className="text-xl font-semibold mb-2">Enterprise</h3>
-              <p className="text-3xl font-bold mb-1">Rs 14,999 <span className="text-lg font-normal text-muted-foreground">/mo</span></p>
+              <p className="text-3xl font-bold mb-1">Custom</p>
               <p className="text-muted-foreground mb-6">For agencies and large festivals.</p>
               <ul className="space-y-3 mb-8 flex-1">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Unlimited guests</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Team collaboration</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Priority support</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> As low as {enterprisePlan?.fee_percent ?? 2}% per ticket, volume-negotiated</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Dedicated support</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Contact sales for details</li>
               </ul>
             </div>
           </div>
