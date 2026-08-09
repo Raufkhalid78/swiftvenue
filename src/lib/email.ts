@@ -100,3 +100,46 @@ export async function sendWaitlistOffer({
     throw error;
   }
 }
+import EventReminderEmail from '@/emails/EventReminder';
+
+export async function sendEventReminderEmail({
+  to,
+  guestName,
+  eventName,
+  eventTime,
+  venueName,
+  venueAddress,
+}: {
+  to: string;
+  guestName: string;
+  eventName: string;
+  eventTime: string;
+  venueName: string;
+  venueAddress: string;
+}) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY is not set. Simulating email send to:', to);
+    return { id: 'mock_id' };
+  }
+
+  try {
+    const data = await resend.emails.send({
+      from: 'SwiftVenue <tickets@swiftvenuehq.com>',
+      to: [to],
+      subject: `Reminder: ${eventName} is Tomorrow!`,
+      react: EventReminderEmail({
+        guestName,
+        eventName,
+        eventTime,
+        venueName,
+        venueAddress,
+      }) as React.ReactElement,
+    });
+
+    return data;
+  } catch (error) {
+    console.error('Failed to send event reminder email:', error);
+    throw error;
+  }
+}
+

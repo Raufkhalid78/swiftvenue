@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { checkEventAccess } from "@/lib/team";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,8 +34,9 @@ export async function POST(request: NextRequest) {
     // For attendees to events, it's a many-to-one, so it's a single object.
     const event = Array.isArray(attendee.events) ? attendee.events[0] : attendee.events;
     
-    if (event?.user_id !== user.id) {
-      return NextResponse.json({ error: "Forbidden: You do not own the event for this ticket." }, { status: 403 });
+    const hasAccess = await checkEventAccess(service, event.id, user.id, ['owner', 'coorganizer', 'checkin_staff']);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to check-in for this event." }, { status: 403 });
     }
 
     if (attendee.status === "attended") {

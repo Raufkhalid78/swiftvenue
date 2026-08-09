@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
+import { checkEventAccess } from "@/lib/team";
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_mock_key");
 
@@ -32,8 +33,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    if (event.user_id !== user.id) {
-      return NextResponse.json({ error: "Forbidden: You do not own this event" }, { status: 403 });
+    const hasAccess = await checkEventAccess(service, eventId, user.id, ['owner', 'coorganizer']);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to broadcast to this event's attendees" }, { status: 403 });
     }
 
     // Fetch all attendees for this event

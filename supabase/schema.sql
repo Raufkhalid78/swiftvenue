@@ -422,7 +422,7 @@ ALTER TABLE public.orders
 CREATE TABLE IF NOT EXISTS public.event_collaborators (
   event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  role            TEXT DEFAULT 'editor' CHECK (role IN ('editor', 'viewer')),
+  role            TEXT DEFAULT 'coorganizer' CHECK (role IN ('coorganizer', 'checkin_staff')),
   created_at      TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (event_id, user_id)
 );
@@ -455,7 +455,7 @@ $body LANGUAGE plpgsql SECURITY DEFINER;
 DROP POLICY IF EXISTS "events_update_own" ON public.events;
 CREATE POLICY "events_update_own" ON public.events FOR UPDATE USING (
   user_id = auth.uid() OR EXISTS (
-    SELECT 1 FROM public.event_collaborators WHERE event_id = id AND user_id = auth.uid() AND role = 'editor'
+    SELECT 1 FROM public.event_collaborators WHERE event_id = id AND user_id = auth.uid() AND role = 'coorganizer'
   )
 );
 
@@ -604,4 +604,8 @@ BEGIN
   RETURN v_count;
 END;
 $$$;
+
+
+-- Add idempotency guard for event reminders
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMPTZ;
 

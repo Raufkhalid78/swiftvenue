@@ -6,12 +6,20 @@ import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserPlus, Shield, X, Mail } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function TeamPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState("checkin_staff");
   const [inviteLoading, setInviteLoading] = useState(false);
 
   useEffect(() => {
@@ -35,8 +43,9 @@ export default function TeamPage({ params }: { params: Promise<{ id: string }> }
     setInviteLoading(true);
     // In a real app we would call an API route to lookup the user by email or send an invite email.
     // Here we'll just mock it.
-    alert("Invite feature requires the user to already have an account or a server-side lookup via Supabase Admin API.");
+    alert(`Invite feature requires the user to already have an account or a server-side lookup via Supabase Admin API. Role selected: ${role}`);
     setEmail("");
+    setRole("checkin_staff");
     setInviteLoading(false);
   };
 
@@ -67,6 +76,15 @@ export default function TeamPage({ params }: { params: Promise<{ id: string }> }
               disabled={inviteLoading}
             />
           </div>
+          <Select value={role} onValueChange={setRole} disabled={inviteLoading}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="coorganizer">Co-organizer</SelectItem>
+              <SelectItem value="checkin_staff">Check-in Staff</SelectItem>
+            </SelectContent>
+          </Select>
           <Button type="submit" disabled={inviteLoading} className="gap-2">
             <UserPlus className="w-4 h-4" />
             Send Invite
