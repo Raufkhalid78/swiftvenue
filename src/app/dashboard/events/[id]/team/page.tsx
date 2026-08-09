@@ -67,7 +67,7 @@ export default function TeamPage({ params }: { params: Promise<{ id: string }> }
           if (newTeam) setTeam(newTeam);
         }
       }
-    } catch (err) {
+    } catch {
       toast.error("An error occurred");
     } finally {
       setInviteLoading(false);

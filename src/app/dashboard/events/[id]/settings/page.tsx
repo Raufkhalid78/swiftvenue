@@ -53,7 +53,7 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
       } else {
         toast.error("Could not find coordinates for this address.");
       }
-    } catch (err) {
+    } catch {
       toast.error("Error connecting to geocoding service.");
     } finally {
       setGeocoding(false);

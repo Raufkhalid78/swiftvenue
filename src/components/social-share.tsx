@@ -24,7 +24,7 @@ export function SocialShare({ title }: { title: string }) {
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (_) {}
+    } catch {}
   };
 
   const encodedUrl = encodeURIComponent(url);
