@@ -9,7 +9,8 @@ import { NextResponse } from 'next/server';
 export async function checkGuestLimit(
   service: SupabaseClient,
   eventId: string,
-  organizerPlan: string
+  organizerPlan: string,
+  quantity: number = 1
 ): Promise<NextResponse | null> {
   // 1. Get the current number of attendees
   const { count: currentAttendees, error: countErr } = await service
@@ -34,10 +35,17 @@ export async function checkGuestLimit(
     return NextResponse.json({ error: 'Internal server error while fetching plan.' }, { status: 500 });
   }
 
-  // 3. Check limit
-  if (planLimit?.max_guests_per_event && (currentAttendees ?? 0) >= planLimit.max_guests_per_event) {
+  // 3. Check limit against projected total
+  const projectedTotal = (currentAttendees ?? 0) + quantity;
+
+  if (planLimit?.max_guests_per_event && projectedTotal > planLimit.max_guests_per_event) {
+    const remaining = Math.max(0, planLimit.max_guests_per_event - (currentAttendees ?? 0));
     return NextResponse.json(
-      { error: 'This event has reached its guest limit for the organizer\'s plan. Ask the organizer to upgrade.' },
+      { 
+        error: remaining > 0
+          ? `Only ${remaining} guest spot(s) remaining for this event. Reduce your ticket quantity or ask the organizer to upgrade.`
+          : `This event has reached its guest limit for the organizer's plan. Ask the organizer to upgrade.`
+      },
       { status: 403 }
     );
   }

@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const profiles = eventForPlan?.profiles as any;
     const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
     
-    const limitResponse = await checkGuestLimit(service, order.event_id, organizerPlan || 'free');
+    const limitResponse = await checkGuestLimit(service, order.event_id, organizerPlan || 'free', order.quantity || 1);
     if (limitResponse) {
       console.error("Webhook blocked from creating attendee due to guest limit for order:", order.id);
       // NOTE: We do not return 403 here because the customer already paid. We should probably still insert the attendee,

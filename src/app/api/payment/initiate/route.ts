@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
 
     // Check plan guest limits before reserving tickets
-    const limitResponse = await checkGuestLimit(service, eventId, organizerPlan || 'free');
+    const limitResponse = await checkGuestLimit(service, eventId, organizerPlan || 'free', quantity);
     if (limitResponse) return limitResponse;
 
     // Attempt to atomically reserve the ticket(s)
