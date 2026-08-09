@@ -91,8 +91,8 @@ export default async function PricingPage() {
               <p className="text-muted-foreground mb-6">For serious organizers and event agencies.</p>
               
               <div className="mb-6">
-                <div className="text-4xl font-display font-bold">Rs. 3,500 <span className="text-lg text-muted-foreground font-normal">/mo</span></div>
-                <p className="text-sm text-emerald-600 font-medium mt-1">Or Rs 35,000 / year (save 2 months)</p>
+                <div className="text-4xl font-display font-bold">Rs {proPlan?.monthly_price?.toLocaleString() ?? '3,500'} <span className="text-lg text-muted-foreground font-normal">/mo</span></div>
+                <p className="text-sm text-emerald-600 font-medium mt-1">Or Rs {(proPlan?.monthly_price ? proPlan.monthly_price * 10 : 35000).toLocaleString()} / year (save 2 months)</p>
               </div>
               
               <div className="bg-background p-4 rounded-xl border border-primary/20 mb-6 shadow-sm">
