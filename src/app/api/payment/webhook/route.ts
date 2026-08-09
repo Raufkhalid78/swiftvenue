@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import crypto from 'crypto'
 import { checkGuestLimit } from '@/lib/plans'
+import { calculateAttendeesToCreate, calculateCommission } from '@/lib/order-fulfillment'
 
 export async function POST(request: NextRequest) {
   try {
@@ -125,15 +126,7 @@ export async function POST(request: NextRequest) {
       // since the primary gate is at `initiate/route.ts` before checkout.
     }
 
-    const attendeesToInsert = Array.from({ length: order.quantity || 1 }).map(() => ({
-      event_id: order.event_id,
-      guest_name: order.guest_name,
-      guest_email: order.guest_email,
-      guest_phone: order.guest_phone || null,
-      ticket_type_id: order.ticket_type_id,
-      status: 'registered',
-      order_id: order.id
-    }));
+    const attendeesToInsert = calculateAttendeesToCreate(order);
 
     const { error: attendeeErr } = await service
       .from('attendees')
@@ -161,8 +154,7 @@ export async function POST(request: NextRequest) {
 
       if (refCode?.user_id) {
         // Calculate 30% commission of the platform fee, not gross order amount
-        const AFFILIATE_COMMISSION_RATE = 0.30;
-        const commissionAmount = Number(order.platform_fee_amount || 0) * AFFILIATE_COMMISSION_RATE;
+        const commissionAmount = calculateCommission(order.platform_fee_amount, 0.30);
         const { error: commErr } = await service.from('affiliate_commissions').insert({
           affiliate_id: refCode.user_id,
           order_id: order.id,

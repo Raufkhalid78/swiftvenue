@@ -570,3 +570,38 @@ CREATE TABLE IF NOT EXISTS public.affiliate_commissions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+
+-- Function to expire stale pending orders (older than 30 mins) and release inventory
+CREATE OR REPLACE FUNCTION public.expire_stale_orders()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$$
+DECLARE
+  v_order RECORD;
+  v_count integer := 0;
+BEGIN
+  FOR v_order IN
+    SELECT id, ticket_type_id, quantity
+    FROM public.orders
+    WHERE status = 'pending'
+      AND created_at < (NOW() - INTERVAL '30 minutes')
+  LOOP
+    -- Mark order as cancelled
+    UPDATE public.orders
+    SET status = 'cancelled'
+    WHERE id = v_order.id;
+
+    -- Release ticket capacity
+    PERFORM public.reserve_ticket(v_order.ticket_type_id, -(v_order.quantity));
+
+    -- Attempt to notify next waitlist entry
+    PERFORM public.notify_next_waitlist_entry(v_order.ticket_type_id);
+
+    v_count := v_count + 1;
+  END LOOP;
+
+  RETURN v_count;
+END;
+$$$;
+
