@@ -128,14 +128,24 @@ export async function POST(request: NextRequest) {
 
     const attendeesToInsert = calculateAttendeesToCreate(order);
 
-    const { error: attendeeErr } = await service
+    const { data: insertedAttendees, error: attendeeErr } = await service
       .from('attendees')
-      .insert(attendeesToInsert);
+      .insert(attendeesToInsert)
+      .select();
 
     if (attendeeErr) {
       console.error("Failed to insert attendees in webhook:", attendeeErr)
       // Note: we don't return 500 here to avoid safepay retrying since we already marked as paid, 
       // but in production we'd want a robust retry mechanism for fulfillment.
+    }
+
+    const primaryAttendeeId = insertedAttendees?.[0]?.id;
+
+    // Link the generated referral code for this new attendee
+    if (order.referral_code && primaryAttendeeId) {
+      await service.from('promo_codes')
+        .update({ referring_attendee_id: primaryAttendeeId })
+        .eq('code', order.referral_code);
     }
       
     // 4. Increment promo code usage and calculate affiliate commission if applied
@@ -163,7 +173,36 @@ export async function POST(request: NextRequest) {
           status: 'pending'
         });
         if (commErr) console.error('Failed to save affiliate commission:', commErr);
-        if (commErr) console.error('Failed to save affiliate commission:', commErr);
+      }
+
+      // Check if it's a friend referral code
+      const { data: promoCodeData } = await service
+        .from('promo_codes')
+        .select('is_referral_code, referring_attendee_id')
+        .eq('code', order.promo_code)
+        .single();
+
+      if (promoCodeData?.is_referral_code && promoCodeData.referring_attendee_id) {
+        // Find the referrer to generate a reward
+        const { data: referrer } = await service
+          .from('attendees')
+          .select('guest_name, event_id')
+          .eq('id', promoCodeData.referring_attendee_id)
+          .single();
+
+        if (referrer) {
+          const prefix = referrer.guest_name.split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '');
+          const rewardCode = `${prefix}-REWARD-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+          await service.from('promo_codes').insert({
+            event_id: referrer.event_id,
+            code: rewardCode,
+            discount_type: 'percentage',
+            discount_amount: 10,
+            is_active: true,
+            max_uses: 1
+          });
+          console.log(`Generated reward code ${rewardCode} for referrer ${referrer.guest_name}`);
+        }
       }
     }
 

@@ -87,6 +87,16 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'full_name', '')
   )
   ON CONFLICT (id) DO NOTHING;
+
+  -- Resolve any pending team invites for this email
+  INSERT INTO public.event_collaborators (event_id, user_id, role)
+  SELECT event_id, NEW.id, role
+  FROM public.event_collaborator_invites
+  WHERE email = NEW.email
+  ON CONFLICT (event_id, user_id) DO NOTHING;
+
+  DELETE FROM public.event_collaborator_invites WHERE email = NEW.email;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -671,7 +681,7 @@ CREATE POLICY "event_gallery_select_published" ON public.event_gallery FOR SELEC
   EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND status = 'published')
 );
 CREATE POLICY "event_gallery_owner_all" ON public.event_gallery FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid())
+  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid()) OR EXISTS (SELECT 1 FROM public.event_collaborators WHERE event_id = event_gallery.event_id AND user_id = auth.uid() AND role = 'coorganizer')
 );
 
 -- event_speakers policies
@@ -679,7 +689,7 @@ CREATE POLICY "event_speakers_select_published" ON public.event_speakers FOR SEL
   EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND status = 'published')
 );
 CREATE POLICY "event_speakers_owner_all" ON public.event_speakers FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid())
+  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid()) OR EXISTS (SELECT 1 FROM public.event_collaborators WHERE event_id = event_speakers.event_id AND user_id = auth.uid() AND role = 'coorganizer')
 );
 
 -- event_sponsors policies
@@ -687,7 +697,7 @@ CREATE POLICY "event_sponsors_select_published" ON public.event_sponsors FOR SEL
   EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND status = 'published')
 );
 CREATE POLICY "event_sponsors_owner_all" ON public.event_sponsors FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid())
+  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid()) OR EXISTS (SELECT 1 FROM public.event_collaborators WHERE event_id = event_sponsors.event_id AND user_id = auth.uid() AND role = 'coorganizer')
 );
 
 -- event_faqs policies
@@ -695,7 +705,7 @@ CREATE POLICY "event_faqs_select_published" ON public.event_faqs FOR SELECT USIN
   EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND status = 'published')
 );
 CREATE POLICY "event_faqs_owner_all" ON public.event_faqs FOR ALL USING (
-  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid())
+  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid()) OR EXISTS (SELECT 1 FROM public.event_collaborators WHERE event_id = event_faqs.event_id AND user_id = auth.uid() AND role = 'coorganizer')
 );
 
 
@@ -709,5 +719,31 @@ CREATE TABLE IF NOT EXISTS public.event_updates (
 );
 ALTER TABLE public.event_updates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "event_updates_select" ON public.event_updates FOR SELECT USING (true);
-CREATE POLICY "event_updates_insert_own" ON public.event_updates FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM public.events e WHERE e.id = event_id AND e.user_id = auth.uid()));
-CREATE POLICY "event_updates_delete_own" ON public.event_updates FOR DELETE USING (EXISTS (SELECT 1 FROM public.events e WHERE e.id = event_id AND e.user_id = auth.uid()));
+CREATE POLICY "event_updates_insert_own" ON public.event_updates FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid()) OR EXISTS (SELECT 1 FROM public.event_collaborators WHERE event_id = event_updates.event_id AND user_id = auth.uid() AND role = 'coorganizer')
+);
+CREATE POLICY "event_updates_delete_own" ON public.event_updates FOR DELETE USING (
+  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid()) OR EXISTS (SELECT 1 FROM public.event_collaborators WHERE event_id = event_updates.event_id AND user_id = auth.uid() AND role = 'coorganizer')
+);
+
+-- ==========================================
+-- PHASE 6: TEAM INVITES & REFERRALS
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.event_collaborator_invites (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id   UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  email      TEXT NOT NULL,
+  role       TEXT NOT NULL CHECK (role IN ('coorganizer', 'checkin_staff')),
+  invited_by UUID REFERENCES public.profiles(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(event_id, email)
+);
+ALTER TABLE public.event_collaborator_invites ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "invites_select_own_events" ON public.event_collaborator_invites FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid())
+);
+
+ALTER TABLE public.promo_codes
+  ADD COLUMN IF NOT EXISTS is_referral_code BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS referring_attendee_id UUID REFERENCES public.attendees(id);

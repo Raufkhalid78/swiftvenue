@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trash2, AlertTriangle, Save } from "lucide-react";
+import { Trash2, AlertTriangle, Save, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function EventSettingsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,6 +16,7 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,6 +28,37 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
     }
     loadEvent();
   }, [resolvedParams.id]);
+
+  async function handleGeocode() {
+    if (!event.venue_address && !event.venue_name) {
+      toast.error("Please enter a venue address or name first.");
+      return;
+    }
+    setGeocoding(true);
+    try {
+      const query = event.venue_address || event.venue_name;
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`, {
+        headers: {
+          'User-Agent': 'SwiftVenue/1.0'
+        }
+      });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        setEvent({
+          ...event,
+          venue_lat: data[0].lat,
+          venue_lng: data[0].lon
+        });
+        toast.success("Coordinates found!");
+      } else {
+        toast.error("Could not find coordinates for this address.");
+      }
+    } catch (err) {
+      toast.error("Error connecting to geocoding service.");
+    } finally {
+      setGeocoding(false);
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -42,6 +74,7 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
         date: event.date,
         time: event.time,
         venue_name: event.venue_name,
+        venue_address: event.venue_address,
         status: event.status,
         video_url: event.video_url,
         venue_lat: event.venue_lat ? parseFloat(event.venue_lat) : null,
@@ -119,7 +152,16 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Venue Name</Label>
-            <Input value={event.venue_name} onChange={e => setEvent({...event, venue_name: e.target.value})} required />
+            <Input value={event.venue_name || ''} onChange={e => setEvent({...event, venue_name: e.target.value})} required />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Venue Address</Label>
+            <Input value={event.venue_address || ''} onChange={e => setEvent({...event, venue_address: e.target.value})} required placeholder="123 Main St, City, Country" />
+          </div>
+          <div className="space-y-2 md:col-span-2 flex justify-start mb-2">
+            <Button type="button" variant="outline" size="sm" onClick={handleGeocode} disabled={geocoding}>
+              <MapPin className="w-4 h-4 mr-2" /> {geocoding ? 'Finding...' : 'Find Coordinates from Address'}
+            </Button>
           </div>
           <div className="space-y-2">
             <Label>Latitude (Optional)</Label>

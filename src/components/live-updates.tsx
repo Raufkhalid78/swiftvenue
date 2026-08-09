@@ -1,13 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Megaphone, X, Pin } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 
-export function LiveUpdatesWidget({ updates }: { updates: any[] }) {
+export function LiveUpdatesWidget({ updates, eventId }: { updates: any[], eventId: string }) {
   const [isOpen, setIsOpen] = useState(true);
+  const [localUpdates, setLocalUpdates] = useState(updates);
 
-  if (!updates || updates.length === 0) return null;
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`public:event_updates:${eventId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'event_updates',
+          filter: `event_id=eq.${eventId}`
+        },
+        (payload) => {
+          setLocalUpdates((prev) => {
+            const newArray = [payload.new, ...prev];
+            return newArray.sort((a, b) => {
+              if (a.is_pinned && !b.is_pinned) return -1;
+              if (!a.is_pinned && b.is_pinned) return 1;
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            });
+          });
+          setIsOpen(true);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId]);
+
+  if (!localUpdates || localUpdates.length === 0) return null;
 
   if (!isOpen) {
     return (
@@ -31,7 +64,7 @@ export function LiveUpdatesWidget({ updates }: { updates: any[] }) {
         </Button>
       </div>
       <div className="max-h-64 overflow-y-auto p-4 space-y-4">
-        {updates.map(u => (
+        {localUpdates.map(u => (
           <div key={u.id} className="text-sm">
             {u.is_pinned && <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded mb-1"><Pin className="w-3 h-3" /> Pinned</span>}
             <p className="text-foreground">{u.message}</p>

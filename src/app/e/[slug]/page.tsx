@@ -118,7 +118,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
         '--theme-primary': rgbTheme,
       }}
     >
-      <LiveUpdatesWidget updates={updates || []} />
+      <LiveUpdatesWidget updates={updates || []} eventId={event.id} />
       <style dangerouslySetInnerHTML={{__html: `
         .theme-accent { color: rgb(var(--theme-primary)); }
         .theme-bg { background-color: rgb(var(--theme-primary)); }

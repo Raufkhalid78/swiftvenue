@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import { UserPlus, Shield, X, Mail } from "lucide-react";
 import {
   Select,
@@ -41,12 +42,36 @@ export default function TeamPage({ params }: { params: Promise<{ id: string }> }
     e.preventDefault();
     if (!email) return;
     setInviteLoading(true);
-    // In a real app we would call an API route to lookup the user by email or send an invite email.
-    // Here we'll just mock it.
-    alert(`Invite feature requires the user to already have an account or a server-side lookup via Supabase Admin API. Role selected: ${role}`);
-    setEmail("");
-    setRole("checkin_staff");
-    setInviteLoading(false);
+
+    try {
+      const res = await fetch('/api/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: resolvedParams.id, email, role })
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        toast.error(data.error || "Failed to send invite");
+      } else {
+        toast.success(data.message || "Invite sent!");
+        setEmail("");
+        // Reload team to reflect changes if they were added instantly
+        if (data.status === 'added') {
+          const supabase = createClient();
+          const { data: newTeam } = await supabase
+            .from('event_collaborators')
+            .select('*, profiles(full_name, email)')
+            .eq('event_id', resolvedParams.id);
+          if (newTeam) setTeam(newTeam);
+        }
+      }
+    } catch (err) {
+      toast.error("An error occurred");
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   const handleRemove = async (userId: string) => {

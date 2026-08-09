@@ -18,7 +18,8 @@ export async function createReferralCode(
       code: code,
       discount_type: 'percentage',
       discount_amount: 10, // 10% off
-      is_active: true
+      is_active: true,
+      is_referral_code: true
     })
     .select('code')
     .single();
