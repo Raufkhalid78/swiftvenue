@@ -136,9 +136,9 @@ export function RegistrationWidget({
     currency = selectedTicket.currency || "PKR";
     if (promoData?.valid) {
       if (promoData.discount_type === 'percentage') {
-        total = subtotal - (subtotal * (promoData.discount_amount! / 100));
+        total = subtotal - (subtotal * ((promoData.discount_amount ?? 0) / 100));
       } else if (promoData.discount_type === 'fixed') {
-        total = Math.max(0, subtotal - promoData.discount_amount!);
+        total = Math.max(0, subtotal - (promoData.discount_amount ?? 0));
       }
     }
   }

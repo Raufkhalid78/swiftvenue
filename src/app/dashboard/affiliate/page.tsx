@@ -81,12 +81,18 @@ export default async function AffiliateDashboardPage() {
             </p>
           </div>
 
-          <AffiliateDashboardClient 
-            application={data.application}
-            referralCode={data.referralCode}
-            commissions={data.commissions || []}
-            stats={data.stats!}
-          />
+          {!data.stats ? (
+            <div className="p-6 text-center text-muted-foreground border border-border rounded-xl">
+              Unable to load affiliate stats right now. Please refresh the page.
+            </div>
+          ) : (
+            <AffiliateDashboardClient 
+              application={data.application}
+              referralCode={data.referralCode}
+              commissions={data.commissions || []}
+              stats={data.stats}
+            />
+          )}
         </div>
       </main>
     </div>

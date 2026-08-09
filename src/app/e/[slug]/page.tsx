@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
 import { Calendar, MapPin, Clock, Banknote } from "lucide-react";
 import { notFound } from "next/navigation";
 import { RegistrationWidget } from "@/components/registration-widget";
@@ -42,10 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function PublicEventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = await createClient();
 
   const { data: event, error } = await supabase
     .from("events")

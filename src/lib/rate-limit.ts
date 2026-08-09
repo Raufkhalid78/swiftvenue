@@ -7,8 +7,8 @@ const hasRedisConfig = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPST
 // Fallback empty redis if missing
 const redis = hasRedisConfig
   ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      url: process.env.UPSTASH_REDIS_REST_URL as string,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN as string,
     })
   : ({
       // Dummy object that won't break things if env vars are missing

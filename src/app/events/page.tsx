@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { MapPin, Calendar, Search, Tag } from "lucide-react";
 
@@ -19,10 +19,7 @@ export default async function EventsDirectory({
 }) {
   const { q, category } = await searchParams;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = await createClient();
 
   let query = supabase
     .from("events")
