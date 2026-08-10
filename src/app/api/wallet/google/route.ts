@@ -52,35 +52,6 @@ export async function GET(request: Request) {
 
     const event = order.events as any;
 
-    // Define the class inline — Google will create/update it automatically from the JWT
-    const eventTicketClass = {
-      id: fullClassId,
-      issuerName: 'SwiftVenue',
-      reviewStatus: 'UNDER_REVIEW',
-      eventName: {
-        defaultValue: {
-          language: 'en-US',
-          value: event?.title || 'SwiftVenue Event'
-        }
-      },
-      logo: {
-        sourceUri: {
-          uri: 'https://swiftvenuehq.com/icon.png'
-        },
-        contentDescription: {
-          defaultValue: {
-            language: 'en-US',
-            value: 'SwiftVenue Logo'
-          }
-        }
-      },
-      hexBackgroundColor: '#0f172a',
-      homepageUri: {
-        uri: 'https://swiftvenuehq.com',
-        description: 'SwiftVenue'
-      }
-    };
-
     // Define the EventTicketObject payload
     const eventTicketObject = {
       id: objectId,
@@ -93,6 +64,7 @@ export async function GET(request: Request) {
       },
       ticketHolderName: order.guest_name || 'Attendee',
       ticketNumber: order.id.split('-')[0].toUpperCase(),
+      header: event?.title || 'SwiftVenue Event',
       seatInfo: {
         seat: {
           defaultValue: {
@@ -113,7 +85,6 @@ export async function GET(request: Request) {
         'https://www.swiftvenuehq.com',
       ],
       payload: {
-        eventTicketClasses: [eventTicketClass],
         eventTicketObjects: [eventTicketObject]
       }
     };
