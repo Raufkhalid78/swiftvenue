@@ -92,6 +92,22 @@ export async function GET(request: Request) {
       ...(venueName ? [{ header: 'Venue', body: venueName, id: 'event_venue' }] : []),
     ];
 
+    // Build links: event page + venue map
+    const linksModuleData = {
+      uris: [
+        {
+          uri: `https://swiftvenuehq.com/e/${event?.slug || ''}`,
+          description: 'View Event Page',
+          id: 'event_page',
+        },
+        ...(venueName ? [{
+          uri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venueName)}`,
+          description: 'Venue on Google Maps',
+          id: 'venue_map',
+        }] : []),
+      ],
+    };
+
     // Define the EventTicketObject payload
     const eventTicketObject = {
       id: objectId,
@@ -105,6 +121,7 @@ export async function GET(request: Request) {
       ticketHolderName: order.guest_name || 'Attendee',
       ticketNumber: order.id.split('-')[0].toUpperCase(),
       textModulesData,
+      linksModuleData,
     };
 
     const claims = {
