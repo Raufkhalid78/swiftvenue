@@ -24,7 +24,7 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
       // Fetch Event
       const { data: eventData } = await supabase
         .from('events')
-        .select('*, profiles(plan)')
+        .select('*')
         .eq('id', eventId)
         .single();
       

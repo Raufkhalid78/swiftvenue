@@ -108,14 +108,20 @@ export async function POST(request: NextRequest) {
     // We only create one attendee here, though order.quantity might be > 1.
     // Ideally we loop over quantity if we want individual tickets, but for now we create one main attendee.
     
-    // Check guest limit before inserting
-    const { data: eventForPlan } = await service
+    // Process free orders directly or handle webhook for Safepay
+    const { data: event } = await service
       .from('events')
-      .select('profiles(plan)')
+      .select('user_id')
       .eq('id', order.event_id)
       .single();
-    const profiles = eventForPlan?.profiles as any;
-    const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
+
+    const { data: profile } = await service
+      .from('profiles')
+      .select('plan')
+      .eq('id', event?.user_id)
+      .single();
+
+    const organizerPlan = profile?.plan || 'basic';
     
     const limitResponse = await checkGuestLimit(service, order.event_id, organizerPlan || 'free', order.quantity || 1);
     if (limitResponse) {

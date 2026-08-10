@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // Verify the event exists
     const { data: event, error: eventError } = await service
       .from('events')
-      .select('id, title, slug, status, user_id, date, time, venue_name, venue_address, profiles(plan)')
+      .select('id, title, slug, status, user_id, date, time, venue_name, venue_address')
       .eq('id', eventId)
       .single();
 
@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract organizer plan earlier for guest limit check
-    const profiles = event.profiles as any;
-    const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
+    const { data: organizerProfile } = await service.from('profiles').select('plan').eq('id', event.user_id).single();
+    const organizerPlan = organizerProfile?.plan || 'basic';
 
     // Check plan guest limits before reserving tickets
     const limitResponse = await checkGuestLimit(service, eventId, organizerPlan || 'free', quantity);
