@@ -48,11 +48,17 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     .from("events")
     .select("*")
     .eq("slug", slug)
-    .eq("status", "published")
     .single();
 
   if (error || !event) {
     notFound();
+  }
+
+  if (event.status !== "published") {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== event.user_id) {
+      notFound(); // Hide unpublished events from public visitors
+    }
   }
 
   const { data: agendaItems } = await supabase
