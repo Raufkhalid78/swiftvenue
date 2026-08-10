@@ -50,7 +50,7 @@ export function WalletButtons({ orderId }: { orderId: string }) {
     <div className="flex flex-col sm:flex-row gap-3 mt-4">
       <Button 
         variant="outline" 
-        className="w-full bg-black text-white hover:bg-zinc-800 border-black"
+        className="w-full bg-black text-white hover:bg-zinc-800 border-black dark:bg-black dark:text-white dark:hover:bg-zinc-800 dark:border-zinc-800"
         onClick={() => handleWallet('apple')}
         disabled={loadingApp}
       >
@@ -59,7 +59,7 @@ export function WalletButtons({ orderId }: { orderId: string }) {
       </Button>
       <Button 
         variant="outline" 
-        className="w-full bg-white text-black hover:bg-zinc-100 border-zinc-300"
+        className="w-full bg-white text-black hover:bg-zinc-100 border-zinc-300 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
         onClick={() => handleWallet('google')}
         disabled={loadingGoog}
       >
