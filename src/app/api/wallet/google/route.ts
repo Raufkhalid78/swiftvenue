@@ -46,11 +46,14 @@ export async function GET(request: Request) {
     }
 
     const objectId = `${GOOGLE_WALLET_ISSUER_ID}.${order.id}`;
+    const fullClassId = GOOGLE_WALLET_CLASS_ID.includes('.') 
+      ? GOOGLE_WALLET_CLASS_ID 
+      : `${GOOGLE_WALLET_ISSUER_ID}.${GOOGLE_WALLET_CLASS_ID}`;
 
     // Define the EventTicketObject payload
     const eventTicketObject = {
       id: objectId,
-      classId: GOOGLE_WALLET_CLASS_ID,
+      classId: fullClassId,
       state: 'ACTIVE',
       barcode: {
         type: 'QR_CODE',
