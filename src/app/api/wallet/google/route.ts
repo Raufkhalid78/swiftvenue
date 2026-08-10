@@ -64,7 +64,6 @@ export async function GET(request: Request) {
       },
       ticketHolderName: order.guest_name || 'Attendee',
       ticketNumber: order.id.split('-')[0].toUpperCase(),
-      header: event?.title || 'SwiftVenue Event',
       seatInfo: {
         seat: {
           defaultValue: {
