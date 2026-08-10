@@ -4,7 +4,6 @@ import { updateSession } from '@/lib/supabase/middleware'
 export async function middleware(request: NextRequest) {
 
   const nonce = crypto.randomUUID()
-  const isDev = process.env.NODE_ENV !== 'production'
   
   const scriptSrc = `'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com`;
 
