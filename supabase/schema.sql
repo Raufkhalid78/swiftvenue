@@ -451,7 +451,7 @@ CREATE POLICY "event_collaborators_delete" ON public.event_collaborators FOR DEL
 
 -- Access helper for policies
 CREATE OR REPLACE FUNCTION public.check_event_access(p_event_id UUID)
-RETURNS BOOLEAN AS $body
+RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM public.events WHERE id = p_event_id AND user_id = auth.uid()
@@ -459,7 +459,7 @@ BEGIN
     SELECT 1 FROM public.event_collaborators WHERE event_id = p_event_id AND user_id = auth.uid()
   );
 END;
-$body LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Update Events RLS
 DROP POLICY IF EXISTS "events_update_own" ON public.events;
