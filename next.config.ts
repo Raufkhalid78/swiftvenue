@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/og-image.png",
+        source: "/opengraph-image(.*)",
         headers: [
           {
             key: "Access-Control-Allow-Origin",
@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'nldoyrprekstnifrlblo.supabase.co',
+        hostname: process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : 'nldoyrprekstnifrlblo.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
