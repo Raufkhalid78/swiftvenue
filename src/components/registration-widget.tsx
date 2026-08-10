@@ -109,7 +109,10 @@ export function RegistrationWidget({
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to initiate checkout');
+      if (!response.ok) {
+        const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+        throw new Error(errorMsg || 'Failed to initiate checkout');
+      }
 
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;

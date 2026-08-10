@@ -308,7 +308,7 @@ export async function POST(request: NextRequest) {
         }
       }
       console.error('Checkout initialization failed, reservation released:', err);
-      return NextResponse.json({ error: 'Failed to initialize checkout' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to initialize checkout', details: err?.message || 'Unknown error' }, { status: 500 });
     }
   } catch (error: any) {
     console.error('POST /api/payment/initiate error:', error);
