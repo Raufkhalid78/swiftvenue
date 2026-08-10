@@ -51,18 +51,6 @@ CREATE TABLE IF NOT EXISTS public.agenda_items (
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ─── Attendees ───────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.attendees (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-  guest_name      TEXT NOT NULL,
-  guest_email     TEXT,
-  ticket_type     TEXT DEFAULT 'general',
-  status          TEXT NOT NULL CHECK (status IN ('registered', 'attended', 'cancelled')),
-  order_id        UUID REFERENCES public.orders(id),
-  created_at      TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- ─── Orders (Ticket Purchases) ───────────────────────────────
 CREATE TABLE IF NOT EXISTS public.orders (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -73,6 +61,18 @@ CREATE TABLE IF NOT EXISTS public.orders (
   currency        TEXT DEFAULT 'PKR',
   status          TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed')),
   tracker         TEXT,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─── Attendees ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.attendees (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id        UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  guest_name      TEXT NOT NULL,
+  guest_email     TEXT,
+  ticket_type     TEXT DEFAULT 'general',
+  status          TEXT NOT NULL CHECK (status IN ('registered', 'attended', 'cancelled')),
+  order_id        UUID REFERENCES public.orders(id),
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
