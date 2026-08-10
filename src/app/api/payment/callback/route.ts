@@ -11,6 +11,7 @@ async function handleCallback(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     let orderId = searchParams.get('order_id') || searchParams.get('reference') || '';
+    let tracker = searchParams.get('tracker') || '';
 
     if (request.method === 'POST') {
       try {
@@ -18,31 +19,39 @@ async function handleCallback(request: NextRequest) {
         if (contentType.includes('application/x-www-form-urlencoded')) {
           const formData = await request.formData();
           orderId = orderId || (formData.get('order_id') as string) || (formData.get('reference') as string) || '';
+          tracker = tracker || (formData.get('tracker') as string) || '';
         } else if (contentType.includes('application/json')) {
           const body = await request.json();
           orderId = orderId || body.order_id || body.reference || '';
+          tracker = tracker || body.tracker || '';
         }
       } catch (e) {
         console.error('Failed to parse POST body in payment callback:', e);
       }
     }
 
-    if (!orderId) {
-      return NextResponse.redirect(`${siteUrl}?paymentError=Missing order ID`, { status: 303 });
+    if (!orderId && !tracker) {
+      return NextResponse.redirect(`${siteUrl}?paymentError=Missing order identification`, { status: 303 });
     }
 
     const service = createServiceClient();
 
     // Fetch the order event slug first
-    const { data: initialOrder } = await service
-      .from('orders')
-      .select('event_id, status')
-      .eq('id', orderId)
-      .single();
+    let query = service.from('orders').select('id, event_id, status');
+    if (tracker) {
+      query = query.eq('tracker', tracker);
+    } else {
+      query = query.eq('id', orderId);
+    }
+
+    const { data: initialOrder } = await query.single();
 
     if (!initialOrder) {
       return NextResponse.redirect(`${siteUrl}?paymentError=Order record not found`, { status: 303 });
     }
+
+    // Always use the real UUID orderId from the database from now on
+    orderId = initialOrder.id;
 
     const { data: event } = await service.from('events').select('slug').eq('id', initialOrder.event_id).single();
     const eventSlug = event?.slug || '';
