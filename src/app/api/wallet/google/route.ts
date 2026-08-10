@@ -124,7 +124,7 @@ export async function GET(request: Request) {
     // The frontend should open this URL or redirect to it
     const saveUrl = `https://pay.google.com/gp/v/save/${token}`;
 
-    return NextResponse.json({ url: saveUrl });
+    return NextResponse.json({ url: saveUrl, token });
 
   } catch (err: any) {
     console.error("Error generating Google Wallet link:", err);
