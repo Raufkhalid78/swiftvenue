@@ -39,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${outfit.variable} antialiased bg-background text-foreground font-inter`}>
+      <body className={`${inter.variable} ${outfit.variable} antialiased bg-background text-foreground font-inter`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
