@@ -77,6 +77,10 @@ export async function GET(request: Request) {
       aud: 'google',
       typ: 'savetowallet',
       iat: Math.floor(Date.now() / 1000),
+      origins: [
+        'https://swiftvenuehq.com',
+        'https://www.swiftvenuehq.com',
+      ],
       payload: {
         eventTicketObjects: [eventTicketObject]
       }
