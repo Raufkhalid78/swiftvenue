@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, createClient } from '@/lib/supabase/server';
 import { calculatePlatformFee } from '@/lib/fees';
 import { checkGuestLimit } from '@/lib/plans';
 import { createReferralCode } from '@/lib/referral';
@@ -13,17 +13,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const supabase = await createClient();
     const service = createServiceClient();
 
-    // Verify the event exists and is published
+    // Verify the event exists
     const { data: event, error: eventError } = await service
       .from('events')
       .select('id, title, slug, status, user_id, date, time, venue_name, venue_address, profiles(plan)')
       .eq('id', eventId)
       .single();
 
-    if (eventError || !event || event.status !== 'published') {
+    if (eventError || !event) {
       return NextResponse.json({ error: 'Event not found or unavailable' }, { status: 404 });
+    }
+
+    if (event.status !== 'published') {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.id !== event.user_id) {
+        return NextResponse.json({ error: 'Event not found or unavailable' }, { status: 404 });
+      }
     }
 
     // Verify the ticket type and get the actual price
