@@ -47,7 +47,7 @@ export function WalletButtons({ orderId }: { orderId: string }) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 mt-4">
+    <div className="flex flex-col gap-3 mt-4">
       <Button 
         variant="outline" 
         className="w-full bg-black text-white hover:bg-zinc-800 border-black dark:bg-black dark:text-white dark:hover:bg-zinc-800 dark:border-zinc-800"
