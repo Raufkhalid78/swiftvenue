@@ -86,7 +86,7 @@ export function RefundsClient({ initialRefunds }: { initialRefunds: any[] }) {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize
-                      ${refund.refund_status === 'requested' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}
+                      ${refund.refund_status === 'requested' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'}`}
                     >
                       {refund.refund_status}
                     </span>
@@ -111,3 +111,4 @@ export function RefundsClient({ initialRefunds }: { initialRefunds: any[] }) {
     </div>
   );
 }
+

@@ -94,9 +94,9 @@ export function OrdersClient({ initialOrders }: { initialOrders: any[] }) {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      order.status === 'paid' ? 'bg-green-100 text-green-800' :
-                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
+                      order.status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                      'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                     }`}>
                       {order.status}
                     </span>
@@ -105,11 +105,11 @@ export function OrdersClient({ initialOrders }: { initialOrders: any[] }) {
                     {order.refund_status === 'none' ? (
                       <span className="text-muted-foreground text-xs">—</span>
                     ) : order.refund_status === 'requested' ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
                         Requested
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
                         Refunded
                       </span>
                     )}
@@ -135,3 +135,4 @@ export function OrdersClient({ initialOrders }: { initialOrders: any[] }) {
     </div>
   );
 }
+

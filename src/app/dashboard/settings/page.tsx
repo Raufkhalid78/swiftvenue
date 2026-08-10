@@ -134,13 +134,13 @@ export default function GlobalSettingsPage() {
           <div className="space-y-2">
             <Label>Payout Method</Label>
             <select 
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               value={payoutMethod?.method || 'bank'}
               onChange={e => setPayoutMethod({ ...payoutMethod, method: e.target.value })}
             >
-              <option value="bank">Bank Transfer</option>
-              <option value="jazzcash">JazzCash</option>
-              <option value="easypaisa">EasyPaisa</option>
+              <option value="bank" className="bg-background text-foreground">Bank Transfer</option>
+              <option value="jazzcash" className="bg-background text-foreground">JazzCash</option>
+              <option value="easypaisa" className="bg-background text-foreground">EasyPaisa</option>
             </select>
           </div>
           

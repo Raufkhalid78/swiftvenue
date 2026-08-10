@@ -71,9 +71,9 @@ export function MessagesClient({ initialMessages }: { initialMessages: any[] }) 
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize
-                      ${msg.status === 'new' ? 'bg-blue-100 text-blue-800' :
-                        msg.status === 'read' ? 'bg-amber-100 text-amber-800' :
-                        'bg-green-100 text-green-800'}`}
+                      ${msg.status === 'new' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                        msg.status === 'read' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
+                        'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'}`}
                     >
                       {msg.status}
                     </span>
@@ -109,3 +109,4 @@ export function MessagesClient({ initialMessages }: { initialMessages: any[] }) 
     </div>
   );
 }
+
