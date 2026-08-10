@@ -6,10 +6,7 @@ export async function middleware(request: NextRequest) {
   const nonce = crypto.randomUUID()
   const isDev = process.env.NODE_ENV !== 'production'
   
-  // Next.js requires 'unsafe-eval' in development for HMR
-  const scriptSrc = isDev
-    ? `'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com`
-    : `'self' 'nonce-${nonce}' 'strict-dynamic' https://unpkg.com`
+  const scriptSrc = `'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com`;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://nldoyrprekstnifrlblo.supabase.co';
 
@@ -37,6 +34,7 @@ export async function middleware(request: NextRequest) {
   const response = await updateSession(request, requestHeaders)
 
   response.headers.set('Content-Security-Policy', cspHeader)
+  response.headers.set('Access-Control-Allow-Origin', '*')
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
