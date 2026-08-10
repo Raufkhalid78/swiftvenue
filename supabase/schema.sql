@@ -586,7 +586,7 @@ CREATE OR REPLACE FUNCTION public.expire_stale_orders()
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $$$
+AS $$
 DECLARE
   v_order RECORD;
   v_count integer := 0;
@@ -613,7 +613,7 @@ BEGIN
 
   RETURN v_count;
 END;
-$$$;
+$$;
 
 
 -- Add idempotency guard for event reminders
