@@ -43,8 +43,9 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const { slug } = await params;
   
   const supabase = await createClient();
+  const service = createServiceClient();
 
-  const { data: event, error } = await supabase
+  const { data: event, error } = await service
     .from("events")
     .select("*")
     .eq("slug", slug)
@@ -61,20 +62,20 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     }
   }
 
-  const { data: agendaItems } = await supabase
+  const { data: agendaItems } = await service
     .from("agenda_items")
     .select("*")
     .eq("event_id", event.id)
     .order("order_index", { ascending: true });
 
-  const { data: ticketTypes } = await supabase
+  const { data: ticketTypes } = await service
     .from("ticket_types")
     .select("*")
     .eq("event_id", event.id)
     .eq("is_active", true)
     .order("order_index", { ascending: true });
 
-  const { data: rawGallery } = await supabase
+  const { data: rawGallery } = await service
     .from("event_gallery")
     .select("*")
     .eq("event_id", event.id)

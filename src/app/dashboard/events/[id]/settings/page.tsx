@@ -37,7 +37,11 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
     setGeocoding(true);
     try {
       const query = event.venue_address || event.venue_name;
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&email=support@swiftvenuehq.com`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`, {
+        headers: {
+          'User-Agent': 'SwiftVenue/1.0 (support@swiftvenuehq.com)'
+        }
+      });
       const data = await res.json();
       if (data && data.length > 0) {
         setEvent({

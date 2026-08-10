@@ -20,14 +20,18 @@ export default function EventDashboardLayout({
   const resolvedParams = use(params);
   const eventId = resolvedParams.id;
   const [slug, setSlug] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchSlug() {
+    async function fetchEventData() {
       const supabase = createClient();
-      const { data } = await supabase.from('events').select('slug').eq('id', eventId).single();
-      if (data) setSlug(data.slug);
+      const { data } = await supabase.from('events').select('slug, status').eq('id', eventId).single();
+      if (data) {
+        setSlug(data.slug);
+        setStatus(data.status);
+      }
     }
-    fetchSlug();
+    fetchEventData();
   }, [eventId]);
 
   const navigation = [
@@ -62,16 +66,20 @@ export default function EventDashboardLayout({
           <Link href={slug ? `/e/${slug}` : "#"} target={slug ? "_blank" : undefined}>
             <Button variant="outline" disabled={!slug}>Preview Public Page</Button>
           </Link>
-          <Button onClick={async () => {
-            const supabase = createClient();
-            const { error } = await supabase.from('events').update({ status: 'published' }).eq('id', eventId);
-            if (error) {
-              toast.error("Failed to publish event.");
-            } else {
-              toast.success("Event published successfully!");
-              window.location.reload();
-            }
-          }}>Publish Event</Button>
+          {status === 'published' ? (
+            <Button variant="outline" disabled className="bg-green-500/10 text-green-600 border-green-500/20">Published</Button>
+          ) : (
+            <Button onClick={async () => {
+              const supabase = createClient();
+              const { error } = await supabase.from('events').update({ status: 'published' }).eq('id', eventId);
+              if (error) {
+                toast.error("Failed to publish event.");
+              } else {
+                toast.success("Event published successfully!");
+                setStatus('published');
+              }
+            }}>Publish Event</Button>
+          )}
         </div>
       </div>
 
