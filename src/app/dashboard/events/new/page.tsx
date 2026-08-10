@@ -118,6 +118,20 @@ export default function CreateEventWizard() {
 
       if (error) throw error;
 
+      // Auto-create default ticket type
+      const { error: ticketError } = await supabase.from('ticket_types').insert([
+        {
+          event_id: data.id,
+          name: "General Admission",
+          price: parseFloat(formData.ticket_price) || 0,
+          currency: "PKR",
+          quantity_total: 1000,
+          is_active: true
+        }
+      ]);
+      
+      if (ticketError) console.error("Failed to create default ticket type:", ticketError);
+
       toast.success("Event created successfully!");
       router.push(`/dashboard/events/${data.id}`);
     } catch (error: any) {

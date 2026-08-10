@@ -68,12 +68,29 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     .eq("event_id", event.id)
     .order("order_index", { ascending: true });
 
-  const { data: ticketTypes } = await service
+  let { data: ticketTypes } = await service
     .from("ticket_types")
     .select("*")
     .eq("event_id", event.id)
     .eq("is_active", true)
     .order("order_index", { ascending: true });
+
+  // Auto-heal missing ticket types for old events that were created without one
+  if (!ticketTypes || ticketTypes.length === 0) {
+    const { data: newTicket } = await service.from("ticket_types").insert([
+      {
+        event_id: event.id,
+        name: "General Admission",
+        price: event.ticket_price || 0,
+        currency: "PKR",
+        quantity_total: 1000,
+        is_active: true
+      }
+    ]).select().single();
+    if (newTicket) {
+      ticketTypes = [newTicket];
+    }
+  }
 
   const { data: rawGallery } = await service
     .from("event_gallery")
