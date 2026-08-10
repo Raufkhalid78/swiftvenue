@@ -24,13 +24,15 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (eventError || !event) {
-      return NextResponse.json({ error: 'Event not found or unavailable' }, { status: 404 });
+      console.error("Event fetch error:", eventError);
+      return NextResponse.json({ error: `Event fetch failed: ${eventError?.message || 'Not found'}` }, { status: 404 });
     }
 
     if (event.status !== 'published') {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (!user || user.id !== event.user_id) {
-        return NextResponse.json({ error: 'Event not found or unavailable' }, { status: 404 });
+        console.error("Auth error or user mismatch:", { authError, userId: user?.id, eventUserId: event.user_id });
+        return NextResponse.json({ error: 'Auth failed for draft event checkout' }, { status: 403 });
       }
     }
 

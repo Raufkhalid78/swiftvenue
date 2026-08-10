@@ -75,7 +75,6 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
         time: event.time,
         venue_name: event.venue_name,
         venue_address: event.venue_address,
-        status: event.status,
         video_url: event.video_url,
         venue_lat: event.venue_lat ? parseFloat(event.venue_lat) : null,
         venue_lng: event.venue_lng ? parseFloat(event.venue_lng) : null,
