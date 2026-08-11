@@ -132,8 +132,8 @@ export default function CreateEventWizard() {
       
       if (ticketError) console.error("Failed to create default ticket type:", ticketError);
 
-      toast.success("Event created successfully!");
-      router.push(`/dashboard/events/${data.id}`);
+      toast.success("Event created! Set up your ticket tiers now.");
+      router.push(`/dashboard/events/${data.id}/tickets`);
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Failed to create event");

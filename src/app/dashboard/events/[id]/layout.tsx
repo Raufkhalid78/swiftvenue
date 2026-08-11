@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, use } from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft, Shield, Image as ImageIcon, Mic2, Briefcase, HelpCircle, Megaphone, MessageSquare } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft, Shield, Image as ImageIcon, Mic2, Briefcase, HelpCircle, Megaphone, MessageSquare, QrCode, Send, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ export default function EventDashboardLayout({
 
   const navigation = [
     { name: "Overview", href: `/dashboard/events/${eventId}`, icon: LayoutDashboard },
+    { name: "Tickets", href: `/dashboard/events/${eventId}/tickets`, icon: Ticket },
     { name: "Agenda", href: `/dashboard/events/${eventId}/agenda`, icon: CalendarDays },
     { name: "Gallery", href: `/dashboard/events/${eventId}/gallery`, icon: ImageIcon },
     { name: "Speakers", href: `/dashboard/events/${eventId}/speakers`, icon: Mic2 },
@@ -43,6 +44,8 @@ export default function EventDashboardLayout({
     { name: "FAQ", href: `/dashboard/events/${eventId}/faq`, icon: HelpCircle },
     { name: "Updates", href: `/dashboard/events/${eventId}/updates`, icon: Megaphone },
     { name: "Guests", href: `/dashboard/events/${eventId}/guests`, icon: Users },
+    { name: "Check-in", href: `/dashboard/events/${eventId}/check-in`, icon: QrCode },
+    { name: "Broadcast", href: `/dashboard/events/${eventId}/broadcast`, icon: Send },
     { name: "Team", href: `/dashboard/events/${eventId}/team`, icon: Shield },
     { name: "Feedback", href: `/dashboard/events/${eventId}/feedback`, icon: MessageSquare },
     { name: "Settings", href: `/dashboard/events/${eventId}/settings`, icon: Settings },

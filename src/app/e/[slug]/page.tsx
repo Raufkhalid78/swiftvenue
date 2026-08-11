@@ -105,6 +105,13 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     }
   }
 
+  const activeTickets = ticketTypes?.filter(t => t.is_active) || [];
+  const lowestPrice = activeTickets.length > 0
+    ? Math.min(...activeTickets.map(t => Number(t.price)))
+    : (event.ticket_price || 0);
+  const hasMultipleTiers = activeTickets.length > 1;
+  const priceRangeLabel = hasMultipleTiers ? 'From ' : '';
+
   const { data: rawGallery } = await service
     .from("event_gallery")
     .select("*")
@@ -142,7 +149,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const themeColor = event.theme_color || '#0f172a';
   const rgbTheme = hexToRgb(themeColor);
   const template = event.template_id || 'modern';
-  const isFree = !event.ticket_price || event.ticket_price <= 0;
+  const isFree = lowestPrice === 0 && !hasMultipleTiers;
 
   return (
     <div 
@@ -356,7 +363,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                       <Banknote className="w-5 h-5 theme-accent shrink-0" />
                       <div>
                         <p className="font-medium text-foreground">
-                          {isFree ? "Free Entry" : <PriceDisplay amountPkr={event.ticket_price} detectedCountry={detectedCountry} />}
+                          {isFree ? "Free Entry" : <span>{priceRangeLabel}<PriceDisplay amountPkr={lowestPrice} detectedCountry={detectedCountry} /></span>}
                         </p>
                         <p className="text-sm text-muted-foreground">Ticket Price</p>
                       </div>
@@ -428,7 +435,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             <div className="hidden sm:block text-muted-foreground">•</div>
             <div className="flex items-center gap-3">
               <Banknote className="w-5 h-5 text-muted-foreground" />
-              <span className="font-medium">{isFree ? "Free" : <PriceDisplay amountPkr={event.ticket_price} detectedCountry={detectedCountry} />}</span>
+              <span className="font-medium">{isFree ? "Free" : <span>{priceRangeLabel}<PriceDisplay amountPkr={lowestPrice} detectedCountry={detectedCountry} /></span>}</span>
             </div>
           </div>
 
@@ -546,7 +553,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               </p>
               <div className="flex justify-center gap-4 mt-8">
                 <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-full border border-white/20">
-                  <span className="text-lg font-semibold">{isFree ? "Free Registration" : <div className="inline-flex items-center gap-2">Tickets: <PriceDisplay amountPkr={event.ticket_price} detectedCountry={detectedCountry} /></div>}</span>
+                  <span className="text-lg font-semibold">{isFree ? "Free Registration" : <div className="inline-flex items-center gap-2">Tickets: {priceRangeLabel}<PriceDisplay amountPkr={lowestPrice} detectedCountry={detectedCountry} /></div>}</span>
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
                   <AddToCalendar event={event} />

@@ -1,0 +1,334 @@
+"use client";
+
+import { useState, useEffect, use } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { PlusCircle, Trash2, Edit2, GripVertical, TicketIcon, Ban, CheckCircle2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+interface TicketType {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  quantity_total: number;
+  quantity_sold: number;
+  sales_start: string | null;
+  sales_end: string | null;
+  is_active: boolean;
+  order_index: number;
+}
+
+function SortableTicketItem({ 
+  item, 
+  onEdit, 
+  onToggleActive, 
+  onDelete 
+}: { 
+  item: TicketType, 
+  onEdit: (item: TicketType) => void,
+  onToggleActive: (item: TicketType) => void,
+  onDelete: (item: TicketType) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.8 : 1,
+  };
+
+  const percentSold = item.quantity_total > 0 ? (item.quantity_sold / item.quantity_total) * 100 : 0;
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className={`flex gap-4 p-4 rounded-xl border ${item.is_active ? 'border-border bg-card' : 'border-dashed border-border/50 bg-muted/30'} shadow-sm group transition-all`}
+    >
+      <div 
+        {...attributes} 
+        {...listeners} 
+        className="flex flex-col items-center justify-center text-muted-foreground/50 cursor-grab active:cursor-grabbing px-2"
+      >
+        <GripVertical className="w-5 h-5" />
+      </div>
+      
+      <div className="flex-1 space-y-3">
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className={`font-bold ${!item.is_active && 'text-muted-foreground line-through'}`}>{item.name}</h4>
+              {!item.is_active && <span className="text-[10px] uppercase tracking-wider font-semibold bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Inactive</span>}
+            </div>
+            {item.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{item.description}</p>}
+          </div>
+          <div className="text-right">
+            <div className="font-bold">{item.price === 0 ? 'Free' : `PKR ${item.price.toLocaleString()}`}</div>
+          </div>
+        </div>
+
+        {/* Progress Bar & Sales Info */}
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{item.quantity_sold} / {item.quantity_total} sold</span>
+            <span>{Math.round(percentSold)}%</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+            <div 
+              className="bg-primary h-2 rounded-full transition-all" 
+              style={{ width: `${Math.min(percentSold, 100)}%` }}
+            />
+          </div>
+          
+          {(item.sales_start || item.sales_end) && (
+            <div className="text-xs text-muted-foreground pt-1 flex gap-2">
+              {item.sales_start && <span>Starts: {new Date(item.sales_start).toLocaleString()}</span>}
+              {item.sales_end && <span>Ends: {new Date(item.sales_end).toLocaleString()}</span>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onEdit(item)}>
+          <Edit2 className="w-4 h-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted" onClick={() => onToggleActive(item)} title={item.is_active ? "Deactivate" : "Reactivate"}>
+          {item.is_active ? <Ban className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => onDelete(item)}>
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export default function TicketsPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const [tickets, setTickets] = useState<TicketType[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  const [formData, setFormData] = useState<Partial<TicketType>>({
+    name: "",
+    description: "",
+    price: 0,
+    quantity_total: 100,
+    sales_start: "",
+    sales_end: ""
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  useEffect(() => {
+    fetchTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedParams.id]);
+
+  async function fetchTickets() {
+    setLoading(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('ticket_types')
+      .select('*')
+      .eq('event_id', resolvedParams.id)
+      .order('order_index', { ascending: true });
+    
+    if (data) setTickets(data);
+    setLoading(false);
+  }
+
+  async function handleSave() {
+    if (!formData.name) return toast.error("Ticket name is required");
+    if (formData.price === undefined || formData.price < 0) return toast.error("Valid price is required");
+    if (!formData.quantity_total || formData.quantity_total <= 0) return toast.error("Total quantity must be greater than 0");
+
+    const supabase = createClient();
+    const payload = {
+      ...formData,
+      sales_start: formData.sales_start || null,
+      sales_end: formData.sales_end || null,
+    };
+
+    if (editingId) {
+      const { error } = await supabase.from('ticket_types').update(payload).eq('id', editingId);
+      if (error) return toast.error('Failed to update ticket type');
+      toast.success('Ticket type updated');
+    } else {
+      const { error } = await supabase.from('ticket_types').insert({
+        ...payload, 
+        event_id: resolvedParams.id, 
+        quantity_sold: 0, 
+        order_index: tickets.length,
+        is_active: true
+      });
+      if (error) return toast.error('Failed to create ticket type');
+      toast.success('Ticket type added');
+    }
+    
+    setIsAdding(false);
+    setEditingId(null);
+    setFormData({ name: "", description: "", price: 0, quantity_total: 100, sales_start: "", sales_end: "" });
+    fetchTickets();
+  }
+
+  function handleEditInit(item: TicketType) {
+    setFormData({
+      name: item.name,
+      description: item.description || "",
+      price: item.price,
+      quantity_total: item.quantity_total,
+      sales_start: item.sales_start ? new Date(item.sales_start).toISOString().slice(0, 16) : "",
+      sales_end: item.sales_end ? new Date(item.sales_end).toISOString().slice(0, 16) : "",
+    });
+    setEditingId(item.id);
+    setIsAdding(true);
+  }
+
+  async function handleToggleActive(ticket: TicketType) {
+    const supabase = createClient();
+    const { error } = await supabase.from('ticket_types').update({ is_active: !ticket.is_active }).eq('id', ticket.id);
+    if (error) return toast.error('Failed to update ticket state');
+    toast.success(ticket.is_active ? 'Ticket type deactivated' : 'Ticket type reactivated');
+    fetchTickets();
+  }
+
+  async function handleDelete(ticket: TicketType) {
+    if (ticket.quantity_sold > 0) {
+      toast.error('Cannot delete a ticket type with existing sales — deactivate it instead.');
+      return;
+    }
+    const supabase = createClient();
+    const { error } = await supabase.from('ticket_types').delete().eq('id', ticket.id);
+    if (error) return toast.error('Failed to delete ticket type');
+    toast.success('Ticket type deleted');
+    fetchTickets();
+  }
+
+  async function handleDragEnd(event: any) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = tickets.findIndex((t) => t.id === active.id);
+    const newIndex = tickets.findIndex((t) => t.id === over.id);
+    
+    const newTickets = arrayMove(tickets, oldIndex, newIndex);
+    setTickets(newTickets);
+
+    const supabase = createClient();
+    const updates = newTickets.map((ticket, index) => ({
+      id: ticket.id,
+      order_index: index,
+    }));
+
+    for (const update of updates) {
+      await supabase.from('ticket_types').update({ order_index: update.order_index }).eq('id', update.id);
+    }
+  }
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold font-display">Ticket Tiers</h2>
+          <p className="text-sm text-muted-foreground mt-1">Manage pricing, inventory, and sales windows.</p>
+        </div>
+        <Button onClick={() => {
+          setEditingId(null);
+          setFormData({ name: "", description: "", price: 0, quantity_total: 100, sales_start: "", sales_end: "" });
+          setIsAdding(true);
+        }} className="gap-2" disabled={isAdding}>
+          <PlusCircle className="w-4 h-4" /> Add Ticket Tier
+        </Button>
+      </div>
+
+      {isAdding && (
+        <div className="p-6 border border-primary/50 bg-primary/5 rounded-xl space-y-4 animate-in fade-in zoom-in-95">
+          <h3 className="font-medium">{editingId ? 'Edit Ticket Tier' : 'New Ticket Tier'}</h3>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Tier Name</Label>
+              <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="e.g. Early Bird, VIP" />
+            </div>
+            <div className="space-y-2">
+              <Label>Price (PKR) - 0 for Free</Label>
+              <Input type="number" min="0" value={formData.price} onChange={(e) => setFormData({...formData, price: Number(e.target.value)})} />
+            </div>
+            
+            <div className="space-y-2 md:col-span-2">
+              <Label>Description (Optional)</Label>
+              <Textarea value={formData.description || ''} onChange={(e) => setFormData({...formData, description: e.target.value})} placeholder="What does this ticket include?" rows={2} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Total Quantity Available</Label>
+              <Input type="number" min="1" value={formData.quantity_total} onChange={(e) => setFormData({...formData, quantity_total: Number(e.target.value)})} />
+            </div>
+            <div className="space-y-2">
+              {/* Empty space for layout balance */}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Sales Start (Optional)</Label>
+              <Input type="datetime-local" value={formData.sales_start || ''} onChange={(e) => setFormData({...formData, sales_start: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Sales End (Optional)</Label>
+              <Input type="datetime-local" value={formData.sales_end || ''} onChange={(e) => setFormData({...formData, sales_end: e.target.value})} />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setIsAdding(false)}>Cancel</Button>
+            <Button onClick={handleSave}>Save Ticket Tier</Button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+          </div>
+        ) : tickets.length === 0 && !isAdding ? (
+          <div className="p-12 text-center border border-dashed border-border rounded-xl bg-card">
+            <TicketIcon className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+            <h3 className="font-medium text-lg">No tickets created</h3>
+            <p className="text-muted-foreground mb-4">Create your first ticket tier to start selling.</p>
+            <Button onClick={() => setIsAdding(true)} variant="outline">Add Ticket Tier</Button>
+          </div>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={tickets.map(t => t.id)} strategy={verticalListSortingStrategy}>
+              {tickets.map((ticket) => (
+                <SortableTicketItem 
+                  key={ticket.id} 
+                  item={ticket} 
+                  onEdit={handleEditInit}
+                  onToggleActive={handleToggleActive}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        )}
+      </div>
+    </div>
+  );
+}
