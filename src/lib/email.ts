@@ -143,3 +143,40 @@ export async function sendEventReminderEmail({
   }
 }
 
+import EventFeedbackEmail from '@/emails/EventFeedback';
+
+export async function sendEventFeedbackEmail({
+  to,
+  guestName,
+  eventName,
+  feedbackUrl,
+}: {
+  to: string;
+  guestName: string;
+  eventName: string;
+  feedbackUrl: string;
+}) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY is not set. Simulating email send to:', to);
+    return { id: 'mock_id' };
+  }
+
+  try {
+    const data = await resend.emails.send({
+      from: 'SwiftVenue <tickets@swiftvenuehq.com>',
+      to: [to],
+      subject: `How was ${eventName}? We'd love your feedback!`,
+      react: EventFeedbackEmail({
+        guestName,
+        eventName,
+        feedbackUrl,
+      }) as React.ReactElement,
+    });
+
+    return data;
+  } catch (error) {
+    console.error('Failed to send event feedback email:', error);
+    throw error;
+  }
+}
+

@@ -30,6 +30,9 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set('x-nonce', nonce)
   requestHeaders.set('Content-Security-Policy', cspHeader)
 
+  const country = request.headers.get('x-vercel-ip-country')
+  requestHeaders.set('x-detected-country', country || 'PK')
+
   const response = await updateSession(request, requestHeaders)
 
   response.headers.set('Content-Security-Policy', cspHeader)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { sendEventReminderEmail } from '@/lib/email';
+import { sendEventReminderEmail, sendEventFeedbackEmail } from '@/lib/email';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
@@ -37,7 +37,41 @@ export async function GET(request: NextRequest) {
   // 3. Send event reminders for tomorrow's events
   results.remindersSent = await sendEventReminders(service);
 
+  // 4. Refresh Exchange Rates
+  results.exchangeRates = await refreshExchangeRates(service);
+
+  // 5. Send post-event feedback surveys
+  results.feedbackSent = await sendFeedbackEmails(service);
+
   return NextResponse.json({ ok: true, results });
+}
+
+async function refreshExchangeRates(service: SupabaseClient) {
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/PKR'); // free, no API key required
+    const data = await res.json();
+    if (data.result !== 'success') throw new Error('Exchange rate API returned an error');
+
+    const { COUNTRY_TO_CURRENCY } = await import('@/lib/currency-map');
+    // Extract unique currencies we care about
+    const targetCurrencies = new Set(Object.values(COUNTRY_TO_CURRENCY));
+
+    const updates = Object.entries(data.rates)
+      .filter(([code]) => targetCurrencies.has(code))
+      .map(([code, rate]) => ({ 
+        currency_code: code, 
+        rate_from_pkr: rate, 
+        updated_at: new Date().toISOString() 
+      }));
+
+    for (const update of updates) {
+      await service.from('exchange_rates').upsert(update, { onConflict: 'currency_code' });
+    }
+    return { updated: updates.length };
+  } catch (e) {
+    console.error('Exchange rate refresh failed, keeping stale rates:', e);
+    return { updated: 0, error: true }; // fail gracefully — stale rates are fine for a day, a crash is not
+  }
 }
 
 async function sendEventReminders(service: SupabaseClient) {
@@ -71,4 +105,37 @@ async function sendEventReminders(service: SupabaseClient) {
     await service.from('events').update({ reminder_sent_at: new Date().toISOString() }).eq('id', event.id);
   }
   return upcomingEvents?.length ?? 0;
+}
+
+async function sendFeedbackEmails(service: SupabaseClient) {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+  const { data: pastEvents } = await service
+    .from('events')
+    .select('id, slug, title, date, attendees(guest_name, guest_email)')
+    .eq('date', yesterdayStr)
+    .eq('status', 'published')
+    .is('feedback_sent_at', null);
+
+  for (const event of pastEvents ?? []) {
+    for (const attendee of event.attendees ?? []) {
+      if (!attendee.guest_email) continue;
+      
+      try {
+        await sendEventFeedbackEmail({
+          to: attendee.guest_email,
+          guestName: attendee.guest_name,
+          eventName: event.title,
+          feedbackUrl: `https://swiftvenuehq.com/e/${event.slug}/feedback`,
+        });
+      } catch (e) {
+        console.error(`Feedback email failed for ${attendee.guest_email}:`, e);
+      }
+    }
+    // Mark as sent to prevent duplicate sending
+    await service.from('events').update({ feedback_sent_at: new Date().toISOString() }).eq('id', event.id);
+  }
+  return pastEvents?.length ?? 0;
 }

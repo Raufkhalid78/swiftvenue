@@ -313,7 +313,7 @@ export function RegistrationWidget({
                   </div>
                 )}
                 <div className="flex justify-between items-center">
-                  <div className="text-sm text-muted-foreground">Total</div>
+                  <div className="text-sm text-muted-foreground">{total > 0 ? `Total (charged in ${currency})` : 'Total'}</div>
                   <div className="text-xl font-bold">
                     {isWaitlist ? "Waitlist" : total > 0 ? `${currency} ${total.toLocaleString()}` : "Free"}
                   </div>

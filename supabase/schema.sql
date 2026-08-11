@@ -747,3 +747,36 @@ CREATE POLICY "invites_select_own_events" ON public.event_collaborator_invites F
 ALTER TABLE public.promo_codes
   ADD COLUMN IF NOT EXISTS is_referral_code BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS referring_attendee_id UUID REFERENCES public.attendees(id);
+
+-- ==========================================
+-- TRACK B & C: EXCHANGE RATES & FEEDBACK
+-- ==========================================
+
+-- Exchange Rates (Track C)
+CREATE TABLE IF NOT EXISTS public.exchange_rates (
+  currency_code text primary key,
+  rate_from_pkr numeric not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+ALTER TABLE public.exchange_rates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read access to exchange rates" ON public.exchange_rates FOR SELECT USING (true);
+
+-- Event Feedback (Track B)
+CREATE TABLE IF NOT EXISTS public.event_feedback (
+  id uuid default uuid_generate_v4() primary key,
+  event_id uuid references public.events(id) on delete cascade not null,
+  guest_name text,
+  guest_email text,
+  rating integer not null check (rating >= 1 and rating <= 5),
+  comment text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS feedback_sent_at timestamp with time zone;
+
+ALTER TABLE public.event_feedback ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can insert feedback" ON public.event_feedback FOR INSERT WITH CHECK (true);
+CREATE POLICY "Event owners can view feedback" ON public.event_feedback FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid()) OR EXISTS (SELECT 1 FROM public.event_collaborators WHERE event_id = event_feedback.event_id AND user_id = auth.uid() AND role = 'coorganizer')
+);

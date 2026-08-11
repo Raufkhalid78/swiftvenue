@@ -7,24 +7,29 @@ import { Search, Download, UserPlus, MoreHorizontal, CheckCircle2, XCircle } fro
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { BulkGuestImport } from "@/components/bulk-guest-import";
+import { useRouter } from "next/navigation";
 
 export default function GuestsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
+  const router = useRouter();
   const [guests, setGuests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const loadGuests = async () => {
+    setLoading(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('attendees')
+      .select('*, orders(refund_status)')
+      .eq('event_id', resolvedParams.id)
+      .order('created_at', { ascending: false });
+    
+    if (data) setGuests(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    async function loadGuests() {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('attendees')
-        .select('*, orders(refund_status)')
-        .eq('event_id', resolvedParams.id)
-        .order('created_at', { ascending: false });
-      
-      if (data) setGuests(data);
-      setLoading(false);
-    }
     loadGuests();
   }, [resolvedParams.id]);
 
@@ -57,6 +62,7 @@ export default function GuestsPage({ params }: { params: Promise<{ id: string }>
           <p className="text-sm text-muted-foreground mt-1">Manage RSVPs, check-ins, and attendee data.</p>
         </div>
         <div className="flex items-center gap-3">
+          <BulkGuestImport eventId={resolvedParams.id} onSuccess={() => { router.refresh(); loadGuests(); }} />
           <Button variant="outline" className="gap-2">
             <Download className="w-4 h-4" /> Export CSV
           </Button>

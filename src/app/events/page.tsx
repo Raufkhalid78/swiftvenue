@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { MapPin, Calendar, Search, Tag } from "lucide-react";
+import { headers } from "next/headers";
+import { PriceDisplay } from "@/components/price-display";
+import { CurrencySwitcher } from "@/components/currency-switcher";
+import { currencyForCountry } from "@/lib/currency-map";
 
 export const revalidate = 60; // Revalidate every minute
 
@@ -18,6 +22,9 @@ export default async function EventsDirectory({
   searchParams: Promise<{ q?: string; category?: string }>;
 }) {
   const { q, category } = await searchParams;
+
+  const headersList = await headers();
+  const detectedCountry = headersList.get('x-detected-country') || 'PK';
 
   const supabase = await createClient();
 
@@ -45,7 +52,10 @@ export default async function EventsDirectory({
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="bg-primary/5 py-16 px-4 border-b border-border">
+      <div className="bg-primary/5 py-16 px-4 border-b border-border relative">
+        <div className="absolute top-4 right-4">
+          <CurrencySwitcher defaultCurrency={detectedCountry && currencyForCountry(detectedCountry)} />
+        </div>
         <div className="max-w-6xl mx-auto text-center space-y-4">
           <h1 className="font-display text-4xl md:text-6xl font-bold tracking-tight">
             Discover Upcoming Events
@@ -154,7 +164,7 @@ export default async function EventsDirectory({
 
                       <div className="mt-auto pt-4 border-t border-border flex items-center justify-between">
                         <div className="font-semibold text-lg">
-                          {isFree ? "Free" : `From Rs. ${startingPrice.toLocaleString()}`}
+                          {isFree ? "Free" : <div className="inline-flex gap-1 items-center">From <PriceDisplay amountPkr={startingPrice} detectedCountry={detectedCountry} /></div>}
                         </div>
                         <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
                           Get Tickets
