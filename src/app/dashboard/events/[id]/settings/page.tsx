@@ -37,23 +37,42 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
     setGeocoding(true);
     try {
       const query = event.venue_address || event.venue_name;
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`, {
-        headers: {
-          'User-Agent': 'SwiftVenue/1.0 (support@swiftvenuehq.com)'
+      const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      
+      let lat, lon;
+      
+      if (mapboxToken) {
+        const res = await fetch(`https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(query)}&access_token=${mapboxToken}&limit=1`);
+        const data = await res.json();
+        if (data.features && data.features.length > 0) {
+          lon = data.features[0].geometry.coordinates[0];
+          lat = data.features[0].geometry.coordinates[1];
         }
-      });
-      const data = await res.json();
-      if (data && data.length > 0) {
+      } else {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`, {
+          headers: {
+            'User-Agent': 'SwiftVenue/1.0 (support@swiftvenuehq.com)'
+          }
+        });
+        const data = await res.json();
+        if (data && data.length > 0) {
+          lat = data[0].lat;
+          lon = data[0].lon;
+        }
+      }
+
+      if (lat && lon) {
         setEvent({
           ...event,
-          venue_lat: data[0].lat,
-          venue_lng: data[0].lon
+          venue_lat: lat,
+          venue_lng: lon
         });
         toast.success("Coordinates found!");
       } else {
         toast.error("Could not find coordinates for this address.");
       }
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error("Error connecting to geocoding service.");
     } finally {
       setGeocoding(false);
