@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { updateMessageStatus } from './actions';
 import { CheckCircle2, Search, MailOpen } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function MessagesClient({ initialMessages }: { initialMessages: any[] }) {
   const [messages, setMessages] = useState(initialMessages);
@@ -20,8 +21,9 @@ export function MessagesClient({ initialMessages }: { initialMessages: any[] }) 
     const res = await updateMessageStatus(id, status);
     if (res.success) {
       setMessages(msgs => msgs.map(m => m.id === id ? { ...m, status } : m));
+      toast.success(`Message marked as ${status}`);
     } else {
-      alert(res.error);
+      toast.error(res.error);
     }
     setLoadingId(null);
   };

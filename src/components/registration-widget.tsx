@@ -10,17 +10,30 @@ import { toast } from "sonner";
 export function RegistrationWidget({ 
   eventId, 
   eventTitle,
-  ticketTypes = []
+  ticketTypes = [],
+  targetCurrency = 'PKR',
+  exchangeRate = 1,
 }: { 
   eventId: string, 
   eventTitle: string,
-  ticketTypes?: any[]
+  ticketTypes?: any[],
+  targetCurrency?: string,
+  exchangeRate?: number,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
   const [selectedTicketId, setSelectedTicketId] = useState<string>(ticketTypes[0]?.id || "");
   const [quantity, setQuantity] = useState(1);
+  const [attendeeDetails, setAttendeeDetails] = useState(Array(1).fill({ name: "", email: "" }));
+
+  useEffect(() => {
+    setAttendeeDetails(prev => {
+      const next = [...prev];
+      while (next.length < quantity) next.push({ name: "", email: "" });
+      return next.slice(0, quantity);
+    });
+  }, [quantity]);
   
   const [promoCode, setPromoCode] = useState("");
   const [promoData, setPromoData] = useState<{valid: boolean, discount_type?: string, discount_amount?: number} | null>(null);
@@ -116,7 +129,8 @@ export function RegistrationWidget({
           guestPhone: formData.phone,
           ticketTypeId: selectedTicketId,
           quantity,
-          promoCode: promoData?.valid ? promoCode : undefined
+          promoCode: promoData?.valid ? promoCode : undefined,
+          attendeeDetails: !isWaitlist ? attendeeDetails : undefined
         }),
       });
 
@@ -207,8 +221,15 @@ export function RegistrationWidget({
                           <div className="text-xs text-muted-foreground mt-1">{ticket.description}</div>
                         )}
                       </div>
-                      <div className="font-bold whitespace-nowrap ml-4">
-                        {Number(ticket.price) === 0 ? 'Free' : `${ticket.currency || 'PKR'} ${Number(ticket.price).toLocaleString()}`}
+                      <div className="text-right ml-4">
+                        <div className="font-bold whitespace-nowrap">
+                          {Number(ticket.price) === 0 ? 'Free' : `${ticket.currency || 'PKR'} ${Number(ticket.price).toLocaleString()}`}
+                        </div>
+                        {targetCurrency !== 'PKR' && Number(ticket.price) > 0 && (
+                          <div className="text-xs text-muted-foreground whitespace-nowrap mt-1">
+                            ≈ {targetCurrency} {(Number(ticket.price) * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -244,37 +265,97 @@ export function RegistrationWidget({
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input 
-                  id="name" 
-                  required 
-                  placeholder="Jane Doe" 
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                />
+              <div className="space-y-4 pt-2">
+                <h4 className="font-semibold text-sm">Buyer Details (Primary Contact)</h4>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input 
+                    id="name" 
+                    required 
+                    placeholder="Jane Doe" 
+                    value={formData.name}
+                    onChange={e => {
+                      const newName = e.target.value;
+                      setFormData({ ...formData, name: newName });
+                      // Auto-fill ticket 1 if empty
+                      if (quantity === 1 && !attendeeDetails[0]?.name) {
+                        const newAtt = [...attendeeDetails];
+                        newAtt[0] = { ...newAtt[0], name: newName };
+                        setAttendeeDetails(newAtt);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    required 
+                    placeholder="jane@example.com" 
+                    value={formData.email}
+                    onChange={e => {
+                      const newEmail = e.target.value;
+                      setFormData({ ...formData, email: newEmail });
+                      if (quantity === 1 && !attendeeDetails[0]?.email) {
+                        const newAtt = [...attendeeDetails];
+                        newAtt[0] = { ...newAtt[0], email: newEmail };
+                        setAttendeeDetails(newAtt);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number (Optional)</Label>
+                  <Input 
+                    id="phone" 
+                    type="tel" 
+                    placeholder="+923001234567" 
+                    value={formData.phone}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  required 
-                  placeholder="jane@example.com" 
-                  value={formData.email}
-                  onChange={e => setFormData({ ...formData, email: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number (Optional)</Label>
-                <Input 
-                  id="phone" 
-                  type="tel" 
-                  placeholder="+923001234567" 
-                  value={formData.phone}
-                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                />
-              </div>
+
+              {!isWaitlist && quantity > 0 && (
+                <div className="space-y-4 pt-4 border-t border-border mt-4">
+                  <h4 className="font-semibold text-sm">Ticket Holders</h4>
+                  {attendeeDetails.map((attendee, index) => (
+                    <div key={index} className="p-3 bg-muted/30 rounded-lg space-y-3">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ticket {index + 1}</p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Name {index === 0 ? "(Required)" : "(Optional)"}</Label>
+                          <Input 
+                            required={index === 0}
+                            placeholder="Ticket holder name" 
+                            value={attendee.name}
+                            onChange={(e) => {
+                              const newDetails = [...attendeeDetails];
+                              newDetails[index] = { ...newDetails[index], name: e.target.value };
+                              setAttendeeDetails(newDetails);
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Email {index === 0 ? "(Required)" : "(Optional)"}</Label>
+                          <Input 
+                            type="email"
+                            required={index === 0}
+                            placeholder="Ticket holder email" 
+                            value={attendee.email}
+                            onChange={(e) => {
+                              const newDetails = [...attendeeDetails];
+                              newDetails[index] = { ...newDetails[index], email: e.target.value };
+                              setAttendeeDetails(newDetails);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               
               {!isWaitlist && (
                 <div className="space-y-2 pt-2">
@@ -314,8 +395,15 @@ export function RegistrationWidget({
                 )}
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-muted-foreground">{total > 0 ? `Total (charged in ${currency})` : 'Total'}</div>
-                  <div className="text-xl font-bold">
-                    {isWaitlist ? "Waitlist" : total > 0 ? `${currency} ${total.toLocaleString()}` : "Free"}
+                  <div className="text-right">
+                    <div className="text-xl font-bold">
+                      {isWaitlist ? "Waitlist" : total > 0 ? `${currency} ${total.toLocaleString()}` : "Free"}
+                    </div>
+                    {targetCurrency !== 'PKR' && total > 0 && !isWaitlist && (
+                      <div className="text-sm text-muted-foreground mt-1" title="Your bank sets the final exchange rate">
+                        ≈ {targetCurrency} {(total * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

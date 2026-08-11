@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Search, CheckCircle2 } from 'lucide-react';
 import { processPayout } from './actions';
 import Link from 'next/link';
+import { toast } from 'sonner';
+import { ConfirmAction } from '@/components/confirm-action';
 
 export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
   const [payouts, setPayouts] = useState(initialPayouts);
@@ -17,14 +19,13 @@ export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
   );
 
   const handleProcess = async (eventId: string) => {
-    if (!confirm('Mark this payout as processed? Ensure you have transferred the funds to the organizer.')) return;
-    
     setLoadingId(eventId);
     const result = await processPayout(eventId);
     if (result.success) {
       setPayouts(payouts.map(p => p.id === eventId ? { ...p, payout_status: 'paid' } : p));
+      toast.success('Payout marked as processed');
     } else {
-      alert(result.error);
+      toast.error(result.error);
     }
     setLoadingId(null);
   };
@@ -105,13 +106,17 @@ export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {payout.payout_status !== 'paid' && payout.total_payout > 0 && (
-                        <button
-                          disabled={loadingId === payout.id || !payout.profiles?.bank_details}
-                          onClick={() => handleProcess(payout.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        <ConfirmAction
+                          description="Mark this payout as processed? Ensure you have transferred the funds to the organizer."
+                          onConfirm={() => handleProcess(payout.id)}
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Mark Processed
-                        </button>
+                          <button
+                            disabled={loadingId === payout.id || !payout.profiles?.bank_details}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Mark Processed
+                          </button>
+                        </ConfirmAction>
                       )}
                     </td>
                   </tr>

@@ -26,11 +26,24 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://swiftvenuehq.com"),
+  metadataBase: new URL("https://www.swiftvenuehq.com"),
   applicationName: "SwiftVenue",
   title: "SwiftVenue — Modern Event Management SaaS",
   description: "Seamlessly manage corporate, social, cultural, and educational events with our modern, highly intuitive event platform.",
   keywords: ["SwiftVenue", "event management", "event SaaS", "corporate events", "social events"],
+  verification: {
+    google: "umvhpinZaXIjgZk7G9FO8uaTMLC8wPBGeRQoLnPQPQ4",
+  },
+};
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "SwiftVenue",
+  url: "https://www.swiftvenuehq.com",
+  logo: "https://www.swiftvenuehq.com/logo.jpg",
+  description: "Modern event management and ticketing platform for Pakistani organizers.",
+  sameAs: [],
 };
 
 export default function RootLayout({
@@ -58,6 +71,23 @@ export default function RootLayout({
           `,
         }}
       />
+      
+      {/* Google Analytics 4 */}
+      <Script src={`https://www.googletagmanager.com/gtag/js?id=G-3GQWSQ4VJF`} strategy="afterInteractive" />
+      <Script id="ga-init" strategy="afterInteractive">
+        {`window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-3GQWSQ4VJF');`}
+      </Script>
+
+      {/* Organization Structured Data */}
+      <Script
+        id="organization-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+
       <body className={`${inter.variable} ${outfit.variable} antialiased bg-background text-foreground font-inter`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { approveUpgradeRequest, rejectUpgradeRequest } from './actions';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
+import { ConfirmAction } from '@/components/confirm-action';
 
 type RequestStatus = 'pending' | 'approved' | 'rejected';
 
@@ -32,8 +34,9 @@ export function AdminUpgradeRequestsClient({ initialRequests }: { initialRequest
     const result = await approveUpgradeRequest(id);
     if (result.success) {
       setRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'approved' } : req));
+      toast.success('Upgrade request approved');
     } else {
-      alert(result.error || 'Failed to approve');
+      toast.error(result.error || 'Failed to approve');
     }
     setLoadingId(null);
   };
@@ -43,8 +46,9 @@ export function AdminUpgradeRequestsClient({ initialRequests }: { initialRequest
     const result = await rejectUpgradeRequest(id);
     if (result.success) {
       setRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'rejected' } : req));
+      toast.success('Upgrade request rejected');
     } else {
-      alert(result.error || 'Failed to reject');
+      toast.error(result.error || 'Failed to reject');
     }
     setLoadingId(null);
   };
@@ -96,25 +100,34 @@ export function AdminUpgradeRequestsClient({ initialRequests }: { initialRequest
                   <td className="px-4 py-3 text-right">
                     {req.status === 'pending' && (
                       <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          onClick={() => handleReject(req.id)}
-                          disabled={loadingId === req.id}
+                        <ConfirmAction
+                          destructive={true}
+                          description="Are you sure you want to reject this upgrade request?"
+                          onConfirm={() => handleReject(req.id)}
                         >
-                          {loadingId === req.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
-                          Reject
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="h-8 bg-emerald-600 hover:bg-emerald-700"
-                          onClick={() => handleApprove(req.id)}
-                          disabled={loadingId === req.id}
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            disabled={loadingId === req.id}
+                          >
+                            {loadingId === req.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
+                            Reject
+                          </Button>
+                        </ConfirmAction>
+                        <ConfirmAction
+                          description={`Are you sure you want to approve this upgrade to ${req.plans?.name || req.plan_id}?`}
+                          onConfirm={() => handleApprove(req.id)}
                         >
-                          {loadingId === req.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
-                          Approve
-                        </Button>
+                          <Button 
+                            size="sm" 
+                            className="h-8 bg-emerald-600 hover:bg-emerald-700"
+                            disabled={loadingId === req.id}
+                          >
+                            {loadingId === req.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                            Approve
+                          </Button>
+                        </ConfirmAction>
                       </div>
                     )}
                   </td>

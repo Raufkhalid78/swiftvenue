@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Search, ExternalLink, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { markOrderRefunded } from './actions';
+import { toast } from 'sonner';
+import { ConfirmAction } from '@/components/confirm-action';
 
 export function OrdersClient({ initialOrders }: { initialOrders: any[] }) {
   const [orders, setOrders] = useState(initialOrders);
@@ -18,14 +20,13 @@ export function OrdersClient({ initialOrders }: { initialOrders: any[] }) {
   );
 
   const handleRefund = async (orderId: string) => {
-    if (!confirm('Mark this order as refunded? Ensure you have processed this chargeback/refund with Safepay first.')) return;
-    
     setLoadingId(orderId);
     const result = await markOrderRefunded(orderId);
     if (result.success) {
       setOrders(orders.map(o => o.id === orderId ? { ...o, refund_status: 'refunded' } : o));
+      toast.success('Order marked as refunded');
     } else {
-      alert(result.error);
+      toast.error(result.error);
     }
     setLoadingId(null);
   };
@@ -117,13 +118,17 @@ export function OrdersClient({ initialOrders }: { initialOrders: any[] }) {
                   <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap space-y-2">
                     <div>{new Date(order.created_at).toLocaleDateString()}</div>
                     {order.amount > 0 && order.refund_status !== 'refunded' && (
-                      <button
-                        disabled={loadingId === order.id}
-                        onClick={() => handleRefund(order.id)}
-                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                      <ConfirmAction
+                        description="Mark this order as refunded? Ensure you have processed this chargeback/refund with Safepay first."
+                        onConfirm={() => handleRefund(order.id)}
                       >
-                        <RefreshCw className="w-3 h-3" /> Mark Refunded
-                      </button>
+                        <button
+                          disabled={loadingId === order.id}
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                        >
+                          <RefreshCw className="w-3 h-3" /> Mark Refunded
+                        </button>
+                      </ConfirmAction>
                     )}
                   </td>
                 </tr>

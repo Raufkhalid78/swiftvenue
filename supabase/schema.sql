@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   currency        TEXT DEFAULT 'PKR',
   status          TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed')),
   tracker         TEXT,
+  metadata        JSONB,
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 

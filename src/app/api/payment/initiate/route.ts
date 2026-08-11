@@ -7,7 +7,7 @@ import { createReferralCode } from '@/lib/referral';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { eventId, guestName, guestEmail, guestPhone, ticketTypeId, quantity = 1, promoCode } = body;
+    const { eventId, guestName, guestEmail, guestPhone, ticketTypeId, quantity = 1, promoCode, attendeeDetails } = body;
 
     if (!eventId || !guestName || !guestEmail || !ticketTypeId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -128,7 +128,8 @@ export async function POST(request: NextRequest) {
         promo_code: promoCode || null,
         discount_amount: discountAmount,
         platform_fee_amount: platformFee,
-        organizer_net_amount: amount
+        organizer_net_amount: amount,
+        metadata: attendeeDetails ? { attendeeDetails } : null
       })
       .select()
       .single();
@@ -174,10 +175,10 @@ export async function POST(request: NextRequest) {
     if (totalCharged <= 0) {
       await service.from('orders').update({ status: 'paid' }).eq('id', order.id);
 
-      const attendeesToInsert = Array.from({ length: quantity }).map(() => ({
+      const attendeesToInsert = Array.from({ length: quantity }).map((_, i) => ({
         event_id: eventId,
-        guest_name: guestName,
-        guest_email: guestEmail,
+        guest_name: attendeeDetails && attendeeDetails[i]?.name ? attendeeDetails[i].name : guestName,
+        guest_email: attendeeDetails && attendeeDetails[i]?.email ? attendeeDetails[i].email : guestEmail,
         guest_phone: guestPhone || null,
         ticket_type_id: ticketTypeId,
         status: 'registered',

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { processAffiliateApplication, processCommission } from './actions';
 import { CheckCircle2, XCircle, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
+import { ConfirmAction } from '@/components/confirm-action';
 
 export function AffiliatesClient({ 
   initialApplications, 
@@ -20,8 +22,9 @@ export function AffiliatesClient({
     const res = await processAffiliateApplication(id, 'approved');
     if (res.success) {
       setApplications(apps => apps.map(a => a.id === id ? { ...a, status: 'approved' } : a));
+      toast.success('Application approved');
     } else {
-      alert(res.error);
+      toast.error(res.error);
     }
     setLoadingId(null);
   };
@@ -31,20 +34,21 @@ export function AffiliatesClient({
     const res = await processAffiliateApplication(id, 'rejected');
     if (res.success) {
       setApplications(apps => apps.map(a => a.id === id ? { ...a, status: 'rejected' } : a));
+      toast.success('Application rejected');
     } else {
-      alert(res.error);
+      toast.error(res.error);
     }
     setLoadingId(null);
   };
 
   const handleProcessCommission = async (id: string) => {
-    if (!confirm('Mark this commission as paid? Ensure you have sent the funds.')) return;
     setLoadingId(id);
     const res = await processCommission(id);
     if (res.success) {
       setCommissions(comms => comms.map(c => c.id === id ? { ...c, status: 'paid' } : c));
+      toast.success('Commission marked as paid');
     } else {
-      alert(res.error);
+      toast.error(res.error);
     }
     setLoadingId(null);
   };
@@ -143,13 +147,17 @@ export function AffiliatesClient({
                       Rs {Number(comm.commission_amount).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        disabled={loadingId === comm.id}
-                        onClick={() => handleProcessCommission(comm.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      <ConfirmAction
+                        description="Mark this commission as paid? Ensure you have sent the funds."
+                        onConfirm={() => handleProcessCommission(comm.id)}
                       >
-                        <DollarSign className="w-3.5 h-3.5" /> Mark Paid
-                      </button>
+                        <button
+                          disabled={loadingId === comm.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        >
+                          <DollarSign className="w-3.5 h-3.5" /> Mark Paid
+                        </button>
+                      </ConfirmAction>
                     </td>
                   </tr>
                 ))}

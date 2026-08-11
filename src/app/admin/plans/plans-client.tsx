@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { updatePlan } from './actions';
 import { Save, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function PlansClient({ initialPlans }: { initialPlans: any[] }) {
   const [plans, setPlans] = useState(initialPlans);
@@ -25,8 +26,9 @@ export function PlansClient({ initialPlans }: { initialPlans: any[] }) {
     const result = await updatePlan(plan.id, updates);
     if (result.success) {
       setEditingId(null);
+      toast.success('Plan updated successfully');
     } else {
-      alert(result.error);
+      toast.error(result.error);
     }
     setSavingId(null);
   };

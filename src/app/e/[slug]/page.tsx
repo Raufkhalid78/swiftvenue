@@ -8,6 +8,7 @@ import { SocialShare } from "@/components/social-share";
 import { LiveUpdatesWidget } from "@/components/live-updates";
 import { headers } from "next/headers";
 import { PriceDisplay } from "@/components/price-display";
+import { currencyForCountry } from "@/lib/currency-map";
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -49,6 +50,13 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   
   const supabase = await createClient();
   const service = createServiceClient();
+
+  const targetCurrency = currencyForCountry(detectedCountry);
+  let exchangeRate = 1;
+  if (targetCurrency !== 'PKR') {
+    const { data: rate } = await service.from('exchange_rates').select('rate_from_pkr').eq('currency_code', targetCurrency).single();
+    if (rate) exchangeRate = rate.rate_from_pkr;
+  }
 
   const { data: event, error } = await service
     .from("events")
@@ -357,7 +365,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 </div>
 
                 <div className="bg-card rounded-2xl border border-border p-1">
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
+                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
                 </div>
 
                 {/* Organizer Info */}
@@ -516,7 +524,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <div className="flex justify-center pt-8 border-t border-border">
             <div className="w-full max-w-md bg-card p-6 rounded-2xl border border-border shadow-sm text-center">
               <h3 className="font-display text-2xl font-bold mb-4">Secure your spot</h3>
-              <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
+              <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
             </div>
           </div>
         </div>
@@ -627,7 +635,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <div className="space-y-12">
                 <div className="bg-muted/30 p-8 rounded-xl border border-border">
                   <h2 className="text-2xl font-serif font-bold mb-6 text-center">Register Now</h2>
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
+                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
                 </div>
 
                 {agendaItems && agendaItems.length > 0 && (
@@ -756,7 +764,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <div className="sticky top-8">
                   <div className="bg-background rounded-[2rem] border-[4px] border-primary p-6 shadow-2xl rotate-[-1deg]">
                     <h2 className="text-3xl font-black uppercase mb-6 text-center">Get Tickets</h2>
-                    <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
+                    <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
                   </div>
 
                   {sponsors && sponsors.length > 0 && (
@@ -834,7 +842,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <div className="md:col-span-5 space-y-16">
                 <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-sm">
                   <h2 className="text-2xl font-light text-center mb-8">RSVP</h2>
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
+                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
                 </div>
 
                 {sponsors && sponsors.length > 0 && (
@@ -910,7 +918,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             <div className="md:col-span-4 space-y-6">
               <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                 <h2 className="text-lg font-bold border-b border-slate-100 pb-2 mb-4">Registration</h2>
-                <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
+                <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
               </div>
 
               {speakers && speakers.length > 0 && (

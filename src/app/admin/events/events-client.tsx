@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Search, Trash2, ExternalLink } from 'lucide-react';
 import { deleteEvent } from './actions';
 import Link from 'next/link';
+import { toast } from 'sonner';
+import { ConfirmAction } from '@/components/confirm-action';
 
 export function EventsClient({ initialEvents }: { initialEvents: any[] }) {
   const [events, setEvents] = useState(initialEvents);
@@ -16,14 +18,13 @@ export function EventsClient({ initialEvents }: { initialEvents: any[] }) {
   );
 
   const handleDelete = async (eventId: string) => {
-    if (!confirm('Are you sure you want to delete this event? This action cannot be undone and will delete all associated tickets, waitlists, and records.')) return;
-    
     setLoadingId(eventId);
     const result = await deleteEvent(eventId);
     if (result.success) {
       setEvents(events.filter(e => e.id !== eventId));
+      toast.success('Event deleted');
     } else {
-      alert(result.error);
+      toast.error(result.error);
     }
     setLoadingId(null);
   };
@@ -91,13 +92,18 @@ export function EventsClient({ initialEvents }: { initialEvents: any[] }) {
                     >
                       <ExternalLink className="w-3.5 h-3.5" /> View
                     </Link>
-                    <button
-                      disabled={loadingId === event.id}
-                      onClick={() => handleDelete(event.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                    <ConfirmAction
+                      destructive
+                      description="Are you sure you want to delete this event? This action cannot be undone and will delete all associated tickets, waitlists, and records."
+                      onConfirm={() => handleDelete(event.id)}
                     >
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </button>
+                      <button
+                        disabled={loadingId === event.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
+                    </ConfirmAction>
                   </td>
                 </tr>
               ))}

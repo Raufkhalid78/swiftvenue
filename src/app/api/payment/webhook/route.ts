@@ -143,6 +143,35 @@ export async function POST(request: NextRequest) {
       console.error("Failed to insert attendees in webhook:", attendeeErr)
       // Note: we don't return 500 here to avoid safepay retrying since we already marked as paid, 
       // but in production we'd want a robust retry mechanism for fulfillment.
+    } else if (insertedAttendees && insertedAttendees.length > 0) {
+      const { data: eventDetails } = await service
+        .from('events')
+        .select('title, date, time, venue_name, venue_address')
+        .eq('id', order.event_id)
+        .single();
+
+      if (eventDetails) {
+        const { sendTicketConfirmation } = require('@/lib/email');
+        for (const attendee of insertedAttendees) {
+          if (attendee.guest_email) {
+            try {
+              await sendTicketConfirmation({
+                to: attendee.guest_email,
+                guestName: attendee.guest_name,
+                eventName: eventDetails.title,
+                eventDate: eventDetails.date,
+                eventTime: eventDetails.time || 'TBD',
+                venueName: eventDetails.venue_name || 'TBD',
+                venueAddress: eventDetails.venue_address || '',
+                orderId: order.id,
+                attendeeId: attendee.id,
+              });
+            } catch (e) {
+              console.error('Paid ticket email failed:', e);
+            }
+          }
+        }
+      }
     }
 
     const primaryAttendeeId = insertedAttendees?.[0]?.id;

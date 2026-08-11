@@ -3,6 +3,14 @@ import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Contact Support — SwiftVenue",
+  description: "Need help with your event? Have a billing question? We're here for you.",
+  alternates: { canonical: "https://www.swiftvenuehq.com/contact" },
+};
+
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">

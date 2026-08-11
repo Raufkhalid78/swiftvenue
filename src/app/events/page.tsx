@@ -13,7 +13,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Events Directory — SwiftVenue",
   description: "Find and book tickets for the best corporate, social, and cultural events happening near you.",
-  alternates: { canonical: "https://swiftvenuehq.com/events" },
+  alternates: { canonical: "https://www.swiftvenuehq.com/events" },
 };
 
 export default async function EventsDirectory({

@@ -8,7 +8,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Blog — SwiftVenue",
   description: "Insights, updates, and event planning tips from the SwiftVenue team.",
-  alternates: { canonical: "https://swiftvenuehq.com/blog" },
+  alternates: { canonical: "https://www.swiftvenuehq.com/blog" },
 };
 
 export default function BlogPage() {

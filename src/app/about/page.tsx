@@ -8,7 +8,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "About Us — SwiftVenue",
   description: "Learn more about SwiftVenue's mission to simplify event management for professionals, creators, and communities worldwide.",
-  alternates: { canonical: "https://swiftvenuehq.com/about" },
+  alternates: { canonical: "https://www.swiftvenuehq.com/about" },
 };
 
 export default function AboutPage() {

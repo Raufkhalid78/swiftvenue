@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Search, CheckCircle2 } from 'lucide-react';
 import { markOrderRefunded } from '../orders/actions'; // Reuse existing action!
 import Link from 'next/link';
+import { toast } from 'sonner';
+import { ConfirmAction } from '@/components/confirm-action';
 
 export function RefundsClient({ initialRefunds }: { initialRefunds: any[] }) {
   const [refunds, setRefunds] = useState(initialRefunds);
@@ -18,13 +20,13 @@ export function RefundsClient({ initialRefunds }: { initialRefunds: any[] }) {
   );
 
   const handleProcess = async (id: string) => {
-    if (!confirm('Mark this order as refunded? Make sure you have processed the refund via the payment gateway first.')) return;
     setLoadingId(id);
     const result = await markOrderRefunded(id);
     if (result.success) {
       setRefunds(refs => refs.map(r => r.id === id ? { ...r, refund_status: 'refunded' } : r));
+      toast.success('Order marked as refunded');
     } else {
-      alert(result.error);
+      toast.error(result.error);
     }
     setLoadingId(null);
   };
@@ -93,13 +95,17 @@ export function RefundsClient({ initialRefunds }: { initialRefunds: any[] }) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {refund.refund_status === 'requested' && (
-                      <button
-                        disabled={loadingId === refund.id}
-                        onClick={() => handleProcess(refund.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      <ConfirmAction
+                        description="Mark this order as refunded? Make sure you have processed the refund via the payment gateway first."
+                        onConfirm={() => handleProcess(refund.id)}
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Mark Refunded
-                      </button>
+                        <button
+                          disabled={loadingId === refund.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Mark Refunded
+                        </button>
+                      </ConfirmAction>
                     )}
                   </td>
                 </tr>

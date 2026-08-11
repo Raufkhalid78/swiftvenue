@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Search, Shield, Ban, CheckCircle2 } from 'lucide-react';
 import { updateUserPlan, toggleUserSuspension } from './actions';
+import { toast } from 'sonner';
+import { ConfirmAction } from '@/components/confirm-action';
 
 export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plans: any[] }) {
   const [users, setUsers] = useState(initialUsers);
@@ -19,21 +21,21 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
     const result = await updateUserPlan(userId, newPlanId);
     if (result.success) {
       setUsers(users.map(u => u.id === userId ? { ...u, plan: newPlanId, plans: plans.find(p => p.id === newPlanId) } : u));
+      toast.success('User plan updated');
     } else {
-      alert(result.error);
+      toast.error(result.error);
     }
     setLoadingId(null);
   };
 
   const handleToggleSuspension = async (userId: string, currentStatus: boolean) => {
-    if (!confirm(`Are you sure you want to ${currentStatus ? 'activate' : 'suspend'} this user?`)) return;
-    
     setLoadingId(userId);
     const result = await toggleUserSuspension(userId, !currentStatus);
     if (result.success) {
       setUsers(users.map(u => u.id === userId ? { ...u, is_suspended: !currentStatus } : u));
+      toast.success(`User ${currentStatus ? 'activated' : 'suspended'} successfully`);
     } else {
-      alert(result.error);
+      toast.error(result.error);
     }
     setLoadingId(null);
   };
@@ -104,21 +106,26 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
                     </select>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      disabled={loadingId === user.id || user.is_admin}
-                      onClick={() => handleToggleSuspension(user.id, user.is_suspended)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                        user.is_suspended 
-                          ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20' 
-                          : 'bg-red-500/10 text-red-600 hover:bg-red-500/20'
-                      } ${user.is_admin ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    <ConfirmAction
+                      destructive={!user.is_suspended}
+                      description={`Are you sure you want to ${user.is_suspended ? 'activate' : 'suspend'} this user?`}
+                      onConfirm={() => handleToggleSuspension(user.id, user.is_suspended)}
                     >
-                      {user.is_suspended ? (
-                        <><CheckCircle2 className="w-3.5 h-3.5" /> Activate</>
-                      ) : (
-                        <><Ban className="w-3.5 h-3.5" /> Suspend</>
-                      )}
-                    </button>
+                      <button
+                        disabled={loadingId === user.id || user.is_admin}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                          user.is_suspended 
+                            ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20' 
+                            : 'bg-red-500/10 text-red-600 hover:bg-red-500/20'
+                        } ${user.is_admin ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {user.is_suspended ? (
+                          <><CheckCircle2 className="w-3.5 h-3.5" /> Activate</>
+                        ) : (
+                          <><Ban className="w-3.5 h-3.5" /> Suspend</>
+                        )}
+                      </button>
+                    </ConfirmAction>
                   </td>
                 </tr>
               ))}
