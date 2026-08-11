@@ -31,6 +31,12 @@ export const metadata: Metadata = {
   title: "SwiftVenue — Modern Event Management SaaS",
   description: "Seamlessly manage corporate, social, cultural, and educational events with our modern, highly intuitive event platform.",
   keywords: ["SwiftVenue", "event management", "event SaaS", "corporate events", "social events"],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SwiftVenue",
+  },
   verification: {
     google: "umvhpinZaXIjgZk7G9FO8uaTMLC8wPBGeRQoLnPQPQ4",
   },
