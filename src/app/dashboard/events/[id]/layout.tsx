@@ -88,8 +88,8 @@ export default function EventDashboardLayout({
       </div>
 
       {/* Tabs Navigation */}
-      <div className="border-b border-border">
-        <nav className="flex space-x-8" aria-label="Tabs">
+      <div className="border-b border-border overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <nav className="flex space-x-6 md:space-x-8 min-w-max px-2 md:px-0" aria-label="Tabs">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
@@ -98,7 +98,7 @@ export default function EventDashboardLayout({
                 key={item.name}
                 href={item.href}
                 className={`
-                  flex items-center gap-2 py-4 px-1 border-b-2 text-sm font-medium transition-colors
+                  flex items-center gap-2 py-4 px-1 border-b-2 text-sm font-medium transition-colors whitespace-nowrap
                   ${isActive 
                     ? "border-primary text-primary" 
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
