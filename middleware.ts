@@ -5,7 +5,7 @@ export async function middleware(request: NextRequest) {
 
   const nonce = crypto.randomUUID()
   
-  const scriptSrc = `'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com`;
+  const scriptSrc = `'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://www.googletagmanager.com https://www.google-analytics.com`;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://nldoyrprekstnifrlblo.supabase.co';
 
@@ -20,8 +20,8 @@ export async function middleware(request: NextRequest) {
     form-action 'self';
     frame-src 'self' https://www.youtube.com https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://maps.google.com https://www.google.com;
     frame-ancestors 'none';
-    connect-src 'self' ${supabaseUrl} https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://unpkg.com https://*.sentry.io https://*.ingest.sentry.io https://nominatim.openstreetmap.org;
-    media-src 'self' blob:;
+    connect-src 'self' ${supabaseUrl} https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://unpkg.com https://*.sentry.io https://*.ingest.sentry.io https://nominatim.openstreetmap.org https://fastly.jsdelivr.net https://www.google-analytics.com;
+    media-src 'self' blob: data:;
     worker-src 'self' blob:;
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim()
@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  response.headers.set('Permissions-Policy', 'camera=*, microphone=(), geolocation=()')
   response.headers.set('X-DNS-Prefetch-Control', 'on')
   response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
   
