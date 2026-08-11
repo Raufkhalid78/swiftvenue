@@ -88,8 +88,8 @@ export default function EventDashboardLayout({
       </div>
 
       {/* Tabs Navigation */}
-      <div className="border-b border-border overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <nav className="flex space-x-6 md:space-x-8 min-w-max px-2 md:px-0" aria-label="Tabs">
+      <div className="border-b border-border overflow-x-auto pb-px w-full">
+        <nav className="flex space-x-6 md:space-x-8 min-w-max px-2 md:px-0 mb-1" aria-label="Tabs">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
