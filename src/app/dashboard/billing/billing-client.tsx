@@ -161,19 +161,19 @@ export function BillingClient({
             </p>
 
             <div className="bg-muted p-4 rounded-xl border border-border mb-6 space-y-2 font-mono text-sm">
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center">
                 <span className="text-muted-foreground">Amount:</span>
                 <span className="font-bold">Rs {plans.find(p => p.id === selectedPlan)?.monthly_price?.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center">
                 <span className="text-muted-foreground">Bank:</span>
                 <span className="font-bold">Meezan Bank</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center">
                 <span className="text-muted-foreground">Account Title:</span>
                 <span className="font-bold">SwiftVenue Pvt Ltd</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center">
                 <span className="text-muted-foreground">IBAN:</span>
                 <span className="font-bold tracking-wider">PK12MEZN000123456789</span>
               </div>

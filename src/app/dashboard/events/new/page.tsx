@@ -309,7 +309,7 @@ export default function CreateEventWizard() {
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <h2 className="text-xl font-semibold font-display">Time & Location</h2>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="date">Event Date</Label>
                   <Input 
@@ -366,7 +366,7 @@ export default function CreateEventWizard() {
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="ticket_price">Ticket Price (PKR)</Label>
                   <Input 

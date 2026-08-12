@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Fetch attendee to ensure it exists and get current status
     const { data: attendee, error: fetchError } = await service
       .from("attendees")
-      .select("*, events(title, user_id), ticket_types(name)")
+      .select("*, events(id, title, user_id, date, time), ticket_types(name)")
       .eq("id", attendeeId)
       .single();
 
@@ -34,9 +34,21 @@ export async function POST(request: NextRequest) {
     // For attendees to events, it's a many-to-one, so it's a single object.
     const event = Array.isArray(attendee.events) ? attendee.events[0] : attendee.events;
     
-    const hasAccess = await checkEventAccess(service, event.id, user.id, ['owner', 'coorganizer', 'checkin_staff']);
+    const hasAccess = await checkEventAccess(service, event.id || attendee.event_id, user.id, ['owner', 'coorganizer', 'checkin_staff']);
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden: You do not have permission to check-in for this event." }, { status: 403 });
+    }
+
+    if (event.date && event.time) {
+      const eventDateTime = new Date(`${event.date}T${event.time}:00`);
+      if (!isNaN(eventDateTime.getTime())) {
+        const now = new Date();
+        const hoursUntilEvent = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursUntilEvent > 24) {
+          return NextResponse.json({ error: "Check-in not open yet. Tickets can be scanned 24 hours before the event starts." }, { status: 403 });
+        }
+      }
     }
 
     if (attendee.status === "attended") {

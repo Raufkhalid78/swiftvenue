@@ -33,7 +33,7 @@ export default function EventsList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-display tracking-tight">My Events</h1>
           <p className="text-muted-foreground mt-1">Manage all your upcoming and past events.</p>
@@ -51,7 +51,7 @@ export default function EventsList() {
             <Loader2 className="w-6 h-6 animate-spin" />
           </div>
         ) : events.length === 0 ? (
-          <div className="p-12 text-center flex flex-col items-center">
+          <div className="p-6 sm:p-12 text-center flex flex-col items-center">
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
               <CalendarIcon className="w-8 h-8 text-muted-foreground" />
             </div>

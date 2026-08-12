@@ -74,7 +74,7 @@ export default function GuestsPage({ params }: { params: Promise<{ id: string }>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-card border border-border p-4 rounded-xl shadow-sm text-center">
           <p className="text-sm text-muted-foreground mb-1">Total RSVPs</p>
           <p className="text-2xl font-bold">{stats.total}</p>

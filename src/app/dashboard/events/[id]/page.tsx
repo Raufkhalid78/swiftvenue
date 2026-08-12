@@ -127,8 +127,8 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid md:grid-cols-4 gap-6">
-        <div className="p-6 rounded-xl border border-border bg-card shadow-sm opacity-50">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="p-4 sm:p-6 rounded-xl border border-border bg-card shadow-sm opacity-50">
           <div className="flex items-center gap-3 text-muted-foreground mb-2">
             <Eye className="w-4 h-4" /> <span className="text-sm font-medium">Page Views</span>
           </div>
@@ -208,7 +208,7 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
         </div>
         
         {recentAttendees.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
+          <div className="p-6 sm:p-12 text-center text-muted-foreground flex flex-col items-center">
             <Users className="w-12 h-12 mb-3 opacity-20" />
             <p>No registrations yet.</p>
             <p className="text-sm">Share your public link to start getting RSVPs!</p>

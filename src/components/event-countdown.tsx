@@ -32,7 +32,7 @@ export function EventCountdown({ targetDate }: { targetDate: string }) {
   }, [targetDate]);
 
   return (
-    <div className="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground w-max shadow-sm border border-border">
+    <div className="flex items-center justify-center gap-2 text-sm font-medium px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground w-fit max-w-full shadow-sm border border-border">
       {isLive ? (
         <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
       ) : (

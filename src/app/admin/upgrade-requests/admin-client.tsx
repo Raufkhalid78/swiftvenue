@@ -56,11 +56,11 @@ export function AdminUpgradeRequestsClient({ initialRequests }: { initialRequest
   return (
     <div className="space-y-6">
       {requests.length === 0 ? (
-        <div className="p-12 border border-dashed rounded-xl flex flex-col items-center justify-center text-muted-foreground text-center bg-card">
+        <div className="p-6 sm:p-12 border border-dashed rounded-xl flex flex-col items-center justify-center text-muted-foreground text-center bg-card">
           <p>No upgrade requests found.</p>
         </div>
       ) : (
-        <div className="border rounded-xl overflow-hidden bg-card">
+        <div className="border rounded-xl overflow-x-auto bg-card">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 font-medium">
               <tr>

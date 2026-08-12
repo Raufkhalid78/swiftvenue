@@ -144,9 +144,9 @@ export default async function EarningsPage() {
         <div className="p-6 border-b border-border">
           <h3 className="text-xl font-bold font-display">Payout History by Event</h3>
         </div>
-        <div className="p-0">
+        <div className="p-0 overflow-x-auto">
           {!payouts || payouts.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground">
+            <div className="p-6 sm:p-12 text-center text-muted-foreground">
               <p>No earnings or payouts yet.</p>
               <p className="text-sm mt-1">Once you sell tickets to an event, your earnings will appear here.</p>
             </div>
