@@ -60,7 +60,9 @@ export default async function SuccessPage({
             <WalletButtons attendeeId={attendeesData[0]?.id || 'demo'} />
           </div>
         ) : (
-          <AttendeeList initialAttendees={attendeesData} />
+          <div className="border-t border-b border-border py-6 mb-6">
+            <AttendeeList initialAttendees={attendeesData} />
+          </div>
         )}
 
         {referralCode && (

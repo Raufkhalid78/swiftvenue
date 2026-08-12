@@ -57,7 +57,7 @@ export function AttendeeList({ initialAttendees }: { initialAttendees: Attendee[
   };
 
   return (
-    <div className="border-t border-b border-border py-6 mb-6 text-left">
+    <div className="text-left">
       <h3 className="font-semibold mb-4">Your {attendees.length} tickets:</h3>
       <div className="space-y-3">
         {attendees.map((a, index) => (
