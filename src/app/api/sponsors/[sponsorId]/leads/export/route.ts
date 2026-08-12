@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServiceClient } from '@/lib/supabase/server';
 import Papa from 'papaparse';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-  process.env.SUPABASE_SERVICE_ROLE_KEY as string
-);
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ sponsorId: string }> }
 ) {
   try {
+    const supabase = createServiceClient();
     const { sponsorId } = await params;
 
     // 1. Fetch sponsor details for the filename
