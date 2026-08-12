@@ -161,7 +161,7 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
                 </DialogDescription>
               </DialogHeader>
               <div className="mt-4 relative group">
-                <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto text-muted-foreground border border-border font-mono">
+                <pre className="bg-muted p-4 rounded-lg text-sm whitespace-pre-wrap break-all text-muted-foreground border border-border font-mono">
                   {embedCode}
                 </pre>
                 <Button 

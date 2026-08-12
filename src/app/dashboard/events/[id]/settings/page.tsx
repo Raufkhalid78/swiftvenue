@@ -160,8 +160,9 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
         <p className="text-sm text-muted-foreground mt-1">Update your event details or change its status.</p>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6 bg-card border border-border p-6 rounded-xl shadow-sm">
-        <h3 className="text-lg font-semibold border-b border-border pb-3">Basic Information</h3>
+      <form onSubmit={handleSave} className="space-y-6">
+        <div className="bg-card border border-border p-6 rounded-xl shadow-sm space-y-6">
+          <h3 className="text-lg font-semibold border-b border-border pb-3">Basic Information</h3>
         
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-2">
@@ -191,10 +192,12 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
             />
             <p className="text-xs text-muted-foreground">This will be displayed on the event page near the registration area.</p>
           </div>
+          </div>
         </div>
 
-        <h3 className="text-lg font-semibold border-b border-border pb-3 pt-4">Date & Location</h3>
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="bg-card border border-border p-6 rounded-xl shadow-sm space-y-6">
+          <h3 className="text-lg font-semibold border-b border-border pb-3">Date & Location</h3>
+          <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label>Date</Label>
             <Input type="date" value={event.date} onChange={e => setEvent({...event, date: e.target.value})} required />
@@ -224,10 +227,12 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
             <Label>Longitude (Optional)</Label>
             <Input type="number" step="any" value={event.venue_lng || ''} onChange={e => setEvent({...event, venue_lng: e.target.value})} placeholder="-118.2437" />
           </div>
+          </div>
         </div>
 
-        <h3 className="text-lg font-semibold border-b border-border pb-3 pt-4">Rich Media & Organizer</h3>
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="bg-card border border-border p-6 rounded-xl shadow-sm space-y-6">
+          <h3 className="text-lg font-semibold border-b border-border pb-3">Rich Media & Organizer</h3>
+          <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-2 md:col-span-2">
             <Label>Promo Video URL (Optional)</Label>
             <Input value={event.video_url || ''} onChange={e => setEvent({...event, video_url: e.target.value})} placeholder="https://youtube.com/..." />
@@ -249,10 +254,12 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
             <Label>Twitter/X Handle</Label>
             <Input value={event.social_links?.twitter || ''} onChange={e => setEvent({...event, social_links: {...(event.social_links || {}), twitter: e.target.value}})} placeholder="@swiftvenue" />
           </div>
+          </div>
         </div>
 
-        <h3 className="text-lg font-semibold border-b border-border pb-3 pt-4">Visibility Status</h3>
-        <div className="space-y-2">
+        <div className="bg-card border border-border p-6 rounded-xl shadow-sm space-y-6">
+          <h3 className="text-lg font-semibold border-b border-border pb-3">Visibility Status</h3>
+          <div className="space-y-2">
           <select 
             className="flex h-10 w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             value={event.status}
@@ -262,8 +269,9 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
             <option value="published" className="bg-background text-foreground">Published (Live & taking RSVPs)</option>
           </select>
         </div>
+        </div>
 
-        <div className="pt-4 border-t border-border flex justify-end">
+        <div className="pt-4 flex justify-end">
           <Button type="submit" disabled={saving} className="gap-2">
             <Save className="w-4 h-4" /> Save Changes
           </Button>

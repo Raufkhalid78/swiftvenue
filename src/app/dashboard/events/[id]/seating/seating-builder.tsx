@@ -30,6 +30,26 @@ export function SeatingBuilder({ eventId, initialLayout, initialSeats, ticketTyp
     }
   };
 
+  const selectRow = (r: number) => {
+    const rowLabels = Array.from({ length: cols }).map((_, c) => getLabel(r, c));
+    const allSelected = rowLabels.every(l => selectedSeats.includes(l));
+    if (allSelected) {
+      setSelectedSeats(prev => prev.filter(s => !rowLabels.includes(s)));
+    } else {
+      setSelectedSeats(prev => Array.from(new Set([...prev, ...rowLabels])));
+    }
+  };
+
+  const selectColumn = (c: number) => {
+    const colLabels = Array.from({ length: rows }).map((_, r) => getLabel(r, c));
+    const allSelected = colLabels.every(l => selectedSeats.includes(l));
+    if (allSelected) {
+      setSelectedSeats(prev => prev.filter(s => !colLabels.includes(s)));
+    } else {
+      setSelectedSeats(prev => Array.from(new Set([...prev, ...colLabels])));
+    }
+  };
+
   const assignTicketType = (ticketTypeId: string | null) => {
     if (selectedSeats.length === 0) {
       toast.error("Select seats first");
@@ -74,12 +94,12 @@ export function SeatingBuilder({ eventId, initialLayout, initialSeats, ticketTyp
     if (selectedSeats.includes(label)) return "bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2";
 
     const seat = seats.find(s => s.label === label);
-    if (!seat) return "bg-muted hover:bg-muted-foreground/30 border-dashed"; // blank space
+    if (!seat) return "bg-muted/20 border-dashed border-border/50 text-muted-foreground/30 hover:border-primary/50 hover:bg-muted/50"; // blank space
     
     if (seat.status !== 'available') return "bg-destructive/20 border-destructive/50 text-destructive/50 cursor-not-allowed"; // sold/locked
 
     // Has a ticket type assigned
-    return "bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200";
+    return "bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:border-emerald-800 dark:text-emerald-100 dark:hover:bg-emerald-900/80";
   };
 
   return (
@@ -115,26 +135,50 @@ export function SeatingBuilder({ eventId, initialLayout, initialSeats, ticketTyp
             
             <div 
               className="grid gap-2"
-              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+              style={{ gridTemplateColumns: `32px repeat(${cols}, minmax(0, 1fr))` }}
             >
+              {/* Top Row for Column Labels */}
+              <div />
+              {Array.from({ length: cols }).map((_, c) => (
+                <button
+                  key={`col-label-${c}`}
+                  onClick={() => selectColumn(c)}
+                  className="text-[10px] font-bold text-muted-foreground hover:text-foreground mb-1 w-8 flex items-center justify-center transition-colors"
+                  title={`Select Column ${c + 1}`}
+                >
+                  {c + 1}
+                </button>
+              ))}
+
               {Array.from({ length: rows }).map((_, r) => (
-                Array.from({ length: cols }).map((_, c) => {
-                  const label = getLabel(r, c);
-                  const isSelected = selectedSeats.includes(label);
-                  return (
-                    <button
-                      key={label}
-                      onClick={() => handleSeatClick(r, c)}
-                      className={`
-                        w-8 h-8 rounded-t-lg rounded-b-sm border text-[10px] font-medium flex items-center justify-center transition-all
-                        ${getSeatColor(label)}
-                      `}
-                      title={label}
-                    >
-                      {seats.find(s => s.label === label) ? label : ''}
-                    </button>
-                  )
-                })
+                <React.Fragment key={`row-${r}`}>
+                  {/* Left Column for Row Labels */}
+                  <button
+                    onClick={() => selectRow(r)}
+                    className="text-[10px] font-bold text-muted-foreground hover:text-foreground flex items-center justify-center mr-1 transition-colors"
+                    title={`Select Row ${String.fromCharCode(65 + r)}`}
+                  >
+                    {String.fromCharCode(65 + r)}
+                  </button>
+
+                  {/* Seats */}
+                  {Array.from({ length: cols }).map((_, c) => {
+                    const label = getLabel(r, c);
+                    return (
+                      <button
+                        key={label}
+                        onClick={() => handleSeatClick(r, c)}
+                        className={`
+                          w-8 h-8 rounded-t-lg rounded-b-sm border text-[10px] font-medium flex items-center justify-center transition-all
+                          ${getSeatColor(label)}
+                        `}
+                        title={label}
+                      >
+                        {seats.find(s => s.label === label) ? label : ''}
+                      </button>
+                    )
+                  })}
+                </React.Fragment>
               ))}
             </div>
           </div>
