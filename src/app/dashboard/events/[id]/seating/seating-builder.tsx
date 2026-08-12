@@ -11,7 +11,20 @@ import { Badge } from "@/components/ui/badge";
 export function SeatingBuilder({ eventId, initialLayout, initialSeats, ticketTypes }: any) {
   const [rows, setRows] = useState(initialLayout.rows || 10);
   const [cols, setCols] = useState(initialLayout.cols || 20);
-  const [seats, setSeats] = useState<any[]>(initialSeats || []);
+  const [seats, setSeats] = useState<any[]>(() => {
+    if (initialSeats && initialSeats.length > 0) return initialSeats;
+    // Pre-fill full grid with unassigned seats if starting from scratch
+    const allSeats = [];
+    const rCount = initialLayout.rows || 10;
+    const cCount = initialLayout.cols || 20;
+    for (let r = 0; r < rCount; r++) {
+      for (let c = 0; c < cCount; c++) {
+        const rowChar = String.fromCharCode(65 + r);
+        allSeats.push({ label: `${rowChar}${c + 1}`, ticket_type_id: null, status: 'available' });
+      }
+    }
+    return allSeats;
+  });
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -94,12 +107,18 @@ export function SeatingBuilder({ eventId, initialLayout, initialSeats, ticketTyp
     if (selectedSeats.includes(label)) return "bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2";
 
     const seat = seats.find(s => s.label === label);
-    if (!seat) return "bg-muted/20 border-dashed border-border/50 text-muted-foreground/30 hover:border-primary/50 hover:bg-muted/50"; // blank space
     
-    if (seat.status !== 'available') return "bg-destructive/20 border-destructive/50 text-destructive/50 cursor-not-allowed"; // sold/locked
+    // Walkway (removed seat) - completely transparent until hovered
+    if (!seat) return "bg-transparent border-transparent text-transparent hover:border-dashed hover:border-border/50 hover:bg-muted/30 transition-all"; 
+    
+    // Sold or Locked seat
+    if (seat.status !== 'available') return "bg-destructive/20 border-destructive/50 text-destructive/50 cursor-not-allowed"; 
+
+    // Unassigned seat (default state)
+    if (!seat.ticket_type_id) return "bg-muted/40 border-solid border-border/60 text-muted-foreground/50 hover:border-primary/50 hover:bg-muted/60 transition-all";
 
     // Has a ticket type assigned
-    return "bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:border-emerald-800 dark:text-emerald-100 dark:hover:bg-emerald-900/80";
+    return "bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:border-emerald-800 dark:text-emerald-100 dark:hover:bg-emerald-900/80 transition-all";
   };
 
   return (
