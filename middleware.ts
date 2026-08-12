@@ -8,12 +8,14 @@ export async function middleware(request: NextRequest) {
   const scriptSrc = `'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://www.googletagmanager.com https://www.google-analytics.com`;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://nldoyrprekstnifrlblo.supabase.co';
+  // Derive wss:// equivalent for Supabase Realtime WebSocket connections
+  const supabaseWsUrl = supabaseUrl.replace(/^https:\/\//, 'wss://');
 
   const cspHeader = `
     default-src 'self';
     script-src ${scriptSrc};
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    img-src 'self' blob: data: ${supabaseUrl} https://images.unsplash.com https://lh3.googleusercontent.com;
+    img-src 'self' blob: data: ${supabaseUrl} https://images.unsplash.com https://lh3.googleusercontent.com https://www.swiftvenuehq.com;
     font-src 'self' data: https://fonts.gstatic.com;
     object-src 'none';
     base-uri 'self';
@@ -21,7 +23,7 @@ export async function middleware(request: NextRequest) {
     frame-action 'self';
     frame-src 'self' https://www.youtube.com https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://maps.google.com https://www.google.com;
     frame-ancestors 'none';
-    connect-src 'self' ${supabaseUrl} https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://unpkg.com https://*.sentry.io https://*.ingest.sentry.io https://nominatim.openstreetmap.org https://api.mapbox.com https://fastly.jsdelivr.net https://www.google-analytics.com;
+    connect-src 'self' ${supabaseUrl} ${supabaseWsUrl} https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://unpkg.com https://*.sentry.io https://*.ingest.sentry.io https://nominatim.openstreetmap.org https://api.mapbox.com https://fastly.jsdelivr.net https://www.google-analytics.com;
     media-src 'self' blob: data:;
     worker-src 'self' blob:;
     upgrade-insecure-requests;
