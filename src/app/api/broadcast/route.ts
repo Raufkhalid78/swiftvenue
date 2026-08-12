@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     // Fetch the event
     const { data: event, error: eventErr } = await service
       .from("events")
-      .select("title, user_id")
+      .select("title, user_id, broadcast_count")
       .eq("id", eventId)
       .single();
 
@@ -36,6 +36,19 @@ export async function POST(request: NextRequest) {
     const hasAccess = await checkEventAccess(service, eventId, user.id, ['owner', 'coorganizer']);
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden: You do not have permission to broadcast to this event's attendees" }, { status: 403 });
+    }
+
+    // Check plan limit
+    const { data: profile } = await service.from('profiles').select('plan').eq('id', event.user_id).single();
+    const { data: planConfig } = await service.from('plans').select('broadcast_limit').eq('id', profile?.plan || 'free').single();
+    
+    if (planConfig?.broadcast_limit !== null && planConfig?.broadcast_limit !== undefined) {
+      if ((event.broadcast_count || 0) >= planConfig.broadcast_limit) {
+        return NextResponse.json(
+          { error: `Broadcast limit reached. You can only send ${planConfig.broadcast_limit} broadcast(s) per event on your current plan.` },
+          { status: 403 }
+        );
+      }
     }
 
     // Fetch all attendees for this event
@@ -58,6 +71,10 @@ export async function POST(request: NextRequest) {
     if (!process.env.RESEND_API_KEY) {
       console.log(`[MOCK EMAIL] Broadcasting to ${emails.length} attendees for ${event.title}`);
       console.log(`[MOCK EMAIL] Subject: ${subject}`);
+      
+      // Increment broadcast count
+      await service.from('events').update({ broadcast_count: (event.broadcast_count || 0) + 1 }).eq('id', eventId);
+      
       return NextResponse.json({ success: true, count: emails.length, mock: true });
     }
 
@@ -79,6 +96,9 @@ export async function POST(request: NextRequest) {
         // Continue sending other chunks, but log error
       }
     }
+
+    // Increment broadcast count
+    await service.from('events').update({ broadcast_count: (event.broadcast_count || 0) + 1 }).eq('id', eventId);
 
     return NextResponse.json({ success: true, count: emails.length });
   } catch (error: any) {

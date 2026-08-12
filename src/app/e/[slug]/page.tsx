@@ -167,6 +167,10 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const template = event.template_id || 'modern';
   const isFree = lowestPrice === 0 && !hasMultipleTiers;
 
+  const { data: profile } = await service.from('profiles').select('plan').eq('id', event.user_id).single();
+  const { data: planConfig } = await service.from('plans').select('remove_branding').eq('id', profile?.plan || 'free').single();
+  const removeBranding = planConfig?.remove_branding || false;
+
   return (
     <div 
       className="min-h-screen bg-background"
@@ -1271,6 +1275,16 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             </div>
           </div>
         </section>
+      )}
+      
+      {!removeBranding && (
+        <div className="w-full text-center py-8 border-t border-border bg-background">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <span className="font-medium">Powered by</span>
+            <img src="/logo.jpg" alt="SwiftVenue Logo" className="w-5 h-5 rounded-sm grayscale" />
+            <span className="font-bold font-display tracking-tight text-base">SwiftVenue</span>
+          </Link>
+        </div>
       )}
 
     </div>

@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.events (
   theme_color           TEXT DEFAULT '#0f172a',
   template_id           TEXT DEFAULT 'modern' CHECK (template_id IN ('modern', 'minimalist', 'classic', 'festival', 'gala', 'workshop')),
   ticket_price          NUMERIC(10, 2) DEFAULT 0.00,
+  broadcast_count       INT DEFAULT 0,
   created_at            TIMESTAMPTZ DEFAULT NOW(),
   updated_at            TIMESTAMPTZ DEFAULT NOW()
 );
@@ -794,3 +795,31 @@ CREATE POLICY "Anyone can insert feedback" ON public.event_feedback FOR INSERT W
 CREATE POLICY "Event owners can view feedback" ON public.event_feedback FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.events WHERE id = event_id AND user_id = auth.uid()) OR EXISTS (SELECT 1 FROM public.event_collaborators WHERE event_id = event_feedback.event_id AND user_id = auth.uid() AND role = 'coorganizer')
 );
+
+-- ==========================================
+-- PHASE 4: SPONSOR LEADS
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.sponsor_leads (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sponsor_id UUID NOT NULL REFERENCES public.event_sponsors(id) ON DELETE CASCADE,
+  attendee_id UUID NOT NULL REFERENCES public.attendees(id) ON DELETE CASCADE,
+  notes TEXT,
+  scanned_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(sponsor_id, attendee_id)
+);
+
+ALTER TABLE public.sponsor_leads ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "sponsor_leads_select_own" ON public.sponsor_leads 
+  FOR SELECT USING (
+    auth.uid() IN (
+      SELECT user_id FROM events 
+      JOIN event_sponsors ON events.id = event_sponsors.event_id 
+      WHERE event_sponsors.id = sponsor_id
+    )
+  );
+
+CREATE POLICY "sponsor_leads_insert_anon" ON public.sponsor_leads 
+  FOR INSERT WITH CHECK (true);
+

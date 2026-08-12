@@ -82,6 +82,29 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    
+    // Check if we are trying to publish
+    if (event.status === 'published') {
+      try {
+        const res = await fetch(`/api/events/${event.id}/publish`, {
+          method: 'POST',
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          toast.error(data.error || "Failed to publish event.");
+          setSaving(false);
+          // Revert status dropdown
+          setEvent(prev => ({...prev, status: 'draft'}));
+          return;
+        }
+      } catch (err) {
+        toast.error("Network error while publishing.");
+        setSaving(false);
+        return;
+      }
+    }
+
     const supabase = createClient();
     
     const { error } = await supabase
@@ -89,6 +112,7 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
       .update({
         title: event.title,
         slug: event.slug,
+        status: event.status,
         description: event.description,
         date: event.date,
         time: event.time,

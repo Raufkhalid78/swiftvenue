@@ -22,10 +22,20 @@ export default async function SuccessPage({
   // Fetch order to get referral code and attendees
   let referralCode = null;
   let attendeesData: any[] = [];
+  let removeBranding = false;
   
   if (orderId && orderId !== 'demo-order-id') {
-    const { data: order } = await supabase.from('orders').select('referral_code').eq('id', orderId).single();
-    if (order) referralCode = order.referral_code;
+    const { data: order } = await supabase.from('orders').select('referral_code, events(user_id)').eq('id', orderId).single();
+    if (order) {
+      referralCode = order.referral_code;
+      // @ts-ignore
+      const eventOwnerId = Array.isArray(order.events) ? order.events[0]?.user_id : order.events?.user_id;
+      if (eventOwnerId) {
+        const { data: profile } = await supabase.from('profiles').select('plan').eq('id', eventOwnerId).single();
+        const { data: planConfig } = await supabase.from('plans').select('remove_branding').eq('id', profile?.plan || 'free').single();
+        removeBranding = planConfig?.remove_branding || false;
+      }
+    }
 
     try {
       const { attendees } = await getOrderAttendees(supabase, orderId);
@@ -78,7 +88,7 @@ export default async function SuccessPage({
         )}
 
         <div className="space-y-3">
-          <DownloadTicketButton orderId={orderId} />
+          <DownloadTicketButton orderId={orderId} removeBranding={removeBranding} />
           <Link href={`/e/${slug}`} className="block w-full">
             <Button variant="outline" className="w-full">Return to Event Page</Button>
           </Link>
