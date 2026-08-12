@@ -8,7 +8,7 @@ export default function EmbedTestPage() {
   const [embedCode, setEmbedCode] = useState("");
   const [renderCode, setRenderCode] = useState("");
 
-  const defaultEmbed = `<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/embed/sample-slug" width="100%" height="600" style="border: none; border-radius: 12px; max-width: 800px; margin: 0 auto; display: block;" allow="payment"></iframe>`;
+  const defaultEmbed = `<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/embed/sample-slug?v=${Date.now()}" width="100%" height="600" style="border: none; border-radius: 12px; max-width: 800px; margin: 0 auto; display: block;" allow="payment"></iframe>`;
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-8">
@@ -42,6 +42,8 @@ export default function EmbedTestPage() {
             </div>
             <p className="text-sm text-muted-foreground text-center">
               The dashed border represents the boundaries of the host website's container.
+              <br/>
+              <em>Note: If you still see a blocked error, add <code>?v=1</code> to the end of your widget URL to bypass your browser's cache of the old security headers.</em>
             </p>
           </div>
         )}
