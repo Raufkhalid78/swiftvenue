@@ -28,7 +28,7 @@ export function SaveButton({ eventId }: { eventId: string }) {
         .select('id')
         .eq('event_id', eventId)
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
       
       if (data) {
         setIsSaved(true);
