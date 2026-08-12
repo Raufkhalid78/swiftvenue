@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { checkEventAccess } from '@/lib/team';
 import { checkGuestLimit } from '@/lib/plans';
+import { buildAttendeeRow } from '@/lib/guest-import';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
@@ -29,17 +30,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const limitResponse = await checkGuestLimit(service, resolvedParams.id, organizerPlan, guests.length);
   if (limitResponse) return limitResponse;
 
-  const rows = guests.map((g: { name: string; email: string }) => ({
-    event_id: resolvedParams.id,
-    guest_name: g.name,
-    guest_email: g.email,
-    source: 'bulk_import',
-    status: 'registered',
-    // also setting ticket defaults to bypass ticket_types foreign keys if needed, 
-    // or just let them be empty if not required. The old modal set is_comp=true
-    is_comp: true,
-    order_id: crypto.randomUUID()
-  }));
+  const rows = guests.map((g: { name: string; email: string }) => buildAttendeeRow(g, resolvedParams.id));
 
   const { error, count } = await service.from('attendees').insert(rows, { count: 'exact' });
   if (error) {
