@@ -14,7 +14,7 @@ export function SeatingBuilder({ eventId, initialLayout, initialSeats, ticketTyp
   const [seats, setSeats] = useState<any[]>(() => {
     if (initialSeats && initialSeats.length > 0) return initialSeats;
     // Pre-fill full grid with unassigned seats if starting from scratch
-    const allSeats = [];
+    const allSeats: any[] = [];
     const rCount = initialLayout.rows || 10;
     const cCount = initialLayout.cols || 20;
     for (let r = 0; r < rCount; r++) {
