@@ -8,21 +8,7 @@ export const metadata = {
 export default async function AdminPayoutsPage() {
   const service = createServiceClient();
   
-  // --- Source 1: Explicit payout requests from the payouts table ---
-  const { data: payoutRequests } = await service
-    .from('payouts')
-    .select(`
-      id,
-      amount,
-      status,
-      created_at,
-      order_ids,
-      profiles (
-        full_name,
-        email
-      )
-    `)
-    .order('created_at', { ascending: false });
+
 
 
   

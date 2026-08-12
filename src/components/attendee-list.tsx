@@ -49,7 +49,7 @@ export function AttendeeList({ initialAttendees }: { initialAttendees: Attendee[
       setAttendees(attendees.map(a => a.id === id ? { ...a, guest_name: editName, guest_email: editEmail } : a));
       toast.success('Ticket updated successfully!');
       setEditingId(null);
-    } catch (_err) {
+    } catch {
       toast.error('Could not update ticket details');
     } finally {
       setIsSaving(false);
