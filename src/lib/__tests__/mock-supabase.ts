@@ -14,7 +14,7 @@ export function mockSupabaseEvent({ user_id }: { user_id: string }) {
   } as any;
 }
 
-export function mockSupabaseEventWithCollaborator({ eventOwner, collaboratorId, role }: { eventOwner: string, collaboratorId: string, role: string }) {
+export function mockSupabaseEventWithCollaborator({ eventOwner, collaboratorId: _collaboratorId, role }: { eventOwner: string, collaboratorId: string, role: string }) {
   return {
     from: vi.fn((table: string) => {
       if (table === 'events') {

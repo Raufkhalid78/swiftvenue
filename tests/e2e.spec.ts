@@ -99,7 +99,7 @@ test('End-to-end checkout money path to Safepay sandbox', async ({ page }) => {
     await page.waitForURL(/getsafepay\.com/i, { timeout: 10000 });
     const url = page.url();
     expect(url).toContain('getsafepay.com');
-  } catch (error) {
+  } catch {
     // If it didn't redirect, the event might have been a free event, which bypasses Safepay
     // Or we hit a validation error. We log it and assume the test boundary was reached.
     console.log('Did not reach Safepay (could be a free event or validation blocker).');

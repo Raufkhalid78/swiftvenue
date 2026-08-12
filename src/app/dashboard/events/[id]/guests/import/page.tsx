@@ -64,7 +64,7 @@ export default function ImportGuestsPage() {
       
       toast.success(`Imported ${data.imported} guest(s)`);
       router.push(`/dashboard/events/${params.id}/guests`);
-    } catch (_err) {
+    } catch {
       toast.error('An unexpected error occurred during import');
       setImporting(false);
     }
