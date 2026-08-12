@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Calendar, MapPin, Ticket } from "lucide-react";
 import { AttendeeList } from "@/components/attendee-list";
+import { DownloadTicketButton } from "@/components/download-ticket-button";
 
 export const metadata = {
   title: 'My Tickets | SwiftVenue',
@@ -27,7 +28,8 @@ export default async function MyTicketsPage() {
         slug,
         date,
         venue_name,
-        hero_image_url
+        hero_image_url,
+        user_id
       ),
       attendees (
         id,
@@ -42,6 +44,28 @@ export default async function MyTicketsPage() {
 
   if (error) {
     console.error("Error fetching tickets:", error);
+  }
+
+  // Fetch plans for all unique event owners to determine remove_branding
+  const ownerIds = [...new Set((orders || []).map(o => {
+    const event = Array.isArray(o.events) ? o.events[0] : o.events;
+    return event?.user_id;
+  }).filter(Boolean))];
+
+  let brandingMap: Record<string, boolean> = {};
+
+  if (ownerIds.length > 0) {
+    const { data: profiles } = await supabase.from('profiles').select('id, plan').in('id', ownerIds);
+    if (profiles) {
+      const planIds = [...new Set(profiles.map(p => p.plan || 'free'))];
+      const { data: plans } = await supabase.from('plans').select('id, remove_branding').in('id', planIds);
+      
+      const planMap = Object.fromEntries((plans || []).map(p => [p.id, p.remove_branding]));
+      
+      profiles.forEach(profile => {
+        brandingMap[profile.id] = planMap[profile.plan || 'free'] || false;
+      });
+    }
   }
 
   return (
@@ -93,6 +117,11 @@ export default async function MyTicketsPage() {
                         <span className="line-clamp-1">{event.venue_name}</span>
                       </div>
                     </div>
+                  </div>
+                  
+                  {/* Download Button */}
+                  <div className="p-4 md:p-6 flex items-center justify-center md:justify-end border-t md:border-t-0 md:border-l border-border md:w-56 shrink-0 bg-muted/5">
+                    <DownloadTicketButton orderId={order.id} removeBranding={brandingMap[event.user_id] || false} />
                   </div>
                 </div>
                 
