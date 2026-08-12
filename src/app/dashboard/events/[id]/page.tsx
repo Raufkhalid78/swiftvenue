@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { Users, Eye, CreditCard, Calendar, MapPin } from "lucide-react";
+import { Users, Eye, CreditCard, Calendar, MapPin, Code2, Copy } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from "recharts";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function EventOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -124,6 +127,13 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
     return <div>Event not found.</div>;
   }
 
+  const embedCode = `<iframe \n  src="https://swiftvenuehq.com/embed/${event.slug}" \n  width="100%" \n  height="700px" \n  style="border: 1px solid #e2e8f0; border-radius: 12px;"\n></iframe>`;
+
+  const copyEmbedCode = () => {
+    navigator.clipboard.writeText(embedCode);
+    toast.success("Embed code copied to clipboard!");
+  };
+
   return (
     <div className="space-y-8">
       {/* Event Meta Snapshot */}
@@ -135,9 +145,42 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
             <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {event.venue_name}</span>
           </div>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${event.status === 'published' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
-          {event.status}
-        </span>
+        <div className="flex items-center gap-3">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8">
+                <Code2 className="w-4 h-4 mr-2" />
+                Embed Widget
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Embed Ticketing Widget</DialogTitle>
+                <DialogDescription>
+                  Copy and paste this HTML code into your website (e.g. WordPress, Webflow, Shopify) to allow guests to purchase tickets directly from your site.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-4 relative group">
+                <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto text-muted-foreground border border-border font-mono">
+                  {embedCode}
+                </pre>
+                <Button 
+                  size="sm" 
+                  variant="secondary" 
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={copyEmbedCode}
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy Code
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${event.status === 'published' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
+            {event.status}
+          </span>
+        </div>
       </div>
 
       {/* Metrics Grid */}
