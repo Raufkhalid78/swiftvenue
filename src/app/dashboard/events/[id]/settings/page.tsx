@@ -98,7 +98,7 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
           setEvent(prev => ({...prev, status: 'draft'}));
           return;
         }
-      } catch (err) {
+      } catch {
         toast.error("Network error while publishing.");
         setSaving(false);
         return;
