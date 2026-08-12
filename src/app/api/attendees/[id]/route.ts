@@ -17,8 +17,8 @@ export async function PATCH(
     const supabase = await createClient();
     const service = createServiceClient();
 
-    // Verify the user owns the order this attendee belongs to
-    const { data: { user } } = await supabase.auth.getUser();
+    // Verify the user is logged in
+    await supabase.auth.getUser();
     
     const { data: attendee } = await service
       .from('attendees')

@@ -24,8 +24,7 @@ export default async function AdminPayoutsPage() {
     `)
     .order('created_at', { ascending: false });
 
-  // Fetch payout method details for each unique user_id in requests
-  const requestUserIds = [...new Set((payoutRequests || []).map((p: any) => p.profiles ? p.user_id : null).filter(Boolean))];
+
   
   // We need user_id on payouts - re-fetch with user_id
   const { data: payoutRequestsFull } = await service
