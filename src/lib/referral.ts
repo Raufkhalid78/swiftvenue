@@ -6,30 +6,36 @@ export async function createReferralCode(
   guestName: string, 
   _orderId: string
 ) {
-  // Generate a code like JANE-10-XY9Z
-  const prefix = guestName.split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '');
+  const prefix = guestName.split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '') || 'REF';
   const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
   const code = `${prefix}-10-${randomStr}`;
 
-  const { data, error } = await supabase
+  // Try primary code; if unique constraint fails, append extra suffix and retry once
+  const tryInsert = async (c: string) => supabase
     .from('promo_codes')
     .insert({
       event_id: eventId,
-      code: code,
+      code: c,
       discount_type: 'percentage',
-      discount_amount: 10, // 10% off
+      discount_amount: 10,
       is_active: true,
       is_referral_code: true
     })
     .select('code')
     .single();
 
-  if (error) {
-    console.error("Failed to create referral code:", error);
-    return null;
+  let { data, error } = await tryInsert(code);
+
+  if (error?.code === '23505') {
+    // Unique violation — retry with an extra random suffix
+    const fallback = `${code}-${Math.random().toString(36).substring(2, 4).toUpperCase()}`;
+    ({ data, error } = await tryInsert(fallback));
   }
 
-  // Optionally, associate this code with the order so we can track rewards
-  // For now, we just return the code.
-  return data.code;
+  if (error) {
+    console.error('Failed to create referral code:', error.code, error.message);
+    return null; // Non-fatal — don't crash the ticket purchase
+  }
+
+  return data?.code ?? null;
 }

@@ -87,8 +87,15 @@ export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
                       <div className="font-medium">{payout.profiles?.full_name}</div>
                       <div className="text-muted-foreground text-xs">{payout.profiles?.email}</div>
                       <div className="mt-2 text-xs p-2 bg-muted rounded border border-border">
-                        {payout.profiles?.bank_details ? (
-                          <pre className="font-mono text-[10px] whitespace-pre-wrap">{JSON.stringify(payout.profiles.bank_details, null, 2)}</pre>
+                        {payout.payout_method ? (
+                          <div>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary uppercase tracking-wider mb-1">
+                              {payout.payout_method.method}
+                            </span>
+                            <pre className="font-mono text-[10px] whitespace-pre-wrap text-foreground/80">
+                              {payout.payout_method.account_details?.text || JSON.stringify(payout.payout_method.account_details, null, 2)}
+                            </pre>
+                          </div>
                         ) : (
                           <span className="text-red-500 font-medium">No bank details provided</span>
                         )}

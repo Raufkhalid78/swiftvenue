@@ -19,11 +19,37 @@ export default async function AdminPayoutsPage() {
       order_ids,
       profiles (
         full_name,
-        email,
-        bank_details
+        email
       )
     `)
     .order('created_at', { ascending: false });
+
+  // Fetch payout method details for each unique user_id in requests
+  const requestUserIds = [...new Set((payoutRequests || []).map((p: any) => p.profiles ? p.user_id : null).filter(Boolean))];
+  
+  // We need user_id on payouts - re-fetch with user_id
+  const { data: payoutRequestsFull } = await service
+    .from('payouts')
+    .select(`
+      id,
+      user_id,
+      amount,
+      status,
+      created_at,
+      order_ids,
+      profiles (
+        full_name,
+        email
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  // Batch-fetch payout methods for all organizers in requests
+  const allUserIds = [...new Set((payoutRequestsFull || []).map((p: any) => p.user_id).filter(Boolean))];
+  const { data: payoutMethods } = allUserIds.length > 0
+    ? await service.from('organizer_payout_methods').select('user_id, method, account_details').in('user_id', allUserIds)
+    : { data: [] };
+  const payoutMethodMap = Object.fromEntries((payoutMethods || []).map((m: any) => [m.user_id, m]));
 
   // --- Source 2: Events with paid orders that haven't had a request yet ---
   const { data: events } = await service
@@ -34,11 +60,11 @@ export default async function AdminPayoutsPage() {
       slug,
       date,
       payout_status,
+      user_id,
       created_at,
       profiles (
         full_name,
-        email,
-        bank_details
+        email
       ),
       orders (
         id,
@@ -51,10 +77,29 @@ export default async function AdminPayoutsPage() {
     `)
     .order('created_at', { ascending: false });
 
+  // Fetch payout methods for event organizers too
+  const eventUserIds = [...new Set((events || []).map((e: any) => e.user_id).filter(Boolean))];
+  const { data: eventPayoutMethods } = eventUserIds.length > 0
+    ? await service.from('organizer_payout_methods').select('user_id, method, account_details').in('user_id', eventUserIds)
+    : { data: [] };
+  const allPayoutMethodMap = {
+    ...payoutMethodMap,
+    ...Object.fromEntries((eventPayoutMethods || []).map((m: any) => [m.user_id, m]))
+  };
+
   // Build set of order IDs already covered by explicit payout requests
   const coveredOrderIds = new Set<string>(
-    (payoutRequests || []).flatMap((p: any) => p.order_ids || [])
+    (payoutRequestsFull || []).flatMap((p: any) => p.order_ids || [])
   );
+
+  function formatPayoutMethod(method: any) {
+    if (!method) return null;
+    return {
+      method: method.method,
+      account_details: method.account_details,
+      display: `${method.method?.toUpperCase()}: ${method.account_details?.text || JSON.stringify(method.account_details || {})}`
+    };
+  }
 
   // Map events → payout rows, only showing events with uncovered paid orders
   const eventPayouts = (events || []).map((event: any) => {
@@ -68,6 +113,8 @@ export default async function AdminPayoutsPage() {
       return sum + net;
     }, 0);
 
+    const payoutMethod = formatPayoutMethod(allPayoutMethodMap[event.user_id]);
+
     return {
       id: event.id,
       type: 'event' as const,
@@ -78,21 +125,26 @@ export default async function AdminPayoutsPage() {
       total_payout: totalPayout,
       orders: [{ count: validOrders.length }],
       profiles: event.profiles,
+      payout_method: payoutMethod,
     };
   }).filter(p => p.total_payout > 0 || p.payout_status === 'paid');
 
   // Map explicit payout requests
-  const requestPayouts = (payoutRequests || []).map((req: any) => ({
-    id: req.id,
-    type: 'request' as const,
-    title: `Payout Request`,
-    slug: null,
-    date: req.created_at,
-    payout_status: req.status, // 'pending' | 'processing' | 'paid'
-    total_payout: Number(req.amount),
-    orders: [{ count: req.order_ids?.length || 0 }],
-    profiles: req.profiles,
-  }));
+  const requestPayouts = (payoutRequestsFull || []).map((req: any) => {
+    const payoutMethod = formatPayoutMethod(payoutMethodMap[req.user_id]);
+    return {
+      id: req.id,
+      type: 'request' as const,
+      title: `Payout Request`,
+      slug: null,
+      date: req.created_at,
+      payout_status: req.status,
+      total_payout: Number(req.amount),
+      orders: [{ count: req.order_ids?.length || 0 }],
+      profiles: req.profiles,
+      payout_method: payoutMethod,
+    };
+  });
 
   // Merge: requests first (most actionable), then uncovered event payouts
   const payouts = [...requestPayouts, ...eventPayouts];
