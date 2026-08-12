@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { sendEventReminderEmail, sendEventFeedbackEmail } from '@/lib/email';
+import { sendEventReminderWhatsApp } from '@/lib/whatsapp';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
@@ -81,7 +82,7 @@ async function sendEventReminders(service: SupabaseClient) {
 
   const { data: upcomingEvents } = await service
     .from('events')
-    .select('id, title, date, time, venue_name, venue_address, attendees(guest_name, guest_email)')
+    .select('id, slug, title, date, time, venue_name, venue_address, attendees(id, guest_name, guest_email, guest_phone)')
     .eq('date', tomorrowStr)
     .eq('status', 'published')
     .is('reminder_sent_at', null);
@@ -89,16 +90,27 @@ async function sendEventReminders(service: SupabaseClient) {
   for (const event of upcomingEvents ?? []) {
     for (const attendee of event.attendees ?? []) {
       try {
-        await sendEventReminderEmail({
-          to: attendee.guest_email,
-          guestName: attendee.guest_name,
-          eventName: event.title,
-          eventTime: event.time || 'TBD',
-          venueName: event.venue_name || 'TBD',
-          venueAddress: event.venue_address || '',
-        });
+        if (attendee.guest_email) {
+          await sendEventReminderEmail({
+            to: attendee.guest_email,
+            guestName: attendee.guest_name,
+            eventName: event.title,
+            eventTime: event.time || 'TBD',
+            venueName: event.venue_name || 'TBD',
+            venueAddress: event.venue_address || '',
+          });
+        }
+        
+        if (attendee.guest_phone) {
+          await sendEventReminderWhatsApp(
+            attendee.guest_phone,
+            attendee.guest_name,
+            event.title,
+            `https://swiftvenuehq.com/e/${event.slug}`
+          );
+        }
       } catch (e) {
-        console.error(`Reminder email failed for ${attendee.guest_email}:`, e);
+        console.error(`Reminder failed for ${attendee.guest_name}:`, e);
       }
     }
     // Mark as sent to prevent duplicate sending (idempotency)
