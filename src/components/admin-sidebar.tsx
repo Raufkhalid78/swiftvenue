@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShieldAlert, Users, Calendar, LayoutDashboard, CreditCard, Banknote, RefreshCcw, ArrowUpCircle, Settings, Share2, Mail, FileText, LogOut, Menu, X } from 'lucide-react';
+import { ShieldAlert, Users, Calendar, LayoutDashboard, CreditCard, Banknote, RefreshCcw, ArrowUpCircle, Settings, Share2, Mail, FileText, LogOut, Menu, X, PieChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const sidebarLinks = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Accounts', href: '/admin/accounts', icon: PieChart },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Events', href: '/admin/events', icon: Calendar },
   { name: 'Orders', href: '/admin/orders', icon: CreditCard },

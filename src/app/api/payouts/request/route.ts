@@ -50,9 +50,11 @@ export async function POST(request: NextRequest) {
       return sum + net;
     }, 0);
 
-    if (totalAmount <= 0) {
-      return NextResponse.json({ error: 'No payout balance available' }, { status: 400 });
+    if (totalAmount < 5000) {
+      return NextResponse.json({ error: 'Minimum payout amount is Rs 5,000' }, { status: 400 });
     }
+
+    const finalAmount = totalAmount - 350; // Deduct processing fee
 
     // Check for an existing pending payout to avoid duplicates
     const { data: existing } = await service
@@ -72,7 +74,7 @@ export async function POST(request: NextRequest) {
       .from('payouts')
       .insert({
         user_id: user.id,
-        amount: totalAmount,
+        amount: finalAmount,
         order_ids: orders.map(o => o.id),
         status: 'pending',
       });

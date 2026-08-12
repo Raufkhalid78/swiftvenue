@@ -127,7 +127,7 @@ export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
                           onConfirm={() => handleProcess(payout.id)}
                         >
                           <button
-                            disabled={loadingId === payout.id || !payout.profiles?.bank_details}
+                            disabled={loadingId === payout.id || (!payout.profiles?.bank_details && !payout.payout_method)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" /> Mark Processed

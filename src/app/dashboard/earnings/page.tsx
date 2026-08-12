@@ -79,9 +79,11 @@ export default async function EarningsPage() {
           <p className="text-muted-foreground mt-1">Track your ticket sales revenue and payouts.</p>
         </div>
         <div className="flex items-center gap-3">
-          {pendingBalance > 0 && (
+          {pendingBalance >= 5000 ? (
             <RequestPayoutButton pendingBalance={pendingBalance} eventIds={eventIds} />
-          )}
+          ) : pendingBalance > 0 ? (
+            <p className="text-xs text-muted-foreground mr-2 border-r border-border pr-4">Min. payout is Rs 5,000</p>
+          ) : null}
           <Button asChild variant="outline" className="gap-2 shrink-0">
             <Link href="/dashboard/settings">
               <Wallet className="w-4 h-4" /> Manage Bank Details

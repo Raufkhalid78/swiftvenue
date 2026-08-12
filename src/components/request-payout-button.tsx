@@ -42,17 +42,20 @@ export function RequestPayoutButton({ pendingBalance, eventIds }: Props) {
   }
 
   return (
-    <Button
-      onClick={handleRequest}
-      disabled={loading}
-      className="gap-2 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white"
-    >
-      {loading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <BanknoteIcon className="w-4 h-4" />
-      )}
-      Request Payout (Rs {pendingBalance.toLocaleString('en-PK')})
-    </Button>
+    <div className="flex flex-col items-end">
+      <Button
+        onClick={handleRequest}
+        disabled={loading}
+        className="gap-2 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white"
+      >
+        {loading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <BanknoteIcon className="w-4 h-4" />
+        )}
+        Request Payout (Rs {(pendingBalance - 350).toLocaleString('en-PK')})
+      </Button>
+      <p className="text-[10px] text-muted-foreground mt-1">Includes Rs 350 processing fee</p>
+    </div>
   );
 }
