@@ -27,6 +27,8 @@ export default async function AdminPayoutsPage() {
         id,
         status,
         refund_status,
+        amount,
+        platform_fee_amount,
         organizer_net_amount
       )
     `)
@@ -35,10 +37,15 @@ export default async function AdminPayoutsPage() {
   // Map and calculate payouts
   const payouts = (events || []).map((event: any) => {
     const validOrders = (event.orders || []).filter((o: any) => o.status === 'paid' && o.refund_status !== 'refunded');
-    const totalPayout = validOrders.reduce((sum: number, order: any) => sum + Number(order.organizer_net_amount || 0), 0);
+    const totalPayout = validOrders.reduce((sum: number, order: any) => {
+      // Fall back to amount - platform_fee_amount for older orders where organizer_net_amount was NULL
+      const net = order.organizer_net_amount != null
+        ? Number(order.organizer_net_amount)
+        : Math.max(0, Number(order.amount || 0) - Number(order.platform_fee_amount || 0));
+      return sum + net;
+    }, 0);
     
-    // We only want to show events that have a payout amount > 0 or have already been paid out.
-    // Replace the raw orders array with just a count to keep the payload small
+    // Show events with earnings (pending or already paid out)
     const processedEvent = {
       ...event,
       total_payout: totalPayout,
@@ -46,7 +53,7 @@ export default async function AdminPayoutsPage() {
     };
     
     return processedEvent;
-  }).filter(p => p.total_payout > 0);
+  }).filter(p => p.total_payout > 0 || p.payout_status === 'paid');
 
   return (
     <div className="space-y-8">

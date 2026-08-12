@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, ArrowUpRight, Wallet, History, CheckCircle2 } from "lucide-react";
+import { DollarSign, ArrowUpRight, Wallet, History, CheckCircle2, BanknoteIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { RequestPayoutButton } from "@/components/request-payout-button";
 
 export const metadata = {
   title: "Earnings & Payouts - SwiftVenue",
@@ -29,7 +30,7 @@ export default async function EarningsPage() {
   if (eventIds.length > 0) {
     const { data: fetchedOrders } = await supabase
       .from('orders')
-      .select('id, amount, organizer_net_amount, status, created_at, event_id, refund_status')
+      .select('id, amount, platform_fee_amount, organizer_net_amount, status, created_at, event_id, refund_status')
       .in('event_id', eventIds)
       .eq('status', 'paid');
     if (fetchedOrders) {
@@ -37,10 +38,15 @@ export default async function EarningsPage() {
     }
   }
 
-  // Calculate totals
+  // Calculate totals — fall back to amount - platform_fee_amount for older orders with NULL organizer_net_amount
   const validOrders = orders.filter(o => o.refund_status !== 'refunded');
   
-  const totalNet = validOrders.reduce((sum, order) => sum + Number(order.organizer_net_amount || 0), 0);
+  const totalNet = validOrders.reduce((sum, order) => {
+    const net = order.organizer_net_amount != null
+      ? Number(order.organizer_net_amount)
+      : Math.max(0, Number(order.amount || 0) - Number(order.platform_fee_amount || 0));
+    return sum + net;
+  }, 0);
 
   // Generate payouts history from events with non-pending payouts
   const payouts = (events || [])
@@ -72,11 +78,16 @@ export default async function EarningsPage() {
           <h1 className="font-display text-3xl font-bold tracking-tight">Earnings</h1>
           <p className="text-muted-foreground mt-1">Track your ticket sales revenue and payouts.</p>
         </div>
-        <Button asChild variant="outline" className="gap-2 shrink-0">
-          <Link href="/dashboard/settings">
-            <Wallet className="w-4 h-4" /> Manage Bank Details
-          </Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          {pendingBalance > 0 && (
+            <RequestPayoutButton pendingBalance={pendingBalance} eventIds={eventIds} />
+          )}
+          <Button asChild variant="outline" className="gap-2 shrink-0">
+            <Link href="/dashboard/settings">
+              <Wallet className="w-4 h-4" /> Manage Bank Details
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {recentPayout && (
