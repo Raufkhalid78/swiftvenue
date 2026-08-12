@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, use } from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft, Shield, Image as ImageIcon, Mic2, Briefcase, HelpCircle, Megaphone, MessageSquare, QrCode, Send, Ticket } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft, Shield, Image as ImageIcon, Mic2, Briefcase, HelpCircle, Megaphone, MessageSquare, QrCode, Send, Ticket, Tag, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -37,6 +37,8 @@ export default function EventDashboardLayout({
   const navigation = [
     { name: "Overview", href: `/dashboard/events/${eventId}`, icon: LayoutDashboard },
     { name: "Tickets", href: `/dashboard/events/${eventId}/tickets`, icon: Ticket },
+    { name: "Promos", href: `/dashboard/events/${eventId}/promos`, icon: Tag },
+    { name: "Seating", href: `/dashboard/events/${eventId}/seating`, icon: LayoutGrid },
     { name: "Agenda", href: `/dashboard/events/${eventId}/agenda`, icon: CalendarDays },
     { name: "Gallery", href: `/dashboard/events/${eventId}/gallery`, icon: ImageIcon },
     { name: "Speakers", href: `/dashboard/events/${eventId}/speakers`, icon: Mic2 },

@@ -4,7 +4,7 @@ import { useEffect, useState, use } from "react";
 import { Users, Eye, CreditCard, Calendar, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from "recharts";
 
 export default function EventOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -13,8 +13,9 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
   const [metrics, setMetrics] = useState({ rsvps: 0, sales: 0, views: 0 });
   const [guestLimit, setGuestLimit] = useState<number | null>(null);
   const [recentAttendees, setRecentAttendees] = useState<any[]>([]);
-  const [chartData, setChartData] = useState<{ day: string; count: number }[]>([]);
+  const [chartData, setChartData] = useState<{ day: string; count: number; revenue: number }[]>([]);
   const [ticketData, setTicketData] = useState<{ name: string; value: number }[]>([]);
+  const [conversionRate, setConversionRate] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,14 +38,18 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
           .select('*', { count: 'exact', head: true })
           .eq('event_id', eventId);
 
-        // Fetch Ticket Sales sum
+        // Fetch Ticket Sales
         const { data: orders } = await supabase
           .from('orders')
-          .select('amount')
+          .select('amount, created_at')
           .eq('event_id', eventId)
           .eq('status', 'paid');
         
         const totalSales = orders?.reduce((acc, order) => acc + Number(order.amount), 0) || 0;
+
+        // Calculate Conversion Rate (Mock page views since we don't have tracking yet, so just say 0 or calculate based on rsvps)
+        // If we have views, it would be (rsvps / views) * 100
+        setConversionRate(0);
 
         // Fetch Recent Attendees
         const { data: attendees } = await supabase
@@ -76,18 +81,27 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
 
         if (attendees) {
           // Group for line/bar chart by day
-          const countsByDay: Record<string, number> = {};
+          const countsByDay: Record<string, { count: number; revenue: number }> = {};
           const countsByTicket: Record<string, number> = {};
 
           attendees.forEach(a => {
             const day = new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            countsByDay[day] = (countsByDay[day] || 0) + 1;
+            if (!countsByDay[day]) countsByDay[day] = { count: 0, revenue: 0 };
+            countsByDay[day].count += 1;
             
             const ticketName = (a.ticket_types as any)?.name || 'General';
             countsByTicket[ticketName] = (countsByTicket[ticketName] || 0) + 1;
           });
 
-          setChartData(Object.entries(countsByDay).map(([day, count]) => ({ day, count })));
+          if (orders) {
+            orders.forEach(o => {
+              const day = new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              if (!countsByDay[day]) countsByDay[day] = { count: 0, revenue: 0 };
+              countsByDay[day].revenue += Number(o.amount);
+            });
+          }
+
+          setChartData(Object.entries(countsByDay).map(([day, data]) => ({ day, count: data.count, revenue: data.revenue })));
           setTicketData(Object.entries(countsByTicket).map(([name, value]) => ({ name, value })));
         }
       }
@@ -155,8 +169,32 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
         <div className="p-6 rounded-xl border border-border bg-card shadow-sm flex flex-col justify-center items-center text-center opacity-50">
           <p className="text-sm font-medium text-muted-foreground mb-2">Conversion Rate</p>
           <div className="relative w-16 h-16 rounded-full border-4 border-primary flex items-center justify-center">
-            <span className="font-bold">0%</span>
+            <span className="font-bold">{conversionRate}%</span>
           </div>
+        </div>
+      </div>
+
+      {/* Revenue Line Chart */}
+      <div className="rounded-xl border border-border bg-card shadow-sm p-6">
+        <h3 className="font-semibold text-lg font-display mb-6">Revenue Over Time</h3>
+        <div className="h-72">
+          {chartData.some(d => d.revenue > 0) ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="day" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `Rs ${value}`} />
+                <Tooltip 
+                  cursor={{stroke: '#e2e8f0', strokeWidth: 2}} 
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value: number) => [`Rs. ${value.toLocaleString()}`, 'Revenue']}
+                />
+                <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No revenue data to display</div>
+          )}
         </div>
       </div>
 

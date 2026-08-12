@@ -171,6 +171,16 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const { data: planConfig } = await service.from('plans').select('remove_branding').eq('id', profile?.plan || 'free').single();
   const removeBranding = planConfig?.remove_branding || false;
 
+  // Seating Layout
+  let seatingLayout = null;
+  let seats: any[] = [];
+  const { data: sl } = await service.from('seating_layouts').select('id, layout_data_json').eq('event_id', event.id).single();
+  if (sl) {
+    seatingLayout = sl.layout_data_json;
+    const { data: s } = await service.from('seats').select('*').eq('layout_id', sl.id);
+    seats = s || [];
+  }
+
   return (
     <div 
       className="min-h-screen bg-background"
@@ -421,7 +431,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 </div>
 
                 <div className="bg-card rounded-2xl border border-border p-1">
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} seatingLayout={seatingLayout} seats={seats} />
                   {attendeeCount !== null && attendeeCount >= 3 && (
                     <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 pb-2">
                       <Users className="w-4 h-4" />
@@ -615,7 +625,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <div className="flex justify-center pt-8 border-t border-border">
             <div className="w-full max-w-md bg-card p-6 rounded-2xl border border-border shadow-sm text-center">
               <h3 className="font-display text-2xl font-bold mb-4">Secure your spot</h3>
-              <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+              <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} seatingLayout={seatingLayout} seats={seats} />
               {attendeeCount !== null && attendeeCount >= 3 && (
                 <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 mt-4">
                   <Users className="w-4 h-4" />
@@ -772,7 +782,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <div className="space-y-12">
                 <div className="bg-muted/30 p-8 rounded-xl border border-border">
                   <h2 className="text-2xl font-serif font-bold mb-6 text-center">Register Now</h2>
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} seatingLayout={seatingLayout} seats={seats} />
                   {attendeeCount !== null && attendeeCount >= 3 && (
                     <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 mt-4">
                       <Users className="w-4 h-4" />

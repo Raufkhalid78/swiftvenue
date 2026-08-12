@@ -7,7 +7,7 @@ import { createReferralCode } from '@/lib/referral';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { eventId, guestName, guestEmail, guestPhone, ticketTypeId, quantity = 1, promoCode, attendeeDetails } = body;
+    const { eventId, guestName, guestEmail, guestPhone, ticketTypeId, quantity = 1, promoCode, attendeeDetails, seatIds } = body;
 
     if (!eventId || !guestName || !guestEmail || !ticketTypeId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -62,6 +62,29 @@ export async function POST(request: NextRequest) {
         p_ticket_type_id: ticketTypeId, 
         p_qty: quantity 
       });
+
+    if (reserveError || !reserved) {
+      return NextResponse.json({ error: 'Tickets sold out or unavailable' }, { status: 409 });
+    }
+
+    // Handle Seat Locking
+    const sessionId = crypto.randomUUID();
+    let lockedSeats: string[] = [];
+    if (seatIds && Array.isArray(seatIds) && seatIds.length > 0) {
+      for (const seatId of seatIds) {
+        const { data: locked } = await service.rpc('lock_seat', { p_seat_id: seatId, p_session_id: sessionId });
+        if (locked) {
+          lockedSeats.push(seatId);
+        } else {
+          // Rollback locks
+          if (lockedSeats.length > 0) {
+            await service.from('seats').update({ status: 'available', locked_by_session: null, locked_until: null }).in('id', lockedSeats);
+          }
+          await service.rpc('reserve_ticket', { p_ticket_type_id: ticketTypeId, p_qty: -quantity });
+          return NextResponse.json({ error: 'One or more selected seats are no longer available. Please select different seats.' }, { status: 409 });
+        }
+      }
+    }
 
     if (reserveError || !reserved) {
       return NextResponse.json({ error: 'Tickets sold out or unavailable' }, { status: 409 });
@@ -129,7 +152,7 @@ export async function POST(request: NextRequest) {
         discount_amount: discountAmount,
         platform_fee_amount: platformFee,
         organizer_net_amount: amount,
-        metadata: attendeeDetails ? { attendeeDetails } : null
+        metadata: { attendeeDetails: attendeeDetails || null, seatIds: seatIds || null, seatSessionId: sessionId }
       })
       .select()
       .single();
@@ -138,6 +161,9 @@ export async function POST(request: NextRequest) {
       console.error('Failed to create pending order:', orderErr);
       // Rollback reservation on failure
       await service.rpc('reserve_ticket', { p_ticket_type_id: ticketTypeId, p_qty: -quantity });
+      if (lockedSeats.length > 0) {
+        await service.from('seats').update({ status: 'available', locked_by_session: null, locked_until: null }).in('id', lockedSeats);
+      }
       
       const releasedEntryId = await service.rpc('notify_next_waitlist_entry', { p_ticket_type_id: ticketTypeId });
       if (releasedEntryId.data) {
@@ -180,10 +206,15 @@ export async function POST(request: NextRequest) {
         guest_phone: guestPhone || null,
         ticket_type_id: ticketTypeId,
         status: 'registered',
-        order_id: order.id
+        order_id: order.id,
+        seat_id: seatIds ? seatIds[i] : null
       }));
       const { data: insertedAttendees } = await service.from('attendees').insert(attendeesToInsert).select();
       const attendeeId = insertedAttendees?.[0]?.id;
+
+      if (seatIds && seatIds.length > 0) {
+        await service.from('seats').update({ status: 'sold', order_id: order.id }).in('id', seatIds);
+      }
 
       if (event) {
         try {
@@ -283,6 +314,9 @@ export async function POST(request: NextRequest) {
       });
     } catch (err: any) {
       await service.rpc('reserve_ticket', { p_ticket_type_id: ticketTypeId, p_qty: -quantity });
+      if (lockedSeats.length > 0) {
+        await service.from('seats').update({ status: 'available', locked_by_session: null, locked_until: null }).in('id', lockedSeats);
+      }
       const releasedEntryId = await service.rpc('notify_next_waitlist_entry', { p_ticket_type_id: ticketTypeId });
       if (releasedEntryId.data) {
         const { data: entry } = await service.from('waitlists').select('*').eq('id', releasedEntryId.data).single();

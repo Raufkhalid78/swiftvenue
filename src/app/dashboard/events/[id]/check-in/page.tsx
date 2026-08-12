@@ -1,15 +1,30 @@
 "use client";
 
-import React, { useState } from "react";
-
+import React, { useState, useEffect, use } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, WifiOff, Wifi, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { get, set } from "idb-keyval";
+import { syncAttendees, bulkCheckIn } from "./actions";
 
-export default function CheckInPage() {
+interface AttendeeCache {
+  id: string;
+  guestName: string;
+  status: string;
+  ticketType: string;
+}
+
+export default function CheckInPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const eventId = resolvedParams.id;
   
   const [loading, setLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [outboxCount, setOutboxCount] = useState(0);
+  
   const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<{
     success: boolean;
@@ -17,6 +32,65 @@ export default function CheckInPage() {
     guestName?: string;
     ticketType?: string;
   } | null>(null);
+
+  // Network listener
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => { setIsOnline(true); syncOutbox(); };
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    
+    // Initial outbox check
+    checkOutboxCount();
+    
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  const checkOutboxCount = async () => {
+    const outbox: string[] = await get(`outbox_${eventId}`) || [];
+    setOutboxCount(outbox.length);
+  };
+
+  const handleSyncAttendees = async () => {
+    if (!isOnline) {
+      toast.error("You must be online to sync event data.");
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      // First sync outbox if any
+      await syncOutbox();
+      
+      const attendees = await syncAttendees(eventId);
+      await set(`attendees_${eventId}`, attendees);
+      toast.success(`Successfully cached ${attendees.length} attendees for offline check-in.`);
+    } catch (err: any) {
+      toast.error(`Sync failed: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const syncOutbox = async () => {
+    try {
+      const outbox: string[] = await get(`outbox_${eventId}`) || [];
+      if (outbox.length > 0) {
+        const res = await bulkCheckIn(eventId, outbox);
+        if (res.success) {
+          await set(`outbox_${eventId}`, []); // clear outbox
+          setOutboxCount(0);
+          toast.success(`Synced ${res.count} offline check-ins!`);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to sync outbox", e);
+    }
+  };
 
   const handleScan = async (result: any) => {
     if (!result || !result[0]) return;
@@ -29,33 +103,77 @@ export default function CheckInPage() {
     setScanResult(null);
 
     try {
-      const res = await fetch("/api/check-in", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attendeeId: qrData }),
-      });
+      // Offline/Local Cache Check First
+      const cache: AttendeeCache[] = await get(`attendees_${eventId}`) || [];
+      const localAttendee = cache.find(a => a.id === qrData);
 
-      const data = await res.json();
-      
-      if (res.ok) {
-        setScanResult({
-          success: true,
-          message: "Check-in successful!",
-          guestName: data.attendee.guest_name,
-          ticketType: data.attendee.ticket_types?.name,
-        });
-        toast.success(`Checked in: ${data.attendee.guest_name}`);
+      if (localAttendee) {
+        if (localAttendee.status === 'checked_in') {
+          setScanResult({
+            success: false,
+            message: "Already checked in",
+            guestName: localAttendee.guestName,
+          });
+          toast.error("Already checked in");
+        } else if (localAttendee.status === 'registered') {
+          // Check them in locally
+          localAttendee.status = 'checked_in';
+          await set(`attendees_${eventId}`, cache); // update cache
+          
+          // Add to outbox
+          const outbox: string[] = await get(`outbox_${eventId}`) || [];
+          outbox.push(qrData);
+          await set(`outbox_${eventId}`, outbox);
+          setOutboxCount(outbox.length);
+
+          setScanResult({
+            success: true,
+            message: "Check-in successful! (Local)",
+            guestName: localAttendee.guestName,
+            ticketType: localAttendee.ticketType,
+          });
+          toast.success(`Checked in: ${localAttendee.guestName}`);
+
+          if (isOnline) {
+            syncOutbox(); // background sync
+          }
+        } else {
+          setScanResult({ success: false, message: `Ticket is ${localAttendee.status}`, guestName: localAttendee.guestName });
+        }
       } else {
-        setScanResult({
-          success: false,
-          message: data.error || "Check-in failed",
-          guestName: data.attendee?.guest_name,
-        });
-        toast.error(data.error || "Check-in failed");
+        // Not found in local cache. If online, try API fallback
+        if (isOnline) {
+          const res = await fetch("/api/check-in", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ attendeeId: qrData }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            setScanResult({
+              success: true,
+              message: "Check-in successful!",
+              guestName: data.attendee.guest_name,
+              ticketType: data.attendee.ticket_types?.name,
+            });
+            toast.success(`Checked in: ${data.attendee.guest_name}`);
+          } else {
+            setScanResult({
+              success: false,
+              message: data.error || "Check-in failed",
+              guestName: data.attendee?.guest_name,
+            });
+            toast.error(data.error || "Check-in failed");
+          }
+        } else {
+          // Offline and not in cache
+          setScanResult({ success: false, message: "Ticket not found in offline cache." });
+          toast.error("Not found. Connect to internet to sync.");
+        }
       }
     } catch {
-      setScanResult({ success: false, message: "Network error occurred." });
-      toast.error("Network error");
+      setScanResult({ success: false, message: "Error occurred." });
+      toast.error("Error occurred during scan");
     } finally {
       setLoading(false);
       
@@ -69,12 +187,38 @@ export default function CheckInPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] p-4 max-w-lg mx-auto">
-      <div className="mb-6 text-center">
+      <div className="mb-4 flex flex-col items-center">
         <h1 className="text-2xl font-bold font-display">Event Check-In</h1>
-        <p className="text-muted-foreground text-sm">Scan QR codes at the door</p>
+        <p className="text-muted-foreground text-sm mb-4">Scan QR codes at the door</p>
+        
+        <div className="flex w-full items-center justify-between bg-muted/30 p-3 rounded-lg border border-border">
+          <div className="flex items-center gap-2">
+            {isOnline ? <Wifi className="w-4 h-4 text-emerald-500" /> : <WifiOff className="w-4 h-4 text-destructive" />}
+            <span className={`text-sm font-medium ${!isOnline ? 'text-destructive' : ''}`}>
+              {isOnline ? "Online Mode" : "Offline Mode"}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {outboxCount > 0 && (
+              <span className="text-xs bg-amber-500/20 text-amber-600 px-2 py-1 rounded-full font-medium">
+                {outboxCount} pending sync
+              </span>
+            )}
+            <Button size="sm" variant="outline" onClick={handleSyncAttendees} disabled={isSyncing || !isOnline}>
+              {isSyncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              Sync Data
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <Card className="flex-1 overflow-hidden flex flex-col">
+      <Card className="flex-1 overflow-hidden flex flex-col relative border-4 border-transparent focus-within:border-primary transition-colors">
+        {!isOnline && (
+          <div className="absolute top-0 left-0 right-0 bg-destructive/10 text-destructive text-xs text-center py-1 font-semibold z-30 flex items-center justify-center gap-2 border-b border-destructive/20">
+            <WifiOff className="w-3 h-3" /> No connection. Using local cache.
+          </div>
+        )}
         <CardContent className="p-0 flex-1 relative bg-black flex items-center justify-center">
           <Scanner 
             onScan={handleScan}
@@ -111,11 +255,6 @@ export default function CheckInPage() {
       
       <div className="mt-4 text-center">
         <p className="text-xs text-muted-foreground">Ensure camera permissions are granted.</p>
-      </div>
-
-      {/* Accessibility Announcement Region */}
-      <div aria-live="polite" className="sr-only">
-        {scanResult ? `${scanResult.message} ${scanResult.guestName ? `for ${scanResult.guestName}` : ''}` : ''}
       </div>
     </div>
   );

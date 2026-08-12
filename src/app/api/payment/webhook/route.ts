@@ -185,9 +185,12 @@ export async function POST(request: NextRequest) {
       
     // 4. Increment promo code usage and calculate affiliate commission if applied
     if (order.promo_code) {
-      const { error: promoErr } = await service.rpc('increment_promo_usage', { code_val: order.promo_code });
-      if (promoErr) {
-        console.error('Failed to increment promo usage:', promoErr);
+      const { data: promo } = await service.from('promo_codes').select('current_uses').eq('code', order.promo_code).single();
+      if (promo) {
+        const { error: promoErr } = await service.from('promo_codes').update({ current_uses: promo.current_uses + 1 }).eq('code', order.promo_code);
+        if (promoErr) {
+          console.error('Failed to increment promo usage:', promoErr);
+        }
       }
 
       // Fetch referral code details to see if it belongs to an affiliate

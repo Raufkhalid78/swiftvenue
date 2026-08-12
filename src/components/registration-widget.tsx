@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Plus, Minus, Ticket, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SeatPicker } from "./seat-picker";
 import Link from "next/link";
 
 export function RegistrationWidget({ 
@@ -15,28 +16,35 @@ export function RegistrationWidget({
   ticketTypes = [],
   targetCurrency = 'PKR',
   exchangeRate = 1,
+  seatingLayout,
+  seats = [],
 }: { 
   eventId: string, 
   eventTitle: string,
   ticketTypes?: any[],
   targetCurrency?: string,
   exchangeRate?: number,
+  seatingLayout?: any,
+  seats?: any[],
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
-  const [selectedTicketId, setSelectedTicketId] = useState<string>(ticketTypes[0]?.id || "");
-  const [quantity, setQuantity] = useState(1);
+  const [selectedTicketId, setSelectedTicketId] = useState<string>(seatingLayout ? "" : (ticketTypes[0]?.id || ""));
+  const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
+  const quantity = seatingLayout ? selectedSeatIds.length : (arguments[0] /* fallback */ ? 1 : 1);
+  const [manualQuantity, setManualQuantity] = useState(1);
+  const activeQuantity = seatingLayout ? selectedSeatIds.length : manualQuantity;
   const [attendeeDetails, setAttendeeDetails] = useState(Array(1).fill({ name: "", email: "" }));
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
     setAttendeeDetails(prev => {
       const next = [...prev];
-      while (next.length < quantity) next.push({ name: "", email: "" });
-      return next.slice(0, quantity);
+      while (next.length < activeQuantity) next.push({ name: "", email: "" });
+      return next.slice(0, activeQuantity);
     });
-  }, [quantity]);
+  }, [activeQuantity]);
   
   const [promoCode, setPromoCode] = useState("");
   const [promoData, setPromoData] = useState<{valid: boolean, discount_type?: string, discount_amount?: number} | null>(null);
@@ -89,8 +97,8 @@ export function RegistrationWidget({
       toast.error("Please fill out all fields.");
       return;
     }
-    if (!selectedTicketId) {
-      toast.error("Please select a ticket type.");
+    if (!selectedTicketId || (seatingLayout && selectedSeatIds.length === 0)) {
+      toast.error(seatingLayout ? "Please select at least one seat." : "Please select a ticket type.");
       return;
     }
 
@@ -131,7 +139,8 @@ export function RegistrationWidget({
           guestEmail: formData.email,
           guestPhone: formData.phone,
           ticketTypeId: selectedTicketId,
-          quantity,
+          quantity: activeQuantity,
+          seatIds: seatingLayout ? selectedSeatIds : undefined,
           promoCode: promoData?.valid ? promoCode : undefined,
           attendeeDetails: !isWaitlist ? attendeeDetails : undefined
         }),
@@ -163,7 +172,7 @@ export function RegistrationWidget({
   let total = 0;
   let currency = "PKR";
   if (selectedTicket) {
-    subtotal = Number(selectedTicket.price) * quantity;
+    subtotal = Number(selectedTicket.price) * activeQuantity;
     total = subtotal;
     currency = selectedTicket.currency || "PKR";
     if (promoData?.valid) {
@@ -198,48 +207,78 @@ export function RegistrationWidget({
             <form onSubmit={handleCheckout} className="space-y-4">
               <div className="space-y-3 mb-6">
                 <Label>Select Ticket Tier</Label>
-                {ticketTypes.map(ticket => {
-                  const tAvailable = ticket.quantity_total - ticket.quantity_sold;
-                  const tSoldOut = tAvailable <= 0;
-                  
-                  return (
-                    <div 
-                      key={ticket.id}
-                      onClick={() => {
-                        setSelectedTicketId(ticket.id);
-                        if(tSoldOut) setQuantity(1);
-                      }}
-                      className={`
-                        p-4 rounded-xl border-2 flex items-start justify-between cursor-pointer transition-all
-                        ${selectedTicketId === ticket.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-                        ${tSoldOut && selectedTicketId !== ticket.id ? 'opacity-50' : ''}
-                      `}
-                    >
-                      <div>
-                        <div className="font-semibold flex items-center gap-2">
-                          {ticket.name}
-                          {tSoldOut && <span className="text-xs bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">Waitlist</span>}
-                        </div>
-                        {ticket.description && (
-                          <div className="text-xs text-muted-foreground mt-1">{ticket.description}</div>
-                        )}
-                      </div>
-                      <div className="text-right ml-4">
-                        <div className="font-bold whitespace-nowrap">
-                          {Number(ticket.price) === 0 ? 'Free' : `${ticket.currency || 'PKR'} ${Number(ticket.price).toLocaleString()}`}
-                        </div>
-                        {targetCurrency !== 'PKR' && Number(ticket.price) > 0 && (
-                          <div className="text-xs text-muted-foreground whitespace-nowrap mt-1">
-                            ≈ {targetCurrency} {(Number(ticket.price) * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                {seatingLayout ? (
+                  <SeatPicker 
+                    seatingLayout={seatingLayout} 
+                    seats={seats} 
+                    ticketTypes={ticketTypes} 
+                    selectedSeatIds={selectedSeatIds} 
+                    onSeatToggle={(seatId: string) => {
+                      const seat = seats.find(s => s.id === seatId);
+                      if (!seat) return;
+                      
+                      if (selectedSeatIds.includes(seatId)) {
+                        const newSelection = selectedSeatIds.filter(id => id !== seatId);
+                        setSelectedSeatIds(newSelection);
+                        if (newSelection.length === 0) setSelectedTicketId("");
+                      } else {
+                        // Check if new seat belongs to same ticket type
+                        if (selectedSeatIds.length > 0 && seat.ticket_type_id !== selectedTicketId) {
+                          // Clear selection if different tier
+                          setSelectedSeatIds([seatId]);
+                          setSelectedTicketId(seat.ticket_type_id);
+                          toast.info("Cleared previous seats: Please select seats of the same ticket tier in a single order.");
+                        } else {
+                          setSelectedSeatIds([...selectedSeatIds, seatId]);
+                          setSelectedTicketId(seat.ticket_type_id);
+                        }
+                      }
+                    }} 
+                  />
+                ) : (
+                  ticketTypes.map(ticket => {
+                    const tAvailable = ticket.quantity_total - ticket.quantity_sold;
+                    const tSoldOut = tAvailable <= 0;
+                    
+                    return (
+                      <div 
+                        key={ticket.id}
+                        onClick={() => {
+                          setSelectedTicketId(ticket.id);
+                          if(tSoldOut) setManualQuantity(1);
+                        }}
+                        className={`
+                          p-4 rounded-xl border-2 flex items-start justify-between cursor-pointer transition-all
+                          ${selectedTicketId === ticket.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
+                          ${tSoldOut && selectedTicketId !== ticket.id ? 'opacity-50' : ''}
+                        `}
+                      >
+                        <div>
+                          <div className="font-semibold flex items-center gap-2">
+                            {ticket.name}
+                            {tSoldOut && <span className="text-xs bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">Waitlist</span>}
                           </div>
-                        )}
+                          {ticket.description && (
+                            <div className="text-xs text-muted-foreground mt-1">{ticket.description}</div>
+                          )}
+                        </div>
+                        <div className="text-right ml-4">
+                          <div className="font-bold whitespace-nowrap">
+                            {Number(ticket.price) === 0 ? 'Free' : `${ticket.currency || 'PKR'} ${Number(ticket.price).toLocaleString()}`}
+                          </div>
+                          {targetCurrency !== 'PKR' && Number(ticket.price) > 0 && (
+                            <div className="text-xs text-muted-foreground whitespace-nowrap mt-1">
+                              ≈ {targetCurrency} {(Number(ticket.price) * exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
 
-              {selectedTicket && !isWaitlist && (
+              {selectedTicket && !isWaitlist && !seatingLayout && (
                 <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl mb-4">
                   <Label className="mb-0">Quantity</Label>
                   <div className="flex items-center gap-3">
@@ -248,19 +287,19 @@ export function RegistrationWidget({
                       variant="outline" 
                       size="icon" 
                       className="h-8 w-8 rounded-full"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity <= 1}
+                      onClick={() => setManualQuantity(Math.max(1, manualQuantity - 1))}
+                      disabled={manualQuantity <= 1}
                     >
                       <Minus className="w-4 h-4" />
                     </Button>
-                    <span className="font-medium w-4 text-center">{quantity}</span>
+                    <span className="font-medium w-4 text-center">{manualQuantity}</span>
                     <Button 
                       type="button" 
                       variant="outline" 
                       size="icon" 
                       className="h-8 w-8 rounded-full"
-                      onClick={() => setQuantity(Math.min((selectedTicket.quantity_total - selectedTicket.quantity_sold), quantity + 1))}
-                      disabled={quantity >= (selectedTicket.quantity_total - selectedTicket.quantity_sold)}
+                      onClick={() => setManualQuantity(Math.min((selectedTicket.quantity_total - selectedTicket.quantity_sold), manualQuantity + 1))}
+                      disabled={manualQuantity >= (selectedTicket.quantity_total - selectedTicket.quantity_sold)}
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
@@ -281,7 +320,7 @@ export function RegistrationWidget({
                       const newName = e.target.value;
                       setFormData({ ...formData, name: newName });
                       // Auto-fill ticket 1 if empty
-                      if (quantity === 1 && !attendeeDetails[0]?.name) {
+                      if (activeQuantity === 1 && !attendeeDetails[0]?.name) {
                         const newAtt = [...attendeeDetails];
                         newAtt[0] = { ...newAtt[0], name: newName };
                         setAttendeeDetails(newAtt);
@@ -300,7 +339,7 @@ export function RegistrationWidget({
                     onChange={e => {
                       const newEmail = e.target.value;
                       setFormData({ ...formData, email: newEmail });
-                      if (quantity === 1 && !attendeeDetails[0]?.email) {
+                      if (activeQuantity === 1 && !attendeeDetails[0]?.email) {
                         const newAtt = [...attendeeDetails];
                         newAtt[0] = { ...newAtt[0], email: newEmail };
                         setAttendeeDetails(newAtt);
@@ -320,12 +359,14 @@ export function RegistrationWidget({
                 </div>
               </div>
 
-              {!isWaitlist && quantity > 0 && (
+              {!isWaitlist && activeQuantity > 0 && (
                 <div className="space-y-4 pt-4 border-t border-border mt-4">
                   <h4 className="font-semibold text-sm">Ticket Holders</h4>
                   {attendeeDetails.map((attendee, index) => (
                     <div key={index} className="p-3 bg-muted/30 rounded-lg space-y-3">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ticket {index + 1}</p>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {seatingLayout ? `Seat: ${seats.find(s => s.id === selectedSeatIds[index])?.label || ''}` : `Ticket ${index + 1}`}
+                      </p>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
                           <Label className="text-xs">Name {index === 0 ? "(Required)" : "(Optional)"}</Label>
