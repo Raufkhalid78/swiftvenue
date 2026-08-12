@@ -203,7 +203,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             image: event.hero_image_url ? [event.hero_image_url] : undefined,
             offers: {
               "@type": "Offer",
-              price: event.ticket_price || 0,
+              price: lowestPrice,
               priceCurrency: "PKR",
               availability: "https://schema.org/InStock",
               url: `https://swiftvenuehq.com/e/${event.slug}`
