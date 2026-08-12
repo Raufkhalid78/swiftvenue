@@ -89,7 +89,9 @@ export function BillingClient({
               <CardHeader>
                 <CardTitle className="text-2xl font-display">{plan.name}</CardTitle>
                 <CardDescription>
-                  {plan.monthly_price > 0 ? (
+                  {plan.id === 'enterprise' ? (
+                    <span className="text-3xl font-bold text-foreground">Custom</span>
+                  ) : plan.monthly_price > 0 ? (
                     <span className="text-3xl font-bold text-foreground">
                       Rs {plan.monthly_price.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">/mo</span>
                     </span>
@@ -128,6 +130,12 @@ export function BillingClient({
                   <Button className="w-full" variant="secondary" disabled>
                     Current Plan
                   </Button>
+                ) : plan.id === 'enterprise' ? (
+                  <a href="mailto:sales@swiftvenuehq.com" className="w-full block">
+                    <Button className="w-full" variant="outline">
+                      Contact Sales
+                    </Button>
+                  </a>
                 ) : (
                   <Button 
                     className="w-full" 
