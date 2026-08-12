@@ -4,11 +4,12 @@ import { useEffect, useState, use, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Trash2, Edit2, GripVertical, Briefcase, UploadCloud, X } from "lucide-react";
+import { PlusCircle, Trash2, Edit2, GripVertical, Briefcase, UploadCloud, X, Link as LinkIcon, BarChart } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
+import Link from "next/link";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function SponsorsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -219,7 +220,22 @@ export default function SponsorsPage({ params }: { params: Promise<{ id: string 
                 </div>
               </div>
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Edit2 className="w-4 h-4" /></Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2 text-xs h-8"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/sponsors/${item.id}/leads`);
+                    toast.success("Magic link copied to clipboard");
+                  }}
+                >
+                  <LinkIcon className="w-3 h-3" /> Copy Link
+                </Button>
+                <Button variant="ghost" size="sm" asChild className="h-8 text-xs gap-2">
+                  <Link href={`/sponsors/${item.id}/leads`} target="_blank">
+                    <BarChart className="w-3 h-3" /> Leads
+                  </Link>
+                </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
               </div>
             </div>

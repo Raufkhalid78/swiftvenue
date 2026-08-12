@@ -57,7 +57,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const chunk = insertedAttendees.slice(i, i + chunkSize);
       
       await Promise.allSettled(chunk.map(async (attendee) => {
-        const promises = [];
+        const promises: Promise<any>[] = [];
         
         if (attendee.guest_email) {
           promises.push(
