@@ -5,10 +5,10 @@ import jwt from 'jsonwebtoken';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const orderId = searchParams.get('orderId');
+    const attendeeId = searchParams.get('attendeeId');
 
-    if (!orderId) {
-      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
+    if (!attendeeId) {
+      return NextResponse.json({ error: 'Attendee ID is required' }, { status: 400 });
     }
 
     const { 
@@ -31,23 +31,23 @@ export async function GET(request: Request) {
 
     const service = createServiceClient();
 
-    // Fetch order and associated event
-    const { data: order, error: orderErr } = await service
-      .from('orders')
+    // Fetch attendee and associated event
+    const { data: attendee, error: attendeeErr } = await service
+      .from('attendees')
       .select('*, events(*)')
-      .eq('id', orderId)
+      .eq('id', attendeeId)
       .single();
 
-    if (orderErr || !order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    if (attendeeErr || !attendee) {
+      return NextResponse.json({ error: 'Attendee not found' }, { status: 404 });
     }
 
-    const objectId = `${GOOGLE_WALLET_ISSUER_ID}.${order.id}`;
+    const objectId = `${GOOGLE_WALLET_ISSUER_ID}.${attendee.id}`;
     const fullClassId = GOOGLE_WALLET_CLASS_ID.includes('.') 
       ? GOOGLE_WALLET_CLASS_ID 
       : `${GOOGLE_WALLET_ISSUER_ID}.${GOOGLE_WALLET_CLASS_ID}`;
 
-    const event = order.events as any;
+    const event = Array.isArray(attendee.events) ? attendee.events[0] : attendee.events;
     const eventTitle = event?.title || 'SwiftVenue Event';
     const eventDate = event?.date ? new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '';
     const venueName = event?.venue_name || '';
@@ -115,11 +115,11 @@ export async function GET(request: Request) {
       state: 'ACTIVE',
       barcode: {
         type: 'QR_CODE',
-        value: order.id,
-        alternateText: order.id.split('-')[0]
+        value: attendee.id,
+        alternateText: attendee.id.split('-')[0]
       },
-      ticketHolderName: order.guest_name || 'Attendee',
-      ticketNumber: order.id.split('-')[0].toUpperCase(),
+      ticketHolderName: attendee.guest_name || 'Attendee',
+      ticketNumber: attendee.id.split('-')[0].toUpperCase(),
       textModulesData,
       linksModuleData,
     };

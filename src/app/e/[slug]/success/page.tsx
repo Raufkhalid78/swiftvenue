@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { WalletButtons } from "@/components/wallet-buttons";
 import { DownloadTicketButton } from "@/components/download-ticket-button";
 import { createClient } from "@/lib/supabase/server";
+import { getOrderAttendees } from "@/lib/get-order-attendees";
 
 export default async function SuccessPage({ 
   params,
@@ -17,11 +18,20 @@ export default async function SuccessPage({
   const search = await searchParams;
   const orderId = search.order || 'demo-order-id';
 
-  // Fetch order to get referral code
+  // Fetch order to get referral code and attendees
   let referralCode = null;
+  let attendeesData: any[] = [];
+  
   if (orderId && orderId !== 'demo-order-id') {
     const { data: order } = await supabase.from('orders').select('referral_code').eq('id', orderId).single();
     if (order) referralCode = order.referral_code;
+
+    try {
+      const { attendees } = await getOrderAttendees(supabase, orderId);
+      attendeesData = attendees;
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   // Fetch similar events (published, not this one)
@@ -43,10 +53,24 @@ export default async function SuccessPage({
           You have successfully registered for the event. Your ticket has been sent to your email.
         </p>
 
-        <div className="border-t border-b border-border py-6 mb-6">
-          <h3 className="font-semibold mb-4">Save your ticket to your phone</h3>
-          <WalletButtons orderId={orderId} />
-        </div>
+        {attendeesData.length <= 1 ? (
+          <div className="border-t border-b border-border py-6 mb-6">
+            <h3 className="font-semibold mb-4">Save your ticket to your phone</h3>
+            <WalletButtons attendeeId={attendeesData[0]?.id || 'demo'} />
+          </div>
+        ) : (
+          <div className="border-t border-b border-border py-6 mb-6 text-left">
+            <h3 className="font-semibold mb-4">Your {attendeesData.length} tickets:</h3>
+            <div className="space-y-3">
+              {attendeesData.map((a) => (
+                <div key={a.id} className="border border-border rounded-lg p-3 flex items-center justify-between">
+                  <span className="font-medium text-sm">{a.guest_name}</span>
+                  <WalletButtons attendeeId={a.id} compact />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {referralCode && (
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">

@@ -5,7 +5,7 @@ import { Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 
-export function WalletButtons({ orderId }: { orderId: string }) {
+export function WalletButtons({ attendeeId, compact }: { attendeeId: string, compact?: boolean }) {
   const [loadingApp, setLoadingApp] = useState(false);
   const [loadingGoog, setLoadingGoog] = useState(false);
 
@@ -15,7 +15,7 @@ export function WalletButtons({ orderId }: { orderId: string }) {
 
     try {
       if (type === 'apple') {
-        const res = await fetch(`/api/wallet/apple?orderId=${orderId}`);
+        const res = await fetch(`/api/wallet/apple?attendeeId=${attendeeId}`);
         if (!res.ok) {
           const data = await res.json();
           throw new Error(data.error || 'Failed to generate Apple Wallet pass');
@@ -24,11 +24,11 @@ export function WalletButtons({ orderId }: { orderId: string }) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `ticket-${orderId}.pkpass`;
+        a.download = `ticket-${attendeeId}.pkpass`;
         a.click();
         window.URL.revokeObjectURL(url);
       } else {
-        const res = await fetch(`/api/wallet/google?orderId=${orderId}`);
+        const res = await fetch(`/api/wallet/google?attendeeId=${attendeeId}`);
         if (!res.ok) {
           const data = await res.json();
           throw new Error(data.error || 'Failed to generate Google Wallet link');
@@ -47,24 +47,28 @@ export function WalletButtons({ orderId }: { orderId: string }) {
   };
 
   return (
-    <div className="flex flex-col gap-3 mt-4">
+    <div className={`flex ${compact ? 'flex-row gap-2 mt-0' : 'flex-col gap-3 mt-4'}`}>
       <Button 
         variant="outline" 
-        className="w-full bg-black text-white hover:bg-zinc-800 border-black dark:bg-black dark:text-white dark:hover:bg-zinc-800 dark:border-zinc-800"
+        size={compact ? "icon" : "default"}
+        className={`${compact ? 'w-10 h-10' : 'w-full'} bg-black text-white hover:bg-zinc-800 border-black dark:bg-black dark:text-white dark:hover:bg-zinc-800 dark:border-zinc-800`}
         onClick={() => handleWallet('apple')}
         disabled={loadingApp}
+        title="Add to Apple Wallet"
       >
-        <Wallet className="w-4 h-4 mr-2" /> 
-        {loadingApp ? "Adding..." : "Add to Apple Wallet"}
+        <Wallet className={`w-4 h-4 ${compact ? '' : 'mr-2'}`} /> 
+        {!compact && (loadingApp ? "Adding..." : "Add to Apple Wallet")}
       </Button>
       <Button 
         variant="outline" 
-        className="w-full bg-white text-black hover:bg-zinc-100 border-zinc-300 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+        size={compact ? "icon" : "default"}
+        className={`${compact ? 'w-10 h-10' : 'w-full'} bg-white text-black hover:bg-zinc-100 border-zinc-300 dark:bg-white dark:text-black dark:hover:bg-zinc-200`}
         onClick={() => handleWallet('google')}
         disabled={loadingGoog}
+        title="Add to Google Wallet"
       >
-        <Wallet className="w-4 h-4 mr-2" /> 
-        {loadingGoog ? "Adding..." : "Add to Google Wallet"}
+        <Wallet className={`w-4 h-4 ${compact ? '' : 'mr-2'}`} /> 
+        {!compact && (loadingGoog ? "Adding..." : "Add to Google Wallet")}
       </Button>
     </div>
   );

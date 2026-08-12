@@ -5,10 +5,10 @@ import { PKPass } from 'passkit-generator';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const orderId = searchParams.get('orderId');
+    const attendeeId = searchParams.get('attendeeId');
 
-    if (!orderId) {
-      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
+    if (!attendeeId) {
+      return NextResponse.json({ error: 'Attendee ID is required' }, { status: 400 });
     }
 
     const { 
@@ -32,18 +32,18 @@ export async function GET(request: Request) {
 
     const service = createServiceClient();
 
-    // Fetch order and associated event
-    const { data: order, error: orderErr } = await service
-      .from('orders')
+    // Fetch attendee and associated event
+    const { data: attendee, error: attendeeErr } = await service
+      .from('attendees')
       .select('*, events(*)')
-      .eq('id', orderId)
+      .eq('id', attendeeId)
       .single();
 
-    if (orderErr || !order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    if (attendeeErr || !attendee) {
+      return NextResponse.json({ error: 'Attendee not found' }, { status: 404 });
     }
 
-    const event = order.events;
+    const event = Array.isArray(attendee.events) ? attendee.events[0] : attendee.events;
 
     // Build the Pass
     const pass = new PKPass({}, {
@@ -84,14 +84,14 @@ export async function GET(request: Request) {
     pass.auxiliaryFields.push({
       key: "guest",
       label: "GUEST",
-      value: order.guest_name || "Attendee"
+      value: attendee.guest_name || "Attendee"
     });
 
     pass.setBarcodes({
       format: "PKBarcodeFormatQR",
-      message: order.id,
+      message: attendee.id,
       messageEncoding: "iso-8859-1",
-      altText: order.id.split('-')[0] // Short id for alt text
+      altText: attendee.id.split('-')[0] // Short id for alt text
     });
 
     const buffer = await pass.getAsBuffer();
@@ -100,7 +100,7 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.apple.pkpass',
-        'Content-Disposition': `attachment; filename="ticket-${order.id}.pkpass"`,
+        'Content-Disposition': `attachment; filename="ticket-${attendee.id}.pkpass"`,
       },
     });
 
