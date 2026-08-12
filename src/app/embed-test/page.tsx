@@ -29,7 +29,14 @@ export default function EmbedTestPage() {
             className="font-mono h-32"
           />
           <div className="flex gap-2">
-            <Button onClick={() => setRenderCode(embedCode)}>Render Widget</Button>
+            <Button onClick={() => {
+              // Automatically inject a cache-busting parameter into the iframe src
+              const newCode = embedCode.replace(/src="([^"]+)"/, (match, url) => {
+                const separator = url.includes('?') ? '&' : '?';
+                return `src="${url}${separator}v=${Date.now()}"`;
+              });
+              setRenderCode(newCode);
+            }}>Render Widget</Button>
             <Button variant="outline" onClick={() => setEmbedCode(defaultEmbed)}>Load Sample Code</Button>
           </div>
         </div>

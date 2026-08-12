@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
     base-uri 'self';
     form-action 'self';
     frame-action 'self';
-    frame-src 'self' https://www.youtube.com https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://maps.google.com https://www.google.com;
+    frame-src 'self' https://swiftvenuehq.com https://www.swiftvenuehq.com https://www.youtube.com https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://maps.google.com https://www.google.com;
     frame-ancestors ${allowIframe ? '*' : "'none'"};
     connect-src 'self' ${supabaseUrl} ${supabaseWsUrl} https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://unpkg.com https://*.sentry.io https://*.ingest.sentry.io https://nominatim.openstreetmap.org https://api.mapbox.com https://fastly.jsdelivr.net https://www.google-analytics.com;
     media-src 'self' blob: data:;
