@@ -71,10 +71,10 @@ export function SeatingBuilder({ eventId, initialLayout, initialSeats, ticketTyp
   };
 
   const getSeatColor = (label: string) => {
+    if (selectedSeats.includes(label)) return "bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2";
+
     const seat = seats.find(s => s.label === label);
     if (!seat) return "bg-muted hover:bg-muted-foreground/30 border-dashed"; // blank space
-    
-    if (selectedSeats.includes(label)) return "bg-primary text-primary-foreground border-primary ring-2 ring-primary ring-offset-2";
     
     if (seat.status !== 'available') return "bg-destructive/20 border-destructive/50 text-destructive/50 cursor-not-allowed"; // sold/locked
 

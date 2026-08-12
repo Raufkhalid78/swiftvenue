@@ -70,6 +70,9 @@ export async function GET(request: NextRequest) {
   // 5. Send post-event feedback surveys
   results.feedbackSent = await sendFeedbackEmails(service);
 
+  // 6. Storage Cleanup: Orphaned images
+  results.storageCleanup = await cleanupOrphanedImages(service);
+
   return NextResponse.json({ ok: true, results });
 }
 
@@ -176,4 +179,45 @@ async function sendFeedbackEmails(service: SupabaseClient) {
     await service.from('events').update({ feedback_sent_at: new Date().toISOString() }).eq('id', event.id);
   }
   return pastEvents?.length ?? 0;
+}
+
+async function cleanupOrphanedImages(service: SupabaseClient) {
+  try {
+    const [eventsRes, galleryRes, speakersRes, sponsorsRes] = await Promise.all([
+      service.from('events').select('hero_image_url').not('hero_image_url', 'is', null),
+      service.from('event_gallery').select('image_url').not('image_url', 'is', null),
+      service.from('event_speakers').select('photo_url').not('photo_url', 'is', null),
+      service.from('event_sponsors').select('logo_url').not('logo_url', 'is', null),
+    ]);
+
+    const referencedUrls = new Set<string>();
+    eventsRes.data?.forEach(r => referencedUrls.add(r.hero_image_url));
+    galleryRes.data?.forEach(r => referencedUrls.add(r.image_url));
+    speakersRes.data?.forEach(r => referencedUrls.add(r.photo_url));
+    sponsorsRes.data?.forEach(r => referencedUrls.add(r.logo_url));
+
+    const { data: folders } = await service.storage.from('event-images').list();
+    let orphanedPaths: string[] = [];
+    
+    for (const folder of folders || []) {
+       if (!folder.id) continue; // Ignore files at root, only process folders (user_id)
+       const { data: files } = await service.storage.from('event-images').list(folder.name);
+       for (const file of files || []) {
+          if (file.name === '.emptyFolderPlaceholder') continue;
+          
+          const { data: { publicUrl } } = service.storage.from('event-images').getPublicUrl(`${folder.name}/${file.name}`);
+          if (!referencedUrls.has(publicUrl)) {
+             orphanedPaths.push(`${folder.name}/${file.name}`);
+          }
+       }
+    }
+    
+    if (orphanedPaths.length > 0) {
+      await service.storage.from('event-images').remove(orphanedPaths);
+    }
+    return { deleted: orphanedPaths.length };
+  } catch (e) {
+    console.error('Storage cleanup failed:', e);
+    return { deleted: 0, error: true };
+  }
 }

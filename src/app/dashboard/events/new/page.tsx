@@ -11,6 +11,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Calendar, Type, Image as ImageIcon
 import Link from "next/link";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import imageCompression from 'browser-image-compression';
 
 const STEPS = [
   { id: 1, title: "Template", icon: LayoutTemplate },
@@ -47,6 +48,13 @@ export default function CreateEventWizard() {
       const file = e.target.files[0];
       setUploadingImage(true);
       
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+      
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -54,7 +62,7 @@ export default function CreateEventWizard() {
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${session?.user?.id}/${fileName}`;
       
-      const { error: uploadError } = await supabase.storage.from('event-images').upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from('event-images').upload(filePath, compressedFile);
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from('event-images').getPublicUrl(filePath);

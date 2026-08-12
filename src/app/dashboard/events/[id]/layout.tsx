@@ -38,6 +38,7 @@ export default function EventDashboardLayout({
     { name: "Overview", href: `/dashboard/events/${eventId}`, icon: LayoutDashboard },
     { name: "Tickets", href: `/dashboard/events/${eventId}/tickets`, icon: Ticket },
     { name: "Promos", href: `/dashboard/events/${eventId}/promos`, icon: Tag },
+    { name: "Waitlist", href: `/dashboard/events/${eventId}/waitlist`, icon: Users },
     { name: "Seating", href: `/dashboard/events/${eventId}/seating`, icon: LayoutGrid },
     { name: "Agenda", href: `/dashboard/events/${eventId}/agenda`, icon: CalendarDays },
     { name: "Gallery", href: `/dashboard/events/${eventId}/gallery`, icon: ImageIcon },

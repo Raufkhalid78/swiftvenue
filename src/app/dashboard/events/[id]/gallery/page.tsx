@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { Switch } from "@/components/ui/switch";
+import imageCompression from 'browser-image-compression';
 
 export default function GalleryPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -45,6 +46,13 @@ export default function GalleryPage({ params }: { params: Promise<{ id: string }
       const file = e.target.files[0];
       setUploadingImage(true);
       
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+      
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -52,7 +60,7 @@ export default function GalleryPage({ params }: { params: Promise<{ id: string }
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${session?.user?.id}/${fileName}`;
       
-      const { error: uploadError } = await supabase.storage.from('event-images').upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from('event-images').upload(filePath, compressedFile);
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from('event-images').getPublicUrl(filePath);
