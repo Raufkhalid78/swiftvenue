@@ -117,8 +117,8 @@ export default function SponsorsPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {isAdding && (
-        <div className="p-6 border border-primary/50 bg-primary/5 rounded-xl space-y-4 animate-in fade-in zoom-in-95">
-          <h3 className="font-medium">New Sponsor</h3>
+        <div className="p-6 border border-border bg-card rounded-xl shadow-sm space-y-6 animate-in fade-in zoom-in-95">
+          <h3 className="text-lg font-semibold border-b border-border pb-3">New Sponsor</h3>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Sponsor Name</Label>
