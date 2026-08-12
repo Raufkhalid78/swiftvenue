@@ -1,6 +1,15 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 
+// Color palettes for different ticket tiers
+const tierColors = [
+  { bg: 'bg-emerald-100 dark:bg-emerald-900/40', border: 'border-emerald-300 dark:border-emerald-800', text: 'text-emerald-800 dark:text-emerald-100', hover: 'hover:bg-emerald-200 dark:hover:bg-emerald-900/80', dot: 'bg-emerald-100 border-emerald-300' },
+  { bg: 'bg-blue-100 dark:bg-blue-900/40', border: 'border-blue-300 dark:border-blue-800', text: 'text-blue-800 dark:text-blue-100', hover: 'hover:bg-blue-200 dark:hover:bg-blue-900/80', dot: 'bg-blue-100 border-blue-300' },
+  { bg: 'bg-purple-100 dark:bg-purple-900/40', border: 'border-purple-300 dark:border-purple-800', text: 'text-purple-800 dark:text-purple-100', hover: 'hover:bg-purple-200 dark:hover:bg-purple-900/80', dot: 'bg-purple-100 border-purple-300' },
+  { bg: 'bg-amber-100 dark:bg-amber-900/40', border: 'border-amber-300 dark:border-amber-800', text: 'text-amber-800 dark:text-amber-100', hover: 'hover:bg-amber-200 dark:hover:bg-amber-900/80', dot: 'bg-amber-100 border-amber-300' },
+  { bg: 'bg-rose-100 dark:bg-rose-900/40', border: 'border-rose-300 dark:border-rose-800', text: 'text-rose-800 dark:text-rose-100', hover: 'hover:bg-rose-200 dark:hover:bg-rose-900/80', dot: 'bg-rose-100 border-rose-300' },
+];
+
 export function SeatPicker({ seatingLayout, seats, ticketTypes, selectedSeatIds, onSeatToggle }: any) {
   const { rows, cols } = seatingLayout;
 
@@ -15,8 +24,17 @@ export function SeatPicker({ seatingLayout, seats, ticketTypes, selectedSeatIds,
     if (seat.status !== 'available') return 'bg-destructive/20 border-destructive/50 text-destructive/50 cursor-not-allowed';
     if (isSelected) return 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2';
     
-    // Available
-    return 'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200 cursor-pointer';
+    // Find tier color index
+    let colorClass = 'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200';
+    if (ticketTypes && ticketTypes.length > 0) {
+      const tIndex = ticketTypes.findIndex((t: any) => t.id === seat.ticket_type_id);
+      if (tIndex >= 0) {
+        const c = tierColors[tIndex % tierColors.length];
+        colorClass = `${c.bg} ${c.border} ${c.text} ${c.hover}`;
+      }
+    }
+
+    return `${colorClass} cursor-pointer`;
   };
 
   return (
@@ -60,11 +78,28 @@ export function SeatPicker({ seatingLayout, seats, ticketTypes, selectedSeatIds,
         </div>
       </div>
       
-      <div className="flex flex-wrap gap-4 text-xs font-medium text-muted-foreground justify-center">
-        <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-emerald-100 border border-emerald-300"></div> Available</div>
-        <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-primary"></div> Selected</div>
-        <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-destructive/20 border border-destructive/50"></div> Sold / Locked</div>
-        <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-muted/40 border border-border/60"></div> Unassigned</div>
+      <div className="flex flex-col items-center gap-3">
+        {/* Tier Legend */}
+        {ticketTypes && ticketTypes.length > 0 && (
+          <div className="flex flex-wrap gap-4 text-xs font-medium text-muted-foreground justify-center mb-2">
+            {ticketTypes.map((t: any, i: number) => {
+              const c = tierColors[i % tierColors.length];
+              return (
+                <div key={t.id} className="flex items-center gap-1.5">
+                  <div className={`w-4 h-4 rounded border ${c.dot}`}></div> 
+                  {t.name} ({Number(t.price) === 0 ? 'Free' : `PKR ${t.price}`})
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* State Legend */}
+        <div className="flex flex-wrap gap-4 text-xs font-medium text-muted-foreground justify-center">
+          <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-primary"></div> Selected</div>
+          <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-destructive/20 border border-destructive/50"></div> Sold / Locked</div>
+          <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-muted/40 border border-border/60"></div> Unassigned</div>
+        </div>
       </div>
     </div>
   );

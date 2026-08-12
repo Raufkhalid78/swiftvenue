@@ -65,7 +65,7 @@ export function RegistrationWidget({
 
   const selectedTicket = ticketTypes.find(t => t.id === selectedTicketId);
   const available = selectedTicket ? selectedTicket.quantity_total - selectedTicket.quantity_sold : 0;
-  const isWaitlist = available <= 0;
+  const isWaitlist = selectedTicket ? available <= 0 : false;
 
   async function validatePromo() {
     if (!promoCode) return;
@@ -206,7 +206,10 @@ export function RegistrationWidget({
             
             <form onSubmit={handleCheckout} className="space-y-4">
               <div className="space-y-3 mb-6">
-                <Label>Select Ticket Tier</Label>
+                <Label>{seatingLayout ? "Select Your Seats on the Map" : "Select Ticket Tier"}</Label>
+                {seatingLayout && (
+                  <p className="text-xs text-muted-foreground mt-0 mb-2">Click multiple seats of the same color to purchase them together.</p>
+                )}
                 {seatingLayout ? (
                   <SeatPicker 
                     seatingLayout={seatingLayout} 
@@ -468,13 +471,13 @@ export function RegistrationWidget({
                   <Button type="button" variant="outline" className="flex-1" onClick={() => setIsOpen(false)} disabled={loading}>
                     Cancel
                   </Button>
-                  <Button type="submit" className="flex-1" disabled={loading || !selectedTicket || !agreedToTerms}>
+                  <Button type="submit" className="flex-1" disabled={loading || (seatingLayout ? selectedSeatIds.length === 0 : !selectedTicket) || !agreedToTerms}>
                     {loading ? (
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     ) : isWaitlist ? (
                       "Join Waitlist"
                     ) : (
-                      <><Ticket className="w-4 h-4 mr-2" /> Checkout</>
+                      <><Ticket className="w-4 h-4 mr-2" /> {seatingLayout && selectedSeatIds.length === 0 ? "Select a seat" : "Checkout"}</>
                     )}
                   </Button>
                 </div>
