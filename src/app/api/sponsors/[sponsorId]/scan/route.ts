@@ -4,15 +4,16 @@ import { createClient } from '@supabase/supabase-js';
 // We must use the service role key to bypass RLS for public scanning, 
 // because sponsors are scanning via an unauthenticated magic link.
 // However, we implemented RLS to allow anon inserts. We can just use the anon client if we want, 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-  process.env.SUPABASE_SERVICE_ROLE_KEY as string
-);
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ sponsorId: string }> }
 ) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+    process.env.SUPABASE_SERVICE_ROLE_KEY as string
+  );
+  
   try {
     const { sponsorId } = await params;
     const body = await request.json();
