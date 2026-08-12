@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import Papa from 'papaparse';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+  process.env.SUPABASE_SERVICE_ROLE_KEY as string
 );
 
 export async function GET(

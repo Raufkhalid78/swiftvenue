@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
-import { Upload, FileSpreadsheet, Check, X, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Check, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import {

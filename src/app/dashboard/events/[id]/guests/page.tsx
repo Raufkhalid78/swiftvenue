@@ -1,23 +1,20 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Download, UserPlus, MoreHorizontal, CheckCircle2, XCircle, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { BulkGuestImport } from "@/components/bulk-guest-import";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function GuestsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const router = useRouter();
   const [guests, setGuests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadGuests = async () => {
+  const loadGuests = useCallback(async () => {
     setLoading(true);
     const supabase = createClient();
     const { data } = await supabase
@@ -28,11 +25,11 @@ export default function GuestsPage({ params }: { params: Promise<{ id: string }>
     
     if (data) setGuests(data);
     setLoading(false);
-  };
+  }, [resolvedParams.id]);
 
   useEffect(() => {
     loadGuests();
-  }, [resolvedParams.id]);
+  }, [loadGuests]);
 
   const handleApproveRefund = async (orderId: string) => {
     try {

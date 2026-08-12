@@ -21,7 +21,7 @@ export function mockSupabaseEventWithCollaborator({ eventOwner, collaboratorId, 
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockImplementation(() => ({
-              eq: vi.fn().mockImplementation(() => ({
+              eq: vi.fn().mockImplementation((_col2: string, _collaboratorId: string) => ({
                 single: vi.fn().mockResolvedValue({ data: { user_id: eventOwner } }),
               })),
               single: vi.fn().mockResolvedValue({ data: { user_id: eventOwner } }),

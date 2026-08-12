@@ -4,7 +4,7 @@ import { useEffect, useState, use, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Trash2, Edit2, GripVertical, Briefcase, UploadCloud, X, Link as LinkIcon, BarChart } from "lucide-react";
+import { PlusCircle, Trash2, GripVertical, Briefcase, UploadCloud, X, Link as LinkIcon, BarChart } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";

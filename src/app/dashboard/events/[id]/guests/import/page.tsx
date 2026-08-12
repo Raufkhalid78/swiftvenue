@@ -2,7 +2,6 @@
 import { useState } from "react";
 import Papa from "papaparse";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -65,7 +64,7 @@ export default function ImportGuestsPage() {
       
       toast.success(`Imported ${data.imported} guest(s)`);
       router.push(`/dashboard/events/${params.id}/guests`);
-    } catch (err) {
+    } catch (_err) {
       toast.error('An unexpected error occurred during import');
       setImporting(false);
     }
