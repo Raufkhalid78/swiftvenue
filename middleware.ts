@@ -5,6 +5,10 @@ export async function middleware(request: NextRequest) {
 
   const nonce = crypto.randomUUID()
   
+  const isEmbed = request.nextUrl.pathname.startsWith('/embed/');
+  const isPayment = request.nextUrl.pathname.startsWith('/api/payment');
+  const allowIframe = isEmbed || isPayment;
+
   const scriptSrc = `'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://www.googletagmanager.com https://www.google-analytics.com`;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://nldoyrprekstnifrlblo.supabase.co';
@@ -22,7 +26,7 @@ export async function middleware(request: NextRequest) {
     form-action 'self';
     frame-action 'self';
     frame-src 'self' https://www.youtube.com https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://maps.google.com https://www.google.com;
-    frame-ancestors 'none';
+    frame-ancestors ${allowIframe ? '*' : "'none'"};
     connect-src 'self' ${supabaseUrl} ${supabaseWsUrl} https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://unpkg.com https://*.sentry.io https://*.ingest.sentry.io https://nominatim.openstreetmap.org https://api.mapbox.com https://fastly.jsdelivr.net https://www.google-analytics.com;
     media-src 'self' blob: data:;
     worker-src 'self' blob:;
@@ -40,7 +44,9 @@ export async function middleware(request: NextRequest) {
 
   response.headers.set('Content-Security-Policy', cspHeader)
   response.headers.set('Access-Control-Allow-Origin', '*')
-  response.headers.set('X-Frame-Options', 'DENY')
+  if (!allowIframe) {
+    response.headers.set('X-Frame-Options', 'DENY')
+  }
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=*, microphone=(), geolocation=()')
