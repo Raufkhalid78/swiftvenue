@@ -98,6 +98,7 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
         venue_lat: event.venue_lat ? parseFloat(event.venue_lat) : null,
         venue_lng: event.venue_lng ? parseFloat(event.venue_lng) : null,
         organizer_bio: event.organizer_bio,
+        additional_info: event.additional_info,
         social_links: event.social_links
       })
       .eq('id', event.id);
@@ -155,6 +156,16 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
               onChange={e => setEvent({...event, description: e.target.value})}
               rows={4} 
             />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Additional Info (Optional)</Label>
+            <Textarea 
+              value={event.additional_info || ''} 
+              onChange={e => setEvent({...event, additional_info: e.target.value})}
+              rows={3} 
+              placeholder="e.g. Dress code, age restrictions, parking info..."
+            />
+            <p className="text-xs text-muted-foreground">This will be displayed on the event page near the registration area.</p>
           </div>
         </div>
 

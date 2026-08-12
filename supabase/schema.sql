@@ -669,6 +669,7 @@ ALTER TABLE public.events
   ADD COLUMN IF NOT EXISTS venue_lat NUMERIC(10,7),
   ADD COLUMN IF NOT EXISTS venue_lng NUMERIC(10,7),
   ADD COLUMN IF NOT EXISTS organizer_bio TEXT,
+  ADD COLUMN IF NOT EXISTS additional_info TEXT,
   ADD COLUMN IF NOT EXISTS social_links JSONB;
 
 -- Set up Row Level Security
@@ -748,6 +749,18 @@ CREATE POLICY "invites_select_own_events" ON public.event_collaborator_invites F
 ALTER TABLE public.promo_codes
   ADD COLUMN IF NOT EXISTS is_referral_code BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS referring_attendee_id UUID REFERENCES public.attendees(id);
+
+CREATE TABLE IF NOT EXISTS public.saved_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, event_id)
+);
+ALTER TABLE public.saved_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "saved_events_select_own" ON public.saved_events FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "saved_events_insert_own" ON public.saved_events FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "saved_events_delete_own" ON public.saved_events FOR DELETE USING (auth.uid() = user_id);
 
 -- ==========================================
 -- TRACK B & C: EXCHANGE RATES & FEEDBACK

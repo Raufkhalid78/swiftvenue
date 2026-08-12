@@ -1,10 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-import { Calendar, MapPin, Clock, Banknote } from "lucide-react";
+import { Calendar, MapPin, Clock, Banknote, ArrowUpRight, Users } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RegistrationWidget } from "@/components/registration-widget";
 import { EventCountdown } from "@/components/event-countdown";
 import { AddToCalendar } from "@/components/add-to-calendar";
 import { SocialShare } from "@/components/social-share";
+import { SaveButton } from "@/components/save-button";
+import { EventWeather } from "@/components/event-weather";
 import { LiveUpdatesWidget } from "@/components/live-updates";
 import { headers } from "next/headers";
 import { PriceDisplay } from "@/components/price-display";
@@ -145,6 +148,19 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     .eq("event_id", event.id)
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false });
+
+  const { count: attendeeCount } = await supabase
+    .from('attendees')
+    .select('*', { count: 'exact', head: true })
+    .eq('event_id', event.id);
+
+  const { data: similarEvents } = await service
+    .from('events')
+    .select('id, title, slug, date, hero_image_url, type')
+    .eq('status', 'published')
+    .eq('type', event.type)
+    .neq('id', event.id)
+    .limit(3);
 
   const themeColor = event.theme_color || '#0f172a';
   const rgbTheme = hexToRgb(themeColor);
@@ -340,6 +356,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <div className="flex gap-2">
                   <AddToCalendar event={event} />
                   <SocialShare title={event.title} />
+                  <SaveButton eventId={event.id} />
                 </div>
                 
                 <div className="p-6 rounded-2xl bg-card border theme-border shadow-sm">
@@ -356,7 +373,35 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                       <MapPin className="w-5 h-5 theme-accent shrink-0" />
                       <div>
                         <p className="font-medium text-foreground">{event.venue_name}</p>
-                        <p className="text-sm text-muted-foreground">{event.venue_address}</p>
+                        {event.venue_lat && event.venue_lng ? (
+<>
+<div className="mt-2 space-y-2">
+                            <div className="rounded-xl overflow-hidden border border-border">
+                              <iframe
+                                src={`https://maps.google.com/maps?q=${event.venue_lat},${event.venue_lng}&z=15&output=embed`}
+                                className="w-full aspect-video"
+                                loading="lazy"
+                                title={`Map showing ${event.venue_name}`}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-sm text-muted-foreground">{event.venue_address}</p>
+                              <a
+                                href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="text-xs font-medium theme-accent hover:underline inline-flex items-center gap-1"
+                              >
+                                Get Directions <ArrowUpRight className="w-4 h-4" />
+                              </a>
+                            </div>
+                          </div>
+                          <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+</>
+) : (
+                          event.venue_address && (
+                            <p className="text-sm text-muted-foreground">{event.venue_address}</p>
+                          )
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-3 pt-4 border-t border-border">
@@ -373,6 +418,15 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
                 <div className="bg-card rounded-2xl border border-border p-1">
                   <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+                  {attendeeCount !== null && attendeeCount >= 3 && (
+                    <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 pb-2">
+                      <Users className="w-4 h-4" />
+                      {attendeeCount} people are going
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2 pb-2 text-center px-4">
+                    Refunds available up to 48 hours before the event. <Link href="/terms#refunds" className="underline">View refund policy</Link>
+                  </p>
                 </div>
 
                 {/* Organizer Info */}
@@ -418,6 +472,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             <div className="flex justify-center gap-2 mt-4">
               <AddToCalendar event={event} />
               <SocialShare title={event.title} />
+              <SaveButton eventId={event.id} />
             </div>
           </header>
 
@@ -427,10 +482,35 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-8 justify-center py-8 border-y border-border">
+          <div className="flex flex-col sm:flex-row gap-8 justify-center py-8 border-y border-border w-full">
             <div className="flex items-center gap-3">
               <MapPin className="w-5 h-5 text-muted-foreground" />
-              <span className="font-medium">{event.venue_name}</span>
+              <span className="font-medium flex flex-col">
+                {event.venue_name}
+                {event.venue_address && <span className="text-sm text-muted-foreground font-normal mt-1">{event.venue_address}</span>}
+                {event.venue_lat && event.venue_lng && (
+<>
+<div className="mt-2 space-y-2 max-w-sm">
+                    <div className="rounded-xl overflow-hidden border border-border">
+                      <iframe
+                        src={`https://maps.google.com/maps?q=${event.venue_lat},${event.venue_lng}&z=15&output=embed`}
+                        className="w-full aspect-video"
+                        loading="lazy"
+                        title={`Map showing ${event.venue_name}`}
+                      />
+                    </div>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1 mt-1"
+                    >
+                      Get Directions <ArrowUpRight className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+</>
+)}
+              </span>
             </div>
             <div className="hidden sm:block text-muted-foreground">•</div>
             <div className="flex items-center gap-3">
@@ -532,6 +612,15 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             <div className="w-full max-w-md bg-card p-6 rounded-2xl border border-border shadow-sm text-center">
               <h3 className="font-display text-2xl font-bold mb-4">Secure your spot</h3>
               <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+              {attendeeCount !== null && attendeeCount >= 3 && (
+                <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 mt-4">
+                  <Users className="w-4 h-4" />
+                  {attendeeCount} people are going
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground mt-4 text-center">
+                Refunds available up to 48 hours before the event. <Link href="/terms#refunds" className="underline">View refund policy</Link>
+              </p>
             </div>
           </div>
         </div>
@@ -558,6 +647,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
                   <AddToCalendar event={event} />
                   <SocialShare title={event.title} />
+                  <SaveButton eventId={event.id} />
                 </div>
               </div>
             </div>
@@ -580,6 +670,16 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                     ))}
                   </div>
                 </div>
+                {event.additional_info && (
+                  <div className="mt-8 bg-muted/30 p-6 rounded-xl border border-border">
+                    <h3 className="font-semibold text-lg mb-3">Important Information</h3>
+                    <div className="prose prose-sm dark:prose-invert text-muted-foreground">
+                      {event.additional_info.split('\n').map((paragraph: string, i: number) => (
+                        <p key={i}>{paragraph}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {event.video_url && (
                   <div>
@@ -617,9 +717,35 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
                 <div>
                   <h2 className="text-3xl font-serif font-bold border-b-2 theme-border pb-2 inline-block">Location</h2>
-                  <div className="text-lg text-muted-foreground space-y-2 mt-6">
+                  <div className="text-lg text-muted-foreground space-y-4 mt-6">
                     <p className="font-semibold text-foreground">{event.venue_name}</p>
-                    <p>{event.venue_address}</p>
+                    {event.venue_lat && event.venue_lng ? (
+<>
+<div className="space-y-3">
+                        <div className="rounded-xl overflow-hidden border border-border w-full aspect-video">
+                          <iframe
+                            src={`https://maps.google.com/maps?q=${event.venue_lat},${event.venue_lng}&z=15&output=embed`}
+                            className="w-full h-full"
+                            loading="lazy"
+                            title={`Map showing ${event.venue_name}`}
+                          />
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <p>{event.venue_address}</p>
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="text-sm font-medium theme-accent hover:underline inline-flex items-center gap-1"
+                          >
+                            Get Directions <ArrowUpRight className="w-4 h-4" />
+                          </a>
+                        </div>
+                        <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+</div>
+</>
+) : (
+                      <p>{event.venue_address}</p>
+                    )}
                   </div>
                 </div>
                 
@@ -643,6 +769,15 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <div className="bg-muted/30 p-8 rounded-xl border border-border">
                   <h2 className="text-2xl font-serif font-bold mb-6 text-center">Register Now</h2>
                   <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+                  {attendeeCount !== null && attendeeCount >= 3 && (
+                    <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 mt-4">
+                      <Users className="w-4 h-4" />
+                      {attendeeCount} people are going
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-4 text-center">
+                    Refunds available up to 48 hours before the event. <Link href="/terms#refunds" className="underline">View refund policy</Link>
+                  </p>
                 </div>
 
                 {agendaItems && agendaItems.length > 0 && (
@@ -715,6 +850,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                         <MapPin className="w-5 h-5" /> {event.venue_name}
                       </div>
                       <SocialShare title={event.title} />
+                      <SaveButton eventId={event.id} />
                     </div>
                   </div>
                 </div>
@@ -730,6 +866,16 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                       <p key={i}>{paragraph}</p>
                     ))}
                   </div>
+                  {event.additional_info && (
+                    <div className="mt-8 bg-muted/50 p-6 rounded-xl border border-border">
+                      <h3 className="font-semibold text-lg mb-3">Important Information</h3>
+                      <div className="prose prose-sm dark:prose-invert">
+                        {event.additional_info.split('\n').map((paragraph: string, i: number) => (
+                          <p key={i}>{paragraph}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </section>
 
                 {speakers && speakers.length > 0 && (
@@ -772,6 +918,15 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                   <div className="bg-background rounded-[2rem] border-[4px] border-primary p-6 shadow-2xl rotate-[-1deg]">
                     <h2 className="text-3xl font-black uppercase mb-6 text-center">Get Tickets</h2>
                     <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+                    {attendeeCount !== null && attendeeCount >= 3 && (
+                      <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 mt-4">
+                        <Users className="w-4 h-4" />
+                        {attendeeCount} people are going
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-4 text-center">
+                      Refunds available up to 48 hours before the event. <Link href="/terms#refunds" className="underline">View refund policy</Link>
+                    </p>
                   </div>
 
                   {sponsors && sponsors.length > 0 && (
@@ -784,6 +939,38 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                       </div>
                     </div>
                   )}
+
+                  <div className="mt-12 bg-background/80 backdrop-blur-xl rounded-[2rem] border-[4px] border-border p-6 shadow-2xl rotate-[1deg]">
+                    <h3 className="text-2xl font-black uppercase mb-4 text-center">Location</h3>
+                    <p className="font-bold text-center mb-2">{event.venue_name}</p>
+                    {event.venue_lat && event.venue_lng ? (
+<>
+<div className="space-y-3">
+                        <div className="rounded-2xl overflow-hidden border-2 border-border w-full aspect-video">
+                          <iframe
+                            src={`https://maps.google.com/maps?q=${event.venue_lat},${event.venue_lng}&z=15&output=embed`}
+                            className="w-full h-full"
+                            loading="lazy"
+                            title={`Map showing ${event.venue_name}`}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2 text-center">
+                          <p className="text-sm text-muted-foreground">{event.venue_address}</p>
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="text-sm font-black uppercase text-primary hover:underline inline-flex items-center justify-center gap-1"
+                          >
+                            Get Directions <ArrowUpRight className="w-4 h-4" />
+                          </a>
+                        </div>
+                        <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+</div>
+</>
+) : (
+                      <p className="text-sm text-center text-muted-foreground">{event.venue_address}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -810,6 +997,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <div className="flex justify-center gap-4 pt-8">
                 <AddToCalendar event={event} />
                 <SocialShare title={event.title} />
+                <SaveButton eventId={event.id} />
               </div>
             </header>
 
@@ -827,6 +1015,14 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                   <div className="space-y-6 text-lg text-zinc-300 leading-relaxed font-light">
                     {event.description?.split('\n').map((p: string, i: number) => <p key={i}>{p}</p>)}
                   </div>
+                  {event.additional_info && (
+                    <div className="mt-12 pt-8 border-t border-zinc-800/50">
+                      <h3 className="text-lg font-medium text-zinc-100 mb-4">Important Information</h3>
+                      <div className="space-y-4 text-zinc-400 font-light">
+                        {event.additional_info.split('\n').map((p: string, i: number) => <p key={i}>{p}</p>)}
+                      </div>
+                    </div>
+                  )}
                 </section>
 
                 {agendaItems && agendaItems.length > 0 && (
@@ -850,6 +1046,47 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-sm">
                   <h2 className="text-2xl font-light text-center mb-8">RSVP</h2>
                   <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+                  {attendeeCount !== null && attendeeCount >= 3 && (
+                    <p className="text-sm text-zinc-400 flex items-center justify-center gap-1.5 mt-6">
+                      <Users className="w-4 h-4" />
+                      {attendeeCount} people are going
+                    </p>
+                  )}
+                  <p className="text-xs text-zinc-500 mt-4 text-center">
+                    Refunds available up to 48 hours before the event. <Link href="/terms#refunds" className="underline">View refund policy</Link>
+                  </p>
+                </div>
+                
+                <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-sm mt-8">
+                  <h2 className="text-2xl font-light text-center mb-6">Location</h2>
+                  <div className="text-center space-y-4">
+                    <p className="font-medium text-zinc-200">{event.venue_name}</p>
+                    {event.venue_lat && event.venue_lng ? (
+<>
+<div className="space-y-4">
+                        <div className="rounded-sm overflow-hidden border border-zinc-800 w-full aspect-video opacity-80 hover:opacity-100 transition-opacity">
+                          <iframe
+                            src={`https://maps.google.com/maps?q=${event.venue_lat},${event.venue_lng}&z=15&output=embed`}
+                            className="w-full h-full"
+                            loading="lazy"
+                            title={`Map showing ${event.venue_name}`}
+                          />
+                        </div>
+                        <p className="text-sm text-zinc-400">{event.venue_address}</p>
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="text-sm tracking-wider uppercase text-yellow-600 hover:text-yellow-500 transition-colors inline-flex items-center gap-2"
+                        >
+                          Get Directions <ArrowUpRight className="w-4 h-4" />
+                        </a>
+                        <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+</div>
+</>
+) : (
+                      <p className="text-sm text-zinc-400">{event.venue_address}</p>
+                    )}
+                  </div>
                 </div>
 
                 {sponsors && sponsors.length > 0 && (
@@ -885,6 +1122,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <EventCountdown targetDate={`${event.date}T${event.time}`} />
                 <AddToCalendar event={event} />
                 <SocialShare title={event.title} />
+                <SaveButton eventId={event.id} />
               </div>
             </div>
           </header>
@@ -902,6 +1140,14 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <div className="prose prose-sm prose-slate max-w-none">
                   {event.description?.split('\n').map((p: string, i: number) => <p key={i}>{p}</p>)}
                 </div>
+                {event.additional_info && (
+                  <div className="mt-8 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                    <h3 className="text-sm font-bold text-slate-900 mb-2">Important Information</h3>
+                    <div className="prose prose-sm prose-slate max-w-none text-slate-600">
+                      {event.additional_info.split('\n').map((p: string, i: number) => <p key={i}>{p}</p>)}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {agendaItems && agendaItems.length > 0 && (
@@ -926,6 +1172,15 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                 <h2 className="text-lg font-bold border-b border-slate-100 pb-2 mb-4">Registration</h2>
                 <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+                {attendeeCount !== null && attendeeCount >= 3 && (
+                  <p className="text-sm text-slate-500 flex items-center justify-center gap-1.5 mt-4">
+                    <Users className="w-4 h-4" />
+                    {attendeeCount} people are going
+                  </p>
+                )}
+                <p className="text-xs text-slate-400 mt-4 text-center">
+                  Refunds available up to 48 hours before the event. <Link href="/terms#refunds" className="underline">View refund policy</Link>
+                </p>
               </div>
 
               {speakers && speakers.length > 0 && (
@@ -954,9 +1209,35 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <div className="space-y-4 text-sm">
                   <div className="flex gap-3">
                     <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                    <div>
+                    <div className="w-full">
                       <div className="font-medium text-slate-900">{event.venue_name}</div>
-                      <div className="text-slate-500">{event.venue_address}</div>
+                      {event.venue_lat && event.venue_lng ? (
+<>
+<div className="mt-3 space-y-3">
+                          <div className="rounded-lg overflow-hidden border border-slate-200 w-full aspect-video">
+                            <iframe
+                              src={`https://maps.google.com/maps?q=${event.venue_lat},${event.venue_lng}&z=15&output=embed`}
+                              className="w-full h-full"
+                              loading="lazy"
+                              title={`Map showing ${event.venue_name}`}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <div className="text-slate-500">{event.venue_address}</div>
+                            <a
+                              href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
+                            >
+                              Get Directions <ArrowUpRight className="w-4 h-4" />
+                            </a>
+                          </div>
+                        </div>
+                        <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+</>
+) : (
+                        <div className="text-slate-500 mt-1">{event.venue_address}</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -964,6 +1245,32 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             </div>
           </div>
         </div>
+      )}
+
+      {/* --- SIMILAR EVENTS --- */}
+      {similarEvents && similarEvents.length > 0 && (
+        <section className="bg-background pt-12 pb-24 border-t border-border">
+          <div className="max-w-4xl mx-auto px-4">
+            <h2 className="text-2xl font-display font-semibold mb-6 text-foreground">You Might Also Like</h2>
+            <div className="grid sm:grid-cols-3 gap-6">
+              {similarEvents.map((e: any) => (
+                <Link key={e.id} href={`/e/${e.slug}`} className="group block">
+                  <div className="aspect-video rounded-xl overflow-hidden mb-3 bg-muted border border-border">
+                    {e.hero_image_url ? (
+                      <img src={e.hero_image_url} alt={e.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <Calendar className="w-8 h-8 opacity-20" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">{e.title}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{e.date}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
     </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle, Calendar, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WalletButtons } from "@/components/wallet-buttons";
+import { DownloadTicketButton } from "@/components/download-ticket-button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function SuccessPage({ 
@@ -60,6 +61,7 @@ export default async function SuccessPage({
         )}
 
         <div className="space-y-3">
+          <DownloadTicketButton orderId={orderId} />
           <Link href={`/e/${slug}`} className="block w-full">
             <Button variant="outline" className="w-full">Return to Event Page</Button>
           </Link>

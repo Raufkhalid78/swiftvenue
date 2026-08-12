@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Plus, Minus, Ticket, Tag } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import Link from "next/link";
 
 export function RegistrationWidget({ 
   eventId, 
@@ -26,6 +28,7 @@ export function RegistrationWidget({
   const [selectedTicketId, setSelectedTicketId] = useState<string>(ticketTypes[0]?.id || "");
   const [quantity, setQuantity] = useState(1);
   const [attendeeDetails, setAttendeeDetails] = useState(Array(1).fill({ name: "", email: "" }));
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
     setAttendeeDetails(prev => {
@@ -408,19 +411,32 @@ export function RegistrationWidget({
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setIsOpen(false)} disabled={loading}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="flex-1" disabled={loading || !selectedTicket}>
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : isWaitlist ? (
-                    "Join Waitlist"
-                  ) : (
-                    <><Ticket className="w-4 h-4 mr-2" /> Checkout</>
-                  )}
-                </Button>
+              <div className="space-y-4 pt-2">
+                <label className="flex items-start gap-2 text-sm text-muted-foreground cursor-pointer">
+                  <Checkbox 
+                    checked={agreedToTerms} 
+                    onCheckedChange={(v) => setAgreedToTerms(!!v)} 
+                    className="mt-0.5" 
+                    id="terms-checkbox"
+                  />
+                  <span>
+                    I agree to SwiftVenue's <Link href="/terms" target="_blank" className="underline hover:text-primary">Terms of Service</Link> and the event's refund policy.
+                  </span>
+                </label>
+                <div className="flex gap-3">
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => setIsOpen(false)} disabled={loading}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1" disabled={loading || !selectedTicket || !agreedToTerms}>
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : isWaitlist ? (
+                      "Join Waitlist"
+                    ) : (
+                      <><Ticket className="w-4 h-4 mr-2" /> Checkout</>
+                    )}
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
