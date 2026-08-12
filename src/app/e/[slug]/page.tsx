@@ -225,7 +225,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             )}
             <div className="relative z-10 text-center max-w-4xl mx-auto px-4">
               <div className="flex flex-col items-center gap-4">
-                <span className="inline-block px-3 py-1 bg-background/80 backdrop-blur-md rounded-full text-sm font-medium uppercase tracking-widest theme-accent">
+                <span className="inline-block px-3 py-1 bg-background/80 backdrop-blur-md rounded-full text-sm font-medium uppercase tracking-widest text-primary">
                   {event.type} Event
                 </span>
                 <EventCountdown targetDate={`${event.date}T${event.time}`} />
@@ -283,7 +283,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                           )}
                           <div>
                             <h3 className="font-bold text-foreground">{s.name}</h3>
-                            {s.title && <p className="text-sm theme-accent font-medium">{s.title}</p>}
+                            {s.title && <p className="text-sm text-primary font-medium">{s.title}</p>}
                             {s.bio && <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{s.bio}</p>}
                           </div>
                         </div>
@@ -310,7 +310,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                           <div className="flex-1">
                             <h3 className="text-lg font-medium text-foreground">{item.title}</h3>
                             {item.speaker_name && (
-                              <div className="text-sm theme-accent font-medium mt-1">Speaker: {item.speaker_name}</div>
+                              <div className="text-sm text-primary font-medium mt-1">Speaker: {item.speaker_name}</div>
                             )}
                             {item.description && (
                               <p className="text-muted-foreground text-sm mt-2">{item.description}</p>
@@ -363,14 +363,14 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                   <h3 className="font-semibold text-lg mb-4">When & Where</h3>
                   <div className="space-y-4">
                     <div className="flex gap-3">
-                      <Calendar className="w-5 h-5 theme-accent shrink-0" />
+                      <Calendar className="w-5 h-5 text-primary shrink-0" />
                       <div>
                         <p className="font-medium text-foreground">{event.date}</p>
                         <p className="text-sm text-muted-foreground">{event.time || "Time TBD"}</p>
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <MapPin className="w-5 h-5 theme-accent shrink-0" />
+                      <MapPin className="w-5 h-5 text-primary shrink-0" />
                       <div>
                         <p className="font-medium text-foreground">{event.venue_name}</p>
                         {event.venue_lat && event.venue_lng ? (
@@ -389,7 +389,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                               <a
                                 href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
                                 target="_blank" rel="noopener noreferrer"
-                                className="text-xs font-medium theme-accent hover:underline inline-flex items-center gap-1"
+                                className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
                               >
                                 Get Directions <ArrowUpRight className="w-4 h-4" />
                               </a>
@@ -405,7 +405,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                       </div>
                     </div>
                     <div className="flex gap-3 pt-4 border-t border-border">
-                      <Banknote className="w-5 h-5 theme-accent shrink-0" />
+                      <Banknote className="w-5 h-5 text-primary shrink-0" />
                       <div>
                         <p className="font-medium text-foreground">
                           {isFree ? "Free Entry" : <span>{priceRangeLabel}<PriceDisplay amountPkr={lowestPrice} detectedCountry={detectedCountry} /></span>}
@@ -707,7 +707,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                           )}
                           <div>
                             <h3 className="font-bold text-foreground text-lg">{s.name}</h3>
-                            {s.title && <p className="text-sm theme-accent font-medium">{s.title}</p>}
+                            {s.title && <p className="text-sm text-primary font-medium">{s.title}</p>}
                           </div>
                         </div>
                       ))}
@@ -735,7 +735,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                           <a
                             href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
                             target="_blank" rel="noopener noreferrer"
-                            className="text-sm font-medium theme-accent hover:underline inline-flex items-center gap-1"
+                            className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
                           >
                             Get Directions <ArrowUpRight className="w-4 h-4" />
                           </a>
@@ -786,7 +786,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                     <div className="space-y-6">
                       {agendaItems.map((item: any) => (
                         <div key={item.id} className="bg-card p-6 rounded-xl border border-border shadow-sm">
-                          <div className="flex items-center gap-3 theme-accent mb-2">
+                          <div className="flex items-center gap-3 text-primary mb-2">
                             <Clock className="w-4 h-4" />
                             <span className="font-semibold">{item.start_time} - {item.end_time || "End"}</span>
                           </div>

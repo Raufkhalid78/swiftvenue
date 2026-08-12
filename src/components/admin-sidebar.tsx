@@ -26,53 +26,7 @@ export function AdminSidebar({ email }: { email: string }) {
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
-  const NavContent = () => (
-    <>
-      <div className="h-16 flex items-center justify-between px-6 border-b border-border/50 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary text-primary-foreground p-1.5 rounded">
-            <ShieldAlert className="w-5 h-5" />
-          </div>
-          <h1 className="font-semibold text-lg">SwiftVenue Admin</h1>
-        </div>
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleSidebar}>
-          <X className="w-5 h-5" />
-        </Button>
-      </div>
-      
-      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-        {sidebarLinks.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={() => setIsOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${
-                isActive 
-                  ? 'bg-secondary text-secondary-foreground' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              {item.name}
-            </Link>
-          );
-        })}
-      </nav>
-      
-      <div className="p-4 border-t border-border/50 shrink-0">
-        <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground mb-2 break-all">
-          <span className="truncate">{email}</span>
-        </div>
-        <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-          <LogOut className="w-4 h-4 shrink-0" />
-          Exit Admin
-        </Link>
-      </div>
-    </>
-  );
+
 
   return (
     <>
@@ -103,7 +57,49 @@ export function AdminSidebar({ email }: { email: string }) {
         md:translate-x-0 md:static md:h-screen
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <NavContent />
+        <div className="h-16 flex items-center justify-between px-6 border-b border-border/50 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary text-primary-foreground p-1.5 rounded">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <h1 className="font-semibold text-lg">SwiftVenue Admin</h1>
+          </div>
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleSidebar}>
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+        
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+          {sidebarLinks.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm transition-colors ${
+                  isActive 
+                    ? 'bg-secondary text-secondary-foreground' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+        
+        <div className="p-4 border-t border-border/50 shrink-0">
+          <div className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground mb-2 break-all">
+            <span className="truncate">{email}</span>
+          </div>
+          <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            <LogOut className="w-4 h-4 shrink-0" />
+            Exit Admin
+          </Link>
+        </div>
       </aside>
     </>
   );
