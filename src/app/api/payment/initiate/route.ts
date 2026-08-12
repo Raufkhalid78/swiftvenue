@@ -165,11 +165,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to initialize ticket purchase' }, { status: 500 });
     }
 
-    // Generate referral code for this attendee
-    const refCode = await createReferralCode(service, eventId, guestName, order.id);
-    if (refCode) {
-      await service.from('orders').update({ referral_code: refCode }).eq('id', order.id);
-    }
+    // Generate referral code for this attendee (stored in promo_codes table)
+    await createReferralCode(service, eventId, guestName, order.id);
+    // Note: referral_code column does not exist on orders - code is in promo_codes table
 
     // Free ticket — mark paid immediately, skip the payment gateway
     if (totalCharged <= 0) {

@@ -67,12 +67,21 @@ export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
                   <tr key={payout.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="font-medium max-w-[200px] truncate" title={payout.title}>
-                        {payout.title}
+                        {payout.type === 'request' ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                            Payout Request
+                          </span>
+                        ) : payout.title}
                       </div>
-                      <Link href={`/e/${payout.slug}`} target="_blank" className="text-primary hover:underline text-xs block">
-                        View Event
-                      </Link>
-                      <div className="text-muted-foreground text-xs mt-1">Ended: {payout.date}</div>
+                      {payout.slug && (
+                        <Link href={`/e/${payout.slug}`} target="_blank" className="text-primary hover:underline text-xs block">
+                          View Event
+                        </Link>
+                      )}
+                      <div className="text-muted-foreground text-xs mt-1">
+                        {payout.type === 'request' ? `Requested: ${new Date(payout.date).toLocaleDateString('en-PK')}` : `Ended: ${payout.date}`}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium">{payout.profiles?.full_name}</div>
