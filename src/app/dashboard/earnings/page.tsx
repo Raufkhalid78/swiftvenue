@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, ArrowUpRight, Wallet, History, CheckCircle2, BanknoteIcon } from "lucide-react";
+import { DollarSign, ArrowUpRight, Wallet, History, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { RequestPayoutButton } from "@/components/request-payout-button";

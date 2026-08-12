@@ -52,7 +52,7 @@ export function RequestPayoutButton({ pendingBalance, eventIds }: Props) {
       ) : (
         <BanknoteIcon className="w-4 h-4" />
       )}
-      Request Payout (Rs {pendingBalance.toLocaleString()})
+      Request Payout (Rs {pendingBalance.toLocaleString('en-PK')})
     </Button>
   );
 }
