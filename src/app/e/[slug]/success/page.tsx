@@ -3,6 +3,7 @@ import { CheckCircle, Calendar, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WalletButtons } from "@/components/wallet-buttons";
 import { DownloadTicketButton } from "@/components/download-ticket-button";
+import { AttendeeList } from "@/components/attendee-list";
 import { createClient } from "@/lib/supabase/server";
 import { getOrderAttendees } from "@/lib/get-order-attendees";
 
@@ -59,17 +60,7 @@ export default async function SuccessPage({
             <WalletButtons attendeeId={attendeesData[0]?.id || 'demo'} />
           </div>
         ) : (
-          <div className="border-t border-b border-border py-6 mb-6 text-left">
-            <h3 className="font-semibold mb-4">Your {attendeesData.length} tickets:</h3>
-            <div className="space-y-3">
-              {attendeesData.map((a) => (
-                <div key={a.id} className="border border-border rounded-lg p-3 flex items-center justify-between">
-                  <span className="font-medium text-sm">{a.guest_name}</span>
-                  <WalletButtons attendeeId={a.id} compact />
-                </div>
-              ))}
-            </div>
-          </div>
+          <AttendeeList initialAttendees={attendeesData} />
         )}
 
         {referralCode && (
