@@ -11,6 +11,7 @@ export function SeatPicker({ seatingLayout, seats, ticketTypes, selectedSeatIds,
 
   const getSeatColor = (seat: any, isSelected: boolean) => {
     if (!seat) return 'bg-transparent border-transparent';
+    if (!seat.ticket_type_id) return 'bg-muted/40 border-solid border-border/60 text-muted-foreground/30 cursor-not-allowed'; // Unassigned
     if (seat.status !== 'available') return 'bg-destructive/20 border-destructive/50 text-destructive/50 cursor-not-allowed';
     if (isSelected) return 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2';
     
@@ -40,7 +41,7 @@ export function SeatPicker({ seatingLayout, seats, ticketTypes, selectedSeatIds,
                   <div
                     key={label}
                     onClick={() => {
-                      if (seat && seat.status === 'available') {
+                      if (seat && seat.ticket_type_id && seat.status === 'available') {
                         onSeatToggle(seat.id);
                       }
                     }}
@@ -63,6 +64,7 @@ export function SeatPicker({ seatingLayout, seats, ticketTypes, selectedSeatIds,
         <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-emerald-100 border border-emerald-300"></div> Available</div>
         <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-primary"></div> Selected</div>
         <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-destructive/20 border border-destructive/50"></div> Sold / Locked</div>
+        <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-muted/40 border border-border/60"></div> Unassigned</div>
       </div>
     </div>
   );
