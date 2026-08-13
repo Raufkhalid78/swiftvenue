@@ -9,24 +9,32 @@ import { createClient } from "@/lib/supabase/client";
 export default function EventsList() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadEvents() {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setLoading(false);
-        return;
-      }
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setLoading(false);
+          return;
+        }
 
-      const { data } = await supabase
-        .from('events')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-        
-      if (data) setEvents(data);
-      setLoading(false);
+        const { data, error: fetchError } = await supabase
+          .from('events')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+          
+        if (fetchError) throw fetchError;
+        if (data) setEvents(data);
+      } catch (err: any) {
+        console.error("Error loading events:", err);
+        setError(err.message || "Failed to load events. Please check your internet connection and try again.");
+      } finally {
+        setLoading(false);
+      }
     }
     loadEvents();
   }, []);
@@ -49,6 +57,15 @@ export default function EventsList() {
         {loading ? (
           <div className="p-12 flex justify-center text-muted-foreground">
             <Loader2 className="w-6 h-6 animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="p-6 sm:p-12 text-center flex flex-col items-center">
+            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
+              <CalendarIcon className="w-8 h-8 text-destructive" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2 text-destructive">Connection Error</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">{error}</p>
+            <Button onClick={() => window.location.reload()}>Retry Connection</Button>
           </div>
         ) : events.length === 0 ? (
           <div className="p-6 sm:p-12 text-center flex flex-col items-center">

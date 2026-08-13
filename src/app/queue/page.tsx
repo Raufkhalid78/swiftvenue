@@ -13,10 +13,12 @@ function QueueContent() {
     const waitTime = Math.floor(Math.random() * 5000) + 5000; // 5-10 seconds
     
     const timer = setTimeout(() => {
-      // Set the clearance cookie so middleware lets us through for the next hour
-      document.cookie = "swiftvenue_queue_cleared=true; path=/; max-age=3600";
-      
       const target = searchParams.get('target') || '/';
+      const slugMatch = target.match(/\/e\/([^\/]+)/);
+      const slug = slugMatch ? slugMatch[1] : 'global';
+      // Set the clearance cookie specific to the event slug so middleware lets us through for the next hour
+      document.cookie = `swiftvenue_queue_cleared_${slug}=true; path=/; max-age=3600`;
+      
       router.push(target);
     }, waitTime);
 

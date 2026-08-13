@@ -27,7 +27,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     async function loadData() {
       const supabase = createClient();
-      const { data } = await supabase.from('events').select('title, views_count').eq('id', resolvedParams.id).single();
+      const { data } = await supabase.from('events').select('title').eq('id', resolvedParams.id).single();
       setEvent(data);
       setLoading(false);
     }
@@ -50,7 +50,7 @@ export default function AnalyticsPage({ params }: { params: Promise<{ id: string
 
   // Mock data for demonstration purposes
   const conversionData = [
-    { name: 'Page Views', value: event?.views_count || 12450 },
+    { name: 'Page Views', value: 12450 }, // Hardcoded mock data until analytics pipeline is built
     { name: 'Initiated Checkout', value: 3210 },
     { name: 'Purchased', value: 1845 },
   ];
