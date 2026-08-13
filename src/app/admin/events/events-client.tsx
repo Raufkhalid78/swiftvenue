@@ -1,21 +1,62 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Trash2, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Trash2, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { deleteEvent } from './actions';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { ConfirmAction } from '@/components/confirm-action';
+import { createClient } from '@/lib/supabase/client';
+
+const PAGE_SIZE = 25;
 
 export function EventsClient({ initialEvents }: { initialEvents: any[] }) {
   const [events, setEvents] = useState(initialEvents);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [count, setCount] = useState(initialEvents.length);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const supabase = createClient();
 
-  const filteredEvents = events.filter(e => 
-    e.title?.toLowerCase().includes(search.toLowerCase()) || 
-    e.profiles?.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    async function fetchEvents() {
+      let query = supabase
+        .from('events')
+        .select(`
+          id,
+          title,
+          slug,
+          type,
+          date,
+          time,
+          status,
+          created_at,
+          profiles!inner (
+            full_name,
+            email
+          )
+        `, { count: 'exact' });
+
+      if (search) {
+        query = query.or(`title.ilike.%${search}%,profiles.email.ilike.%${search}%`);
+      }
+
+      const { data, count: totalCount, error } = await query
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setEvents(data);
+        if (totalCount !== null) setCount(totalCount);
+      }
+    }
+
+    const timer = setTimeout(() => {
+      fetchEvents();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, page, supabase]);
 
   const handleDelete = async (eventId: string) => {
     setLoadingId(eventId);
@@ -55,11 +96,11 @@ export function EventsClient({ initialEvents }: { initialEvents: any[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredEvents.length === 0 ? (
+              {events.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No events found</td>
                 </tr>
-              ) : filteredEvents.map((event) => (
+              ) : events.map((event) => (
                 <tr key={event.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="font-medium">{event.title}</div>
@@ -109,6 +150,28 @@ export function EventsClient({ initialEvents }: { initialEvents: any[] }) {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Page {page + 1} of {Math.ceil(count / PAGE_SIZE) || 1}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={(page + 1) * PAGE_SIZE >= count}
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>

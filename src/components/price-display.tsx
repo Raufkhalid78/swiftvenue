@@ -1,34 +1,29 @@
-import { currencyForCountry } from '@/lib/currency-map';
-import { createClient } from '@/lib/supabase/server';
-import { cookies } from 'next/headers';
+'use client';
+import { useCurrency } from './currency-provider';
+import { useEffect, useState } from 'react';
 
 interface PriceDisplayProps {
   amountPkr: number;
-  detectedCountry?: string;
 }
 
-export async function PriceDisplay({ amountPkr, detectedCountry }: PriceDisplayProps) {
-  const cookieStore = await cookies();
-  const overrideCurrency = cookieStore.get('display_currency')?.value;
-  
-  const targetCurrency = overrideCurrency || currencyForCountry(detectedCountry);
+export function PriceDisplay({ amountPkr }: PriceDisplayProps) {
+  const { targetCurrency, exchangeRate, isHydrated } = useCurrency();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !isHydrated) {
+    // Avoid hydration mismatch by rendering default PKR state initially
+    return <span>Rs {amountPkr.toLocaleString()}</span>;
+  }
 
   if (targetCurrency === 'PKR') {
     return <span>Rs {amountPkr.toLocaleString()}</span>;
   }
 
-  const supabase = await createClient();
-  const { data: rate } = await supabase
-    .from('exchange_rates')
-    .select('rate_from_pkr')
-    .eq('currency_code', targetCurrency)
-    .single();
-
-  if (!rate) {
-    return <span>Rs {amountPkr.toLocaleString()}</span>; // graceful fallback if a rate is somehow missing
-  }
-
-  const converted = amountPkr * rate.rate_from_pkr;
+  const converted = amountPkr * exchangeRate;
   const formatted = new Intl.NumberFormat('en', { style: 'currency', currency: targetCurrency }).format(converted);
 
   return (

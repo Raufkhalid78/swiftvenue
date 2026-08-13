@@ -42,6 +42,9 @@ export async function middleware(request: NextRequest) {
 
   const response = await updateSession(request, requestHeaders)
 
+  // Set country cookie for client-side components to avoid headers() on static pages
+  response.cookies.set('x-detected-country', country || 'PK')
+
   response.headers.set('Content-Security-Policy', cspHeader)
   response.headers.set('Access-Control-Allow-Origin', '*')
   if (!allowIframe) {

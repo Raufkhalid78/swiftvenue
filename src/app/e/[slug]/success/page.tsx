@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { CheckCircle, Calendar, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WalletButtons } from "@/components/wallet-buttons";
@@ -106,7 +107,7 @@ export default async function SuccessPage({
               <Link key={ev.slug} href={`/e/${ev.slug}`} className="group block bg-card rounded-xl border border-border overflow-hidden hover:border-primary/50 transition-colors shadow-sm hover:shadow-md">
                 <div className="aspect-video bg-muted relative overflow-hidden">
                   {ev.hero_image_url ? (
-                    <img src={ev.hero_image_url} alt={ev.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <Image src={ev.hero_image_url} alt={ev.title} width={800} height={450} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-tr from-muted to-muted-foreground/20" />
                   )}

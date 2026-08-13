@@ -1,20 +1,48 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Shield, Ban, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Shield, Ban, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { updateUserPlan, toggleUserSuspension } from './actions';
 import { toast } from 'sonner';
 import { ConfirmAction } from '@/components/confirm-action';
+import { createClient } from '@/lib/supabase/client';
+
+const PAGE_SIZE = 25;
 
 export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plans: any[] }) {
   const [users, setUsers] = useState(initialUsers);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [count, setCount] = useState(initialUsers.length);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const supabase = createClient();
 
-  const filteredUsers = users.filter(u => 
-    u.full_name?.toLowerCase().includes(search.toLowerCase()) || 
-    u.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    async function fetchUsers() {
+      let query = supabase
+        .from('profiles')
+        .select('*', { count: 'exact' });
+
+      if (search) {
+        query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+      }
+
+      const { data, count: totalCount, error } = await query
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setUsers(data);
+        if (totalCount !== null) setCount(totalCount);
+      }
+    }
+
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, page, supabase]);
 
   const handlePlanChange = async (userId: string, newPlanId: string) => {
     setLoadingId(userId);
@@ -66,11 +94,11 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredUsers.length === 0 ? (
+              {users.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No users found</td>
                 </tr>
-              ) : filteredUsers.map((user) => (
+              ) : users.map((user) => (
                 <tr key={user.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="font-medium flex items-center gap-2">
@@ -131,6 +159,28 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Page {page + 1} of {Math.ceil(count / PAGE_SIZE) || 1}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={(page + 1) * PAGE_SIZE >= count}
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Calendar, MapPin, Clock, Banknote, ArrowUpRight, Users } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { RegistrationWidget } from "@/components/registration-widget";
 import { EventCountdown } from "@/components/event-countdown";
@@ -11,7 +12,7 @@ import { EventWeather } from "@/components/event-weather";
 import { LiveUpdatesWidget } from "@/components/live-updates";
 import { headers } from "next/headers";
 import { PriceDisplay } from "@/components/price-display";
-import { currencyForCountry } from "@/lib/currency-map";
+import { CurrencyProvider } from "@/components/currency-provider";
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -45,20 +46,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+export const revalidate = 60;
+
 export default async function PublicEventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  
-  const headersList = await headers();
-  const detectedCountry = headersList.get('x-detected-country') || 'PK';
   
   const supabase = await createClient();
   const service = createServiceClient();
 
-  const targetCurrency = currencyForCountry(detectedCountry);
-  let exchangeRate = 1;
-  if (targetCurrency !== 'PKR') {
-    const { data: rate } = await service.from('exchange_rates').select('rate_from_pkr').eq('currency_code', targetCurrency).single();
-    if (rate) exchangeRate = rate.rate_from_pkr;
+  // Fetch all exchange rates to pass to the client provider for ISR compatibility
+  const { data: rawRates } = await service.from('exchange_rates').select('currency_code, rate_from_pkr');
+  const ratesMap: Record<string, number> = {};
+  if (rawRates) {
+    rawRates.forEach(r => {
+      ratesMap[r.currency_code] = r.rate_from_pkr;
+    });
   }
 
   const { data: event, error } = await service
@@ -182,6 +184,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   }
 
   return (
+    <CurrencyProvider rates={ratesMap}>
     <div 
       className="min-h-screen bg-background"
       style={{
@@ -233,7 +236,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <div className="h-[40vh] w-full theme-bg-soft border-b border-border flex items-center justify-center relative overflow-hidden">
             {event.hero_image_url ? (
                
-              <img src={event.hero_image_url} alt={event.title} className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay" />
+              <Image src={event.hero_image_url} alt={event.title} width={1920} height={1080} priority={true} className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay" />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-tr from-[rgba(var(--theme-primary),0.2)] to-transparent" />
             )}
@@ -291,7 +294,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                       {speakers.map((s: any) => (
                         <div key={s.id} className="flex gap-4">
                           {s.photo_url ? (
-                            <img src={s.photo_url} alt={s.name} className="w-16 h-16 rounded-full object-cover shrink-0" />
+                            <Image src={s.photo_url} alt={s.name} width={64} height={64} className="w-16 h-16 rounded-full object-cover shrink-0" />
                           ) : (
                             <div className="w-16 h-16 rounded-full bg-muted shrink-0" />
                           )}
@@ -342,7 +345,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                     <div className="grid grid-cols-2 gap-4">
                       {gallery.map((g: any) => (
                         <div key={g.id} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
-                          <img src={g.image_url} alt={g.caption || "Event image"} className="w-full h-full object-cover" />
+                          <Image src={g.image_url} alt={g.caption || "Event image"} width={800} height={800} className="w-full h-full object-cover" />
                         </div>
                       ))}
                     </div>
@@ -422,7 +425,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                       <Banknote className="w-5 h-5 text-primary shrink-0" />
                       <div>
                         <p className="font-medium text-foreground">
-                          {isFree ? "Free Entry" : <span>{priceRangeLabel}<PriceDisplay amountPkr={lowestPrice} detectedCountry={detectedCountry} /></span>}
+                          {isFree ? "Free Entry" : <span>{priceRangeLabel}<PriceDisplay amountPkr={lowestPrice} /></span>}
                         </p>
                         <p className="text-sm text-muted-foreground">Ticket Price</p>
                       </div>
@@ -431,7 +434,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 </div>
 
                 <div className="bg-card rounded-2xl border border-border p-1">
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} seatingLayout={seatingLayout} seats={seats} />
+                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} seatingLayout={seatingLayout} seats={seats} />
                   {attendeeCount !== null && attendeeCount >= 3 && (
                     <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 pb-2">
                       <Users className="w-4 h-4" />
@@ -458,7 +461,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                     <div className="flex flex-wrap gap-4 justify-center">
                       {sponsors.map((s: any) => (
                         <div key={s.id} className="w-20 h-12 relative flex items-center justify-center grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100">
-                          <img src={s.logo_url} alt={s.name} className="max-w-full max-h-full object-contain" />
+                          <Image src={s.logo_url} alt={s.name} width={200} height={100} className="max-w-full max-h-full object-contain" />
                         </div>
                       ))}
                     </div>
@@ -492,7 +495,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
           {event.hero_image_url && (
             <div className="w-full aspect-[21/9] relative rounded-3xl overflow-hidden shadow-lg border border-border">
-              <img src={event.hero_image_url} alt={event.title} className="absolute inset-0 w-full h-full object-cover" />
+              <Image src={event.hero_image_url} alt={event.title} width={1920} height={1080} priority={true} className="absolute inset-0 w-full h-full object-cover" />
             </div>
           )}
 
@@ -529,7 +532,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             <div className="hidden sm:block text-muted-foreground">•</div>
             <div className="flex items-center gap-3">
               <Banknote className="w-5 h-5 text-muted-foreground" />
-              <span className="font-medium">{isFree ? "Free" : <span>{priceRangeLabel}<PriceDisplay amountPkr={lowestPrice} detectedCountry={detectedCountry} /></span>}</span>
+              <span className="font-medium">{isFree ? "Free" : <span>{priceRangeLabel}<PriceDisplay amountPkr={lowestPrice} /></span>}</span>
             </div>
           </div>
 
@@ -556,7 +559,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 {speakers.map((s: any) => (
                   <div key={s.id} className="flex gap-6 items-center p-4 rounded-xl hover:bg-muted/30 transition-colors">
                     {s.photo_url ? (
-                      <img src={s.photo_url} alt={s.name} className="w-20 h-20 rounded-full object-cover shrink-0" />
+                      <Image src={s.photo_url} alt={s.name} width={80} height={80} className="w-20 h-20 rounded-full object-cover shrink-0" />
                     ) : (
                       <div className="w-20 h-20 rounded-full bg-muted shrink-0" />
                     )}
@@ -591,7 +594,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <h2 className="text-2xl font-display font-semibold mb-8 text-center">Gallery</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {gallery.map((g: any) => (
-                  <img key={g.id} src={g.image_url} alt="Gallery image" className="aspect-square w-full object-cover rounded-xl" />
+                  <Image key={g.id} src={g.image_url} alt="Gallery image" width={800} height={800} className="aspect-square w-full object-cover rounded-xl" />
                 ))}
               </div>
             </div>
@@ -616,7 +619,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-6 text-center">Supported By</h2>
               <div className="flex flex-wrap justify-center gap-8">
                 {sponsors.map((s: any) => (
-                  <img key={s.id} src={s.logo_url} alt={s.name} className="h-10 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all" />
+                  <Image key={s.id} src={s.logo_url} alt={s.name} width={200} height={100} className="h-10 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all" />
                 ))}
               </div>
             </div>
@@ -625,7 +628,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <div className="flex justify-center pt-8 border-t border-border">
             <div className="w-full max-w-md bg-card p-6 rounded-2xl border border-border shadow-sm text-center">
               <h3 className="font-display text-2xl font-bold mb-4">Secure your spot</h3>
-              <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} seatingLayout={seatingLayout} seats={seats} />
+              <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} seatingLayout={seatingLayout} seats={seats} />
               {attendeeCount !== null && attendeeCount >= 3 && (
                 <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 mt-4">
                   <Users className="w-4 h-4" />
@@ -656,7 +659,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               </p>
               <div className="flex justify-center gap-4 mt-8">
                 <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-full border border-white/20">
-                  <span className="text-lg font-semibold">{isFree ? "Free Registration" : <div className="inline-flex items-center gap-2">Tickets: {priceRangeLabel}<PriceDisplay amountPkr={lowestPrice} detectedCountry={detectedCountry} /></div>}</span>
+                  <span className="text-lg font-semibold">{isFree ? "Free Registration" : <div className="inline-flex items-center gap-2">Tickets: {priceRangeLabel}<PriceDisplay amountPkr={lowestPrice} /></div>}</span>
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
                   <AddToCalendar event={event} />
@@ -670,7 +673,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <div className="max-w-5xl mx-auto px-4 py-16">
             {event.hero_image_url && (
               <div className="mb-16 -mt-32 relative z-10 w-full aspect-video rounded-xl overflow-hidden shadow-2xl border-4 border-background">
-                <img src={event.hero_image_url} alt={event.title} className="w-full h-full object-cover" />
+                <Image src={event.hero_image_url} alt={event.title} width={1920} height={1080} priority={true} className="w-full h-full object-cover" />
               </div>
             )}
 
@@ -715,7 +718,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                       {speakers.map((s: any) => (
                         <div key={s.id} className="flex gap-4">
                           {s.photo_url ? (
-                            <img src={s.photo_url} alt={s.name} className="w-16 h-16 rounded-full object-cover shrink-0" />
+                            <Image src={s.photo_url} alt={s.name} width={64} height={64} className="w-16 h-16 rounded-full object-cover shrink-0" />
                           ) : (
                             <div className="w-16 h-16 rounded-full bg-muted shrink-0" />
                           )}
@@ -782,7 +785,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <div className="space-y-12">
                 <div className="bg-muted/30 p-8 rounded-xl border border-border">
                   <h2 className="text-2xl font-serif font-bold mb-6 text-center">Register Now</h2>
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} seatingLayout={seatingLayout} seats={seats} />
+                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} seatingLayout={seatingLayout} seats={seats} />
                   {attendeeCount !== null && attendeeCount >= 3 && (
                     <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 mt-4">
                       <Users className="w-4 h-4" />
@@ -818,7 +821,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                     <h2 className="text-3xl font-serif font-bold border-b-2 theme-border pb-2 inline-block mb-6">Gallery</h2>
                     <div className="grid grid-cols-2 gap-4">
                       {gallery.map((g: any) => (
-                        <img key={g.id} src={g.image_url} alt="Gallery image" className="aspect-square w-full object-cover rounded-xl shadow-sm" />
+                        <Image key={g.id} src={g.image_url} alt="Gallery image" width={800} height={800} className="aspect-square w-full object-cover rounded-xl shadow-sm" />
                       ))}
                     </div>
                   </div>
@@ -830,7 +833,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                     <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex flex-wrap gap-6 justify-center">
                       {sponsors.map((s: any) => (
                         <div key={s.id} className="w-24 h-16 relative flex items-center justify-center">
-                          <img src={s.logo_url} alt={s.name} className="max-w-full max-h-full object-contain" />
+                          <Image src={s.logo_url} alt={s.name} width={200} height={100} className="max-w-full max-h-full object-contain" />
                         </div>
                       ))}
                     </div>
@@ -850,7 +853,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <div className="absolute inset-0 -z-10 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
               {event.hero_image_url && (
                 <div className="w-full h-[60vh] rounded-[2rem] overflow-hidden mb-8 relative rotate-[-1deg] shadow-2xl border-4 border-white/10">
-                  <img src={event.hero_image_url} alt={event.title} className="w-full h-full object-cover scale-105" />
+                  <Image src={event.hero_image_url} alt={event.title} width={1920} height={1080} priority={true} className="w-full h-full object-cover scale-105" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
                   <div className="absolute bottom-10 left-10 right-10">
                     <h1 className="font-display text-6xl sm:text-8xl font-black text-white drop-shadow-lg tracking-tighter uppercase">
@@ -900,7 +903,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                         <div key={s.id} className="text-center group">
                           <div className="aspect-square rounded-3xl overflow-hidden mb-4 rotate-[2deg] group-hover:rotate-0 transition-transform shadow-lg border-2 theme-border">
                             {s.photo_url ? (
-                              <img src={s.photo_url} alt={s.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              <Image src={s.photo_url} alt={s.name} width={400} height={400} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                             ) : (
                               <div className="w-full h-full bg-muted" />
                             )}
@@ -919,7 +922,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                     <div className="columns-2 sm:columns-3 gap-4 space-y-4">
                       {gallery.map((g: any, i: number) => (
                         <div key={g.id} className={`rounded-2xl overflow-hidden shadow-lg ${i % 2 === 0 ? 'rotate-[2deg]' : 'rotate-[-2deg]'}`}>
-                          <img src={g.image_url} alt="Gallery" className="w-full" />
+                          <Image src={g.image_url} alt="Gallery" width={800} height={800} className="w-full" />
                         </div>
                       ))}
                     </div>
@@ -948,7 +951,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                       <h3 className="text-lg font-bold uppercase tracking-widest text-muted-foreground mb-6">Partners</h3>
                       <div className="flex flex-wrap justify-center gap-6 opacity-70">
                         {sponsors.map((s: any) => (
-                          <img key={s.id} src={s.logo_url} alt={s.name} className="h-12 object-contain mix-blend-luminosity hover:mix-blend-normal transition-all" />
+                          <Image key={s.id} src={s.logo_url} alt={s.name} width={200} height={100} className="h-12 object-contain mix-blend-luminosity hover:mix-blend-normal transition-all" />
                         ))}
                       </div>
                     </div>
@@ -1017,7 +1020,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
             {event.hero_image_url && (
               <div className="relative aspect-[16/7] rounded-sm overflow-hidden">
-                <img src={event.hero_image_url} alt="Hero" className="w-full h-full object-cover" />
+                <Image src={event.hero_image_url} alt="Hero" width={1920} height={1080} priority={true} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 border border-white/10 mix-blend-overlay" />
               </div>
             )}
@@ -1109,7 +1112,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                     <div className="space-y-8">
                       {sponsors.map((s: any) => (
                         <div key={s.id} className="flex justify-center">
-                          <img src={s.logo_url} alt={s.name} className="h-16 object-contain grayscale opacity-50" />
+                          <Image src={s.logo_url} alt={s.name} width={200} height={100} className="h-16 object-contain grayscale opacity-50" />
                         </div>
                       ))}
                     </div>
@@ -1145,7 +1148,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             <div className="md:col-span-8 space-y-6">
               {event.hero_image_url && (
                 <div className="w-full aspect-video rounded-lg overflow-hidden border border-slate-200 bg-slate-100">
-                  <img src={event.hero_image_url} alt="Workshop header" className="w-full h-full object-cover" />
+                  <Image src={event.hero_image_url} alt="Workshop header" width={1920} height={1080} priority={true} className="w-full h-full object-cover" />
                 </div>
               )}
 
@@ -1204,7 +1207,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                     {speakers.map((s: any) => (
                       <div key={s.id} className="flex gap-3">
                         {s.photo_url ? (
-                          <img src={s.photo_url} alt={s.name} className="w-12 h-12 rounded-full object-cover" />
+                          <Image src={s.photo_url} alt={s.name} width={48} height={48} className="w-12 h-12 rounded-full object-cover" />
                         ) : (
                           <div className="w-12 h-12 rounded-full bg-slate-100" />
                         )}
@@ -1271,7 +1274,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <Link key={e.id} href={`/e/${e.slug}`} className="group block">
                   <div className="aspect-video rounded-xl overflow-hidden mb-3 bg-muted border border-border">
                     {e.hero_image_url ? (
-                      <img src={e.hero_image_url} alt={e.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <Image src={e.hero_image_url} alt={e.title} width={800} height={450} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                         <Calendar className="w-8 h-8 opacity-20" />
@@ -1291,12 +1294,13 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
         <div className="w-full text-center py-8 border-t border-border bg-background">
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <span className="font-medium">Powered by</span>
-            <img src="/logo.jpg" alt="SwiftVenue Logo" className="w-5 h-5 rounded-sm grayscale" />
+            <Image src="/logo.jpg" alt="SwiftVenue Logo" width={20} height={20} className="w-5 h-5 rounded-sm grayscale" />
             <span className="font-bold font-display tracking-tight text-base">SwiftVenue</span>
           </Link>
         </div>
       )}
 
     </div>
+    </CurrencyProvider>
   );
 }

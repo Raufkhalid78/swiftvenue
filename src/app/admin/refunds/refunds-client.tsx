@@ -1,23 +1,62 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { markOrderRefunded } from '../orders/actions'; // Reuse existing action!
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { ConfirmAction } from '@/components/confirm-action';
+import { createClient } from '@/lib/supabase/client';
+
+const PAGE_SIZE = 25;
 
 export function RefundsClient({ initialRefunds }: { initialRefunds: any[] }) {
   const [refunds, setRefunds] = useState(initialRefunds);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [count, setCount] = useState(initialRefunds.length);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const supabase = createClient();
 
-  const filteredRefunds = refunds.filter(r => 
-    r.id.toLowerCase().includes(search.toLowerCase()) || 
-    r.guest_name?.toLowerCase().includes(search.toLowerCase()) ||
-    r.guest_email?.toLowerCase().includes(search.toLowerCase()) ||
-    r.events?.title?.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    async function fetchRefunds() {
+      let query = supabase
+        .from('orders')
+        .select(`
+          id,
+          amount,
+          currency,
+          guest_name,
+          guest_email,
+          refund_status,
+          created_at,
+          events!inner (
+            title,
+            slug
+          )
+        `, { count: 'exact' })
+        .in('refund_status', ['requested', 'refunded']);
+
+      if (search) {
+        query = query.or(`id.ilike.%${search}%,guest_name.ilike.%${search}%,guest_email.ilike.%${search}%,events.title.ilike.%${search}%`);
+      }
+
+      const { data, count: totalCount, error } = await query
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setRefunds(data);
+        if (totalCount !== null) setCount(totalCount);
+      }
+    }
+
+    const timer = setTimeout(() => {
+      fetchRefunds();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, page, supabase]);
 
   const handleProcess = async (id: string) => {
     setLoadingId(id);
@@ -58,11 +97,11 @@ export function RefundsClient({ initialRefunds }: { initialRefunds: any[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredRefunds.length === 0 ? (
+              {refunds.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No refund requests found</td>
                 </tr>
-              ) : filteredRefunds.map((refund) => (
+              ) : refunds.map((refund) => (
                 <tr key={refund.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="font-mono text-xs">{refund.id}</div>
@@ -112,6 +151,28 @@ export function RefundsClient({ initialRefunds }: { initialRefunds: any[] }) {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Page {page + 1} of {Math.ceil(count / PAGE_SIZE) || 1}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={(page + 1) * PAGE_SIZE >= count}
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>

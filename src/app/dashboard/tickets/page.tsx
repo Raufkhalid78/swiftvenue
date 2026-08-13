@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Calendar, MapPin, Ticket } from "lucide-react";
 import { AttendeeList } from "@/components/attendee-list";
 import { DownloadTicketButton } from "@/components/download-ticket-button";
+import Image from "next/image";
 
 export const metadata = {
   title: 'My Tickets | SwiftVenue',
@@ -96,7 +97,7 @@ export default async function MyTicketsPage() {
                   {/* Event Thumbnail */}
                   <div className="w-full md:w-48 h-32 md:h-auto bg-muted shrink-0 relative">
                     {event.hero_image_url ? (
-                      <img src={event.hero_image_url} alt={event.title} className="w-full h-full object-cover" />
+                      <Image src={event.hero_image_url} alt={event.title} width={800} height={400} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-tr from-muted to-muted-foreground/20" />
                     )}

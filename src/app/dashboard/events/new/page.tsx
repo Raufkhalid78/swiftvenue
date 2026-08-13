@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ArrowRight, CheckCircle2, Calendar, Type, Image as ImageIcon, LayoutTemplate } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import imageCompression from 'browser-image-compression';
@@ -412,7 +413,7 @@ export default function CreateEventWizard() {
               <div className="pt-4 p-6 border-2 border-dashed border-border rounded-xl text-center space-y-2 bg-muted/30 relative overflow-hidden">
                 {formData.hero_image_url && (
                    
-                  <img src={formData.hero_image_url} alt="Hero" className="absolute inset-0 w-full h-full object-cover opacity-50" />
+                  <Image src={formData.hero_image_url} alt="Hero" width={800} height={450} priority={true} className="absolute inset-0 w-full h-full object-cover opacity-50" />
                 )}
                 <div className="relative z-10">
                   <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">

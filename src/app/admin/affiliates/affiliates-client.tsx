@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { processAffiliateApplication, processCommission } from './actions';
-import { CheckCircle2, XCircle, DollarSign } from 'lucide-react';
+import { CheckCircle2, XCircle, DollarSign, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmAction } from '@/components/confirm-action';
+import { createClient } from '@/lib/supabase/client';
+
+const PAGE_SIZE = 25;
 
 export function AffiliatesClient({ 
   initialApplications, 
@@ -15,7 +18,39 @@ export function AffiliatesClient({
 }) {
   const [applications, setApplications] = useState(initialApplications);
   const [commissions, setCommissions] = useState(initialCommissions);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [count, setCount] = useState(initialApplications.length);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchApplications() {
+      let query = supabase
+        .from('affiliate_applications')
+        .select('*', { count: 'exact' })
+        .eq('status', 'pending');
+
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+      }
+
+      const { data, count: totalCount, error } = await query
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setApplications(data);
+        if (totalCount !== null) setCount(totalCount);
+      }
+    }
+
+    const timer = setTimeout(() => {
+      fetchApplications();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, page, supabase]);
 
   const handleApprove = async (id: string) => {
     setLoadingId(id);
@@ -57,7 +92,19 @@ export function AffiliatesClient({
     <div className="space-y-12">
       {/* Applications Section */}
       <div className="space-y-4">
-        <h3 className="text-xl font-bold font-display">Pending Applications</h3>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-xl font-bold font-display">Pending Applications</h3>
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input 
+              type="text" 
+              placeholder="Search applications..." 
+              className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
         <div className="bg-background rounded-xl border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
@@ -70,11 +117,11 @@ export function AffiliatesClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {applications.filter(a => a.status === 'pending').length === 0 ? (
+                {applications.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No pending applications</td>
                   </tr>
-                ) : applications.filter(a => a.status === 'pending').map((app) => (
+                ) : applications.map((app) => (
                   <tr key={app.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="font-medium">{app.name}</div>
@@ -111,6 +158,27 @@ export function AffiliatesClient({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Page {page + 1} of {Math.ceil(count / PAGE_SIZE) || 1}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={(page + 1) * PAGE_SIZE >= count}
+              className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>

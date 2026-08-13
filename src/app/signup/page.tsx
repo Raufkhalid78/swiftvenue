@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -66,7 +67,7 @@ export default function SignupPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-6">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.jpg" alt="SwiftVenue Logo" className="w-10 h-10 rounded-lg object-cover shadow-sm border border-border/50" />
+            <Image src="/logo.jpg" alt="SwiftVenue Logo" width={40} height={40} className="w-10 h-10 rounded-lg object-cover shadow-sm border border-border/50" />
             <span className="font-display font-bold text-2xl tracking-tight">SwiftVenue</span>
           </Link>
         </div>

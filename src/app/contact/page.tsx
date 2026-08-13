@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -17,7 +18,7 @@ export default function ContactPage() {
       <nav className="border-b border-border/40 backdrop-blur-md sticky top-0 z-50 bg-background/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.jpg" alt="SwiftVenue Logo" className="w-8 h-8 rounded-lg object-cover shadow-sm border border-border/50" />
+            <Image src="/logo.jpg" alt="SwiftVenue Logo" width={32} height={32} className="w-8 h-8 rounded-lg object-cover shadow-sm border border-border/50" />
             <span className="font-display font-bold text-xl tracking-tight">SwiftVenue</span>
           </Link>
           <div className="flex items-center gap-4">

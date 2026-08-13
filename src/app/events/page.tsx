@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { PriceDisplay } from "@/components/price-display";
 import { CurrencySwitcher } from "@/components/currency-switcher";
 import { currencyForCountry } from "@/lib/currency-map";
+import Image from "next/image";
 
 export const revalidate = 60; // Revalidate every minute
 
@@ -129,9 +130,11 @@ export default async function EventsDirectory({
                     <div className="w-full aspect-[4/3] bg-muted relative overflow-hidden">
                       {event.hero_image_url ? (
                          
-                        <img 
+                        <Image 
                           src={event.hero_image_url} 
                           alt={event.title} 
+                          width={800}
+                          height={600}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (

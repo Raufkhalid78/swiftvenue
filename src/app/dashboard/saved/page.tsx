@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Calendar, MapPin, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export default async function SavedEventsPage() {
   const supabase = await createClient();
@@ -63,7 +64,7 @@ export default async function SavedEventsPage() {
                 <div className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition-all duration-300">
                   <div className="aspect-[4/3] bg-muted relative">
                     {event.hero_image_url ? (
-                      <img src={event.hero_image_url} alt={event.title} className="w-full h-full object-cover" />
+                      <Image src={event.hero_image_url} alt={event.title} width={800} height={400} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                         <Calendar className="w-8 h-8 opacity-20" />

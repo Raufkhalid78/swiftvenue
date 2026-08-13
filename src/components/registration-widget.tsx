@@ -9,24 +9,22 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SeatPicker } from "./seat-picker";
 import Link from "next/link";
+import { useCurrency } from "./currency-provider";
 
 export function RegistrationWidget({ 
   eventId, 
   eventTitle,
   ticketTypes = [],
-  targetCurrency = 'PKR',
-  exchangeRate = 1,
   seatingLayout,
   seats = [],
 }: { 
   eventId: string, 
   eventTitle: string,
   ticketTypes?: any[],
-  targetCurrency?: string,
-  exchangeRate?: number,
   seatingLayout?: any,
   seats?: any[],
 }) {
+  const { targetCurrency, exchangeRate, isHydrated } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", phone: "" });

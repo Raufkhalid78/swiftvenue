@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Home, Calendar } from "lucide-react";
+import Image from "next/image";
 
 export default function NotFound() {
   return (
@@ -8,9 +9,11 @@ export default function NotFound() {
       <div className="max-w-md w-full space-y-8">
         <div className="flex justify-center">
           <div className="relative w-20 h-20 mb-4 rounded-xl shadow-lg border border-border/50 overflow-hidden">
-            <img 
+            <Image 
               src="/logo.jpg" 
               alt="SwiftVenue Logo"
+              width={80}
+              height={80}
               className="absolute inset-0 w-full h-full object-cover" 
             />
           </div>
