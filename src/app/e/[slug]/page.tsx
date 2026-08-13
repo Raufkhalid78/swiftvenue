@@ -13,6 +13,7 @@ import { LiveUpdatesWidget } from "@/components/live-updates";
 import { headers } from "next/headers";
 import { PriceDisplay } from "@/components/price-display";
 import { CurrencyProvider } from "@/components/currency-provider";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -228,6 +229,11 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           })
         }}
       />
+      
+      {/* Floating Theme Toggle */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
 
       {/* --- MODERN TEMPLATE --- */}
       {template === 'modern' && (
