@@ -22,11 +22,13 @@ export default function GlobalSettingsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-      if (profileData) setProfile(profileData);
+      const [profileRes, payoutRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+        supabase.from('organizer_payout_methods').select('*').eq('user_id', session.user.id).single()
+      ]);
 
-      const { data: payoutData } = await supabase.from('organizer_payout_methods').select('*').eq('user_id', session.user.id).single();
-      if (payoutData) setPayoutMethod(payoutData);
+      if (profileRes.data) setProfile(profileRes.data);
+      if (payoutRes.data) setPayoutMethod(payoutRes.data);
 
       setLoading(false);
     }

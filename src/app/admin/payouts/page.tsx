@@ -12,65 +12,62 @@ export default async function AdminPayoutsPage() {
 
 
   
-  // We need user_id on payouts - re-fetch with user_id
-  const { data: payoutRequestsFull } = await service
-    .from('payouts')
-    .select(`
-      id,
-      user_id,
-      amount,
-      status,
-      created_at,
-      order_ids,
-      profiles (
-        full_name,
-        email
-      )
-    `)
-    .order('created_at', { ascending: false });
+  // 1. Parallelize base queries
+  const [payoutsRes, eventsRes] = await Promise.all([
+    service
+      .from('payouts')
+      .select(`
+        id,
+        user_id,
+        amount,
+        status,
+        created_at,
+        order_ids,
+        profiles (
+          full_name,
+          email
+        )
+      `)
+      .order('created_at', { ascending: false }),
+    service
+      .from('events')
+      .select(`
+        id,
+        title,
+        slug,
+        date,
+        payout_status,
+        user_id,
+        created_at,
+        profiles (
+          full_name,
+          email
+        ),
+        orders (
+          id,
+          status,
+          refund_status,
+          amount,
+          platform_fee_amount,
+          organizer_net_amount
+        )
+      `)
+      .order('created_at', { ascending: false })
+  ]);
 
-  // Batch-fetch payout methods for all organizers in requests
-  const allUserIds = [...new Set((payoutRequestsFull || []).map((p: any) => p.user_id).filter(Boolean))];
-  const { data: payoutMethods } = allUserIds.length > 0
+  const payoutRequestsFull = payoutsRes.data;
+  const events = eventsRes.data;
+
+  // 2. Combine all User IDs and batch-fetch payout methods in one go
+  const reqUserIds = (payoutRequestsFull || []).map((p: any) => p.user_id);
+  const eventUserIds = (events || []).map((e: any) => e.user_id);
+  const allUserIds = [...new Set([...reqUserIds, ...eventUserIds].filter(Boolean))];
+
+  const { data: allMethods } = allUserIds.length > 0
     ? await service.from('organizer_payout_methods').select('user_id, method, account_details').in('user_id', allUserIds)
     : { data: [] };
-  const payoutMethodMap = Object.fromEntries((payoutMethods || []).map((m: any) => [m.user_id, m]));
-
-  // --- Source 2: Events with paid orders that haven't had a request yet ---
-  const { data: events } = await service
-    .from('events')
-    .select(`
-      id,
-      title,
-      slug,
-      date,
-      payout_status,
-      user_id,
-      created_at,
-      profiles (
-        full_name,
-        email
-      ),
-      orders (
-        id,
-        status,
-        refund_status,
-        amount,
-        platform_fee_amount,
-        organizer_net_amount
-      )
-    `)
-    .order('created_at', { ascending: false });
-
-  // Fetch payout methods for event organizers too
-  const eventUserIds = [...new Set((events || []).map((e: any) => e.user_id).filter(Boolean))];
-  const { data: eventPayoutMethods } = eventUserIds.length > 0
-    ? await service.from('organizer_payout_methods').select('user_id, method, account_details').in('user_id', eventUserIds)
-    : { data: [] };
-  const allPayoutMethodMap = {
-    ...payoutMethodMap,
-    ...Object.fromEntries((eventPayoutMethods || []).map((m: any) => [m.user_id, m]))
-  };
+  
+  const allPayoutMethodMap = Object.fromEntries((allMethods || []).map((m: any) => [m.user_id, m]));
 
   // Build set of order IDs already covered by explicit payout requests
   const coveredOrderIds = new Set<string>(
@@ -116,7 +113,7 @@ export default async function AdminPayoutsPage() {
 
   // Map explicit payout requests
   const requestPayouts = (payoutRequestsFull || []).map((req: any) => {
-    const payoutMethod = formatPayoutMethod(payoutMethodMap[req.user_id]);
+    const payoutMethod = formatPayoutMethod(allPayoutMethodMap[req.user_id]);
     return {
       id: req.id,
       type: 'request' as const,

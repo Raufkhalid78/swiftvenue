@@ -55,8 +55,13 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const supabase = await createClient();
   const service = createServiceClient();
 
-  // Fetch all exchange rates to pass to the client provider for ISR compatibility
-  const { data: rawRates } = await service.from('exchange_rates').select('currency_code, rate_from_pkr');
+  // 1. Fetch event and exchange rates in parallel (they don't depend on each other)
+  const [ratesRes, eventRes] = await Promise.all([
+    service.from('exchange_rates').select('currency_code, rate_from_pkr'),
+    service.from("events").select("*").eq("slug", slug).single()
+  ]);
+
+  const rawRates = ratesRes.data;
   const ratesMap: Record<string, number> = {};
   if (rawRates) {
     rawRates.forEach(r => {
@@ -64,11 +69,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     });
   }
 
-  const { data: event, error } = await service
-    .from("events")
-    .select("*")
-    .eq("slug", slug)
-    .single();
+  const { data: event, error } = eventRes;
 
   if (error || !event) {
     notFound();
@@ -81,18 +82,44 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     }
   }
 
-  const { data: agendaItems } = await service
-    .from("agenda_items")
-    .select("*")
-    .eq("event_id", event.id)
-    .order("order_index", { ascending: true });
+  // 2. Fetch all event-dependent data in parallel
+  const [
+    agendaRes,
+    ticketTypesRes,
+    galleryRes,
+    speakersRes,
+    sponsorsRes,
+    faqsRes,
+    updatesRes,
+    attendeesRes,
+    similarEventsRes,
+    profileRes,
+    seatingLayoutRes
+  ] = await Promise.all([
+    service.from("agenda_items").select("*").eq("event_id", event.id).order("order_index", { ascending: true }),
+    service.from("ticket_types").select("*").eq("event_id", event.id).eq("is_active", true).order("order_index", { ascending: true }),
+    service.from("event_gallery").select("*").eq("event_id", event.id).order("order_index", { ascending: true }),
+    supabase.from("event_speakers").select("*").eq("event_id", event.id).order("order_index", { ascending: true }),
+    supabase.from("event_sponsors").select("*").eq("event_id", event.id).order("order_index", { ascending: true }),
+    supabase.from("event_faqs").select("*").eq("event_id", event.id).order("order_index", { ascending: true }),
+    supabase.from("event_updates").select("*").eq("event_id", event.id).order("is_pinned", { ascending: false }).order("created_at", { ascending: false }),
+    supabase.from('attendees').select('*', { count: 'exact', head: true }).eq('event_id', event.id),
+    service.from('events').select('id, title, slug, date, hero_image_url, type').eq('status', 'published').eq('type', event.type).neq('id', event.id).limit(3),
+    service.from('profiles').select('plan').eq('id', event.user_id).single(),
+    service.from('seating_layouts').select('id, layout_data_json').eq('event_id', event.id).single()
+  ]);
 
-  let { data: ticketTypes } = await service
-    .from("ticket_types")
-    .select("*")
-    .eq("event_id", event.id)
-    .eq("is_active", true)
-    .order("order_index", { ascending: true });
+  const { data: agendaItems } = agendaRes;
+  let { data: ticketTypes } = ticketTypesRes;
+  const { data: rawGallery } = galleryRes;
+  const { data: speakers } = speakersRes;
+  const { data: sponsors } = sponsorsRes;
+  const { data: faqs } = faqsRes;
+  const { data: updates } = updatesRes;
+  const { count: attendeeCount } = attendeesRes;
+  const { data: similarEvents } = similarEventsRes;
+  const { data: profile } = profileRes;
+  const { data: sl } = seatingLayoutRes;
 
   // Auto-heal missing ticket types for old events that were created without one
   if (!ticketTypes || ticketTypes.length === 0) {
@@ -118,71 +145,23 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const hasMultipleTiers = activeTickets.length > 1;
   const priceRangeLabel = hasMultipleTiers ? 'From ' : '';
 
-  const { data: rawGallery } = await service
-    .from("event_gallery")
-    .select("*")
-    .eq("event_id", event.id)
-    .order("order_index", { ascending: true });
-
   const isPastEvent = new Date(`${event.date}T${event.time || '00:00'}`) < new Date();
   const gallery = rawGallery?.filter(g => isPastEvent ? true : !g.is_post_event) || [];
-
-  const { data: speakers } = await supabase
-    .from("event_speakers")
-    .select("*")
-    .eq("event_id", event.id)
-    .order("order_index", { ascending: true });
-
-  const { data: sponsors } = await supabase
-    .from("event_sponsors")
-    .select("*")
-    .eq("event_id", event.id)
-    .order("order_index", { ascending: true });
-
-  const { data: faqs } = await supabase
-    .from("event_faqs")
-    .select("*")
-    .eq("event_id", event.id)
-    .order("order_index", { ascending: true });
-
-  const { data: updates } = await supabase
-    .from("event_updates")
-    .select("*")
-    .eq("event_id", event.id)
-    .order("is_pinned", { ascending: false })
-    .order("created_at", { ascending: false });
-
-  const { count: attendeeCount } = await supabase
-    .from('attendees')
-    .select('*', { count: 'exact', head: true })
-    .eq('event_id', event.id);
-
-  const { data: similarEvents } = await service
-    .from('events')
-    .select('id, title, slug, date, hero_image_url, type')
-    .eq('status', 'published')
-    .eq('type', event.type)
-    .neq('id', event.id)
-    .limit(3);
 
   const themeColor = event.theme_color || '#0f172a';
   const rgbTheme = hexToRgb(themeColor);
   const template = event.template_id || 'modern';
   const isFree = lowestPrice === 0 && !hasMultipleTiers;
 
-  const { data: profile } = await service.from('profiles').select('plan').eq('id', event.user_id).single();
-  const { data: planConfig } = await service.from('plans').select('remove_branding').eq('id', profile?.plan || 'free').single();
-  const removeBranding = planConfig?.remove_branding || false;
+  // 3. Fetch dependent config based on the previous results
+  const [planConfigRes, seatsRes] = await Promise.all([
+    service.from('plans').select('remove_branding').eq('id', profile?.plan || 'free').single(),
+    sl ? service.from('seats').select('*').eq('layout_id', sl.id) : Promise.resolve({ data: [] })
+  ]);
 
-  // Seating Layout
-  let seatingLayout = null;
-  let seats: any[] = [];
-  const { data: sl } = await service.from('seating_layouts').select('id, layout_data_json').eq('event_id', event.id).single();
-  if (sl) {
-    seatingLayout = sl.layout_data_json;
-    const { data: s } = await service.from('seats').select('*').eq('layout_id', sl.id);
-    seats = s || [];
-  }
+  const removeBranding = planConfigRes.data?.remove_branding || false;
+  let seatingLayout = sl ? sl.layout_data_json : null;
+  let seats: any[] = seatsRes.data || [];
 
   return (
     <CurrencyProvider rates={ratesMap}>

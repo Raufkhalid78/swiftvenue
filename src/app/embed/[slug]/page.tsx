@@ -8,8 +8,16 @@ export default async function EmbedPage({ params }: { params: Promise<{ slug: st
   
   const service = createServiceClient();
 
-  // Fetch all exchange rates to pass to the client provider for ISR compatibility
-  const { data: rawRates } = await service.from('exchange_rates').select('currency_code, rate_from_pkr');
+  // 1. Fetch rates and event in parallel
+  const [ratesRes, eventRes] = await Promise.all([
+    service.from('exchange_rates').select('currency_code, rate_from_pkr'),
+    service.from("events")
+      .select("id, title, status, ticket_price")
+      .eq("slug", slug)
+      .single()
+  ]);
+
+  const rawRates = ratesRes.data;
   const ratesMap: Record<string, number> = {};
   if (rawRates) {
     rawRates.forEach(r => {
@@ -17,22 +25,24 @@ export default async function EmbedPage({ params }: { params: Promise<{ slug: st
     });
   }
 
-  const { data: event, error } = await service
-    .from("events")
-    .select("id, title, status, ticket_price")
-    .eq("slug", slug)
-    .single();
+  const { data: event, error } = eventRes;
 
   if (error || !event || event.status !== "published") {
     notFound();
   }
 
-  let { data: ticketTypes } = await service
-    .from("ticket_types")
-    .select("*")
-    .eq("event_id", event.id)
-    .eq("is_active", true)
-    .order("order_index", { ascending: true });
+  // 2. Fetch ticket types and seating layout in parallel
+  const [ticketsRes, slRes] = await Promise.all([
+    service
+      .from("ticket_types")
+      .select("*")
+      .eq("event_id", event.id)
+      .eq("is_active", true)
+      .order("order_index", { ascending: true }),
+    service.from('seating_layouts').select('id, layout_data_json').eq('event_id', event.id).single()
+  ]);
+
+  let { data: ticketTypes } = ticketsRes;
 
   if (!ticketTypes || ticketTypes.length === 0) {
     ticketTypes = [{
@@ -50,7 +60,7 @@ export default async function EmbedPage({ params }: { params: Promise<{ slug: st
   // Seating Layout
   let seatingLayout = null;
   let seats: any[] = [];
-  const { data: sl } = await service.from('seating_layouts').select('id, layout_data_json').eq('event_id', event.id).single();
+  const sl = slRes.data;
   if (sl) {
     seatingLayout = sl.layout_data_json;
     const { data: s } = await service.from('seats').select('*').eq('layout_id', sl.id);

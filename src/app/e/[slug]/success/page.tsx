@@ -20,39 +20,52 @@ export default async function SuccessPage({
   const search = await searchParams;
   const orderId = search.order || 'demo-order-id';
 
-  // Fetch order to get referral code and attendees
-  let referralCode = null;
-  let attendeesData: any[] = [];
-  let removeBranding = false;
-  
-  if (orderId && orderId !== 'demo-order-id') {
-    const { data: order } = await supabase.from('orders').select('referral_code, events(user_id)').eq('id', orderId).single();
-    if (order) {
-      referralCode = order.referral_code;
-      // @ts-ignore
-      const eventOwnerId = Array.isArray(order.events) ? order.events[0]?.user_id : order.events?.user_id;
-      if (eventOwnerId) {
-        const { data: profile } = await supabase.from('profiles').select('plan').eq('id', eventOwnerId).single();
-        const { data: planConfig } = await supabase.from('plans').select('remove_branding').eq('id', profile?.plan || 'free').single();
-        removeBranding = planConfig?.remove_branding || false;
+  // Run similarEvents query concurrently with the entire order data fetching block
+  const [similarEventsRes, orderDataRes] = await Promise.all([
+    supabase
+      .from("events")
+      .select("title, slug, date, hero_image_url, venue_name, theme_color")
+      .eq("status", "published")
+      .neq("slug", slug)
+      .limit(3),
+    (async () => {
+      let rCode = null;
+      let attData: any[] = [];
+      let rBrand = false;
+      
+      if (orderId && orderId !== 'demo-order-id') {
+        // Fetch order details and attendees concurrently
+        const [orderRes, attendeesRes] = await Promise.all([
+          supabase.from('orders').select('referral_code, events(user_id)').eq('id', orderId).single(),
+          getOrderAttendees(supabase, orderId).catch(err => {
+            console.error(err);
+            return { attendees: [] };
+          })
+        ]);
+        
+        const order = orderRes.data;
+        if (order) {
+          rCode = order.referral_code;
+          // @ts-ignore
+          const eventOwnerId = Array.isArray(order.events) ? order.events[0]?.user_id : order.events?.user_id;
+          if (eventOwnerId) {
+            const { data: profile } = await supabase.from('profiles').select('plan').eq('id', eventOwnerId).single();
+            const { data: planConfig } = await supabase.from('plans').select('remove_branding').eq('id', profile?.plan || 'free').single();
+            rBrand = planConfig?.remove_branding || false;
+          }
+        }
+        
+        attData = attendeesRes.attendees || [];
       }
-    }
+      
+      return { rCode, attData, rBrand };
+    })()
+  ]);
 
-    try {
-      const { attendees } = await getOrderAttendees(supabase, orderId);
-      attendeesData = attendees;
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  // Fetch similar events (published, not this one)
-  const { data: similarEvents } = await supabase
-    .from("events")
-    .select("title, slug, date, hero_image_url, venue_name, theme_color")
-    .eq("status", "published")
-    .neq("slug", slug)
-    .limit(3);
+  const { data: similarEvents } = similarEventsRes;
+  const referralCode = orderDataRes.rCode;
+  const attendeesData = orderDataRes.attData;
+  const removeBranding = orderDataRes.rBrand;
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center py-20 px-4">
