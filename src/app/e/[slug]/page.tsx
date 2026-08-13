@@ -934,7 +934,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 <div className="sticky top-8">
                   <div className="bg-background rounded-[2rem] border-[4px] border-primary p-6 shadow-2xl rotate-[-1deg]">
                     <h2 className="text-3xl font-black uppercase mb-6 text-center">Get Tickets</h2>
-                    <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+                    <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} seatingLayout={seatingLayout} seats={seats} />
                     {attendeeCount !== null && attendeeCount >= 3 && (
                       <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 mt-4">
                         <Users className="w-4 h-4" />
@@ -1062,7 +1062,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <div className="md:col-span-5 space-y-16">
                 <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-sm">
                   <h2 className="text-2xl font-light text-center mb-8">RSVP</h2>
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
                   {attendeeCount !== null && attendeeCount >= 3 && (
                     <p className="text-sm text-zinc-400 flex items-center justify-center gap-1.5 mt-6">
                       <Users className="w-4 h-4" />
@@ -1188,7 +1188,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             <div className="md:col-span-4 space-y-6">
               <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                 <h2 className="text-lg font-bold border-b border-slate-100 pb-2 mb-4">Registration</h2>
-                <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} targetCurrency={targetCurrency} exchangeRate={exchangeRate} />
+                <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
                 {attendeeCount !== null && attendeeCount >= 3 && (
                   <p className="text-sm text-slate-500 flex items-center justify-center gap-1.5 mt-4">
                     <Users className="w-4 h-4" />

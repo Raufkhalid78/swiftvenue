@@ -18,30 +18,13 @@ export async function GET(request: NextRequest) {
   const { data: expiredOrders, error: expireErr } = await service.rpc('expire_stale_orders');
   results.expiredOrders = expireErr ? { error: expireErr.message } : expiredOrders;
 
-  // 1b. Delete orders that have been pending (or expired) for more than 24 hours
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: staleOrders } = await service
-    .from('orders')
-    .select('id')
-    .in('status', ['pending', 'expired'])
-    .lt('created_at', twentyFourHoursAgo);
-
-  if (staleOrders && staleOrders.length > 0) {
-    const staleOrderIds = staleOrders.map(o => o.id);
-    
-    // Delete attendees first to avoid foreign key constraint errors
-    await service.from('attendees').delete().in('order_id', staleOrderIds);
-    
-    // Delete the stale orders
-    const { error: deleteErr } = await service.from('orders').delete().in('id', staleOrderIds);
-
-    if (deleteErr) {
-      results.deleteOrdersError = deleteErr.message;
-    } else {
-      results.deletedStaleOrdersCount = staleOrderIds.length;
-    }
+  // 1b. Delete orders that have been pending, cancelled, or expired for more than 24 hours
+  const { data: staleOrdersCount, error: cleanupErr } = await service.rpc('cleanup_stale_orders');
+  
+  if (cleanupErr) {
+    results.deleteOrdersError = cleanupErr.message;
   } else {
-    results.deletedStaleOrdersCount = 0;
+    results.deletedStaleOrdersCount = staleOrdersCount;
   }
 
   // 2. Expire notified waitlist offers past their window, cascade to next person

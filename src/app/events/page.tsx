@@ -167,7 +167,7 @@ export default async function EventsDirectory({
 
                       <div className="mt-auto pt-4 border-t border-border flex items-center justify-between">
                         <div className="font-semibold text-lg">
-                          {isFree ? "Free" : <div className="inline-flex gap-1 items-center">From <PriceDisplay amountPkr={startingPrice} detectedCountry={detectedCountry} /></div>}
+                          {isFree ? "Free" : <div className="inline-flex gap-1 items-center">From <PriceDisplay amountPkr={startingPrice} /></div>}
                         </div>
                         <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
                           Get Tickets

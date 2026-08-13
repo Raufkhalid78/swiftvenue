@@ -1,22 +1,20 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { RegistrationWidget } from "@/components/registration-widget";
-import { headers } from "next/headers";
-import { currencyForCountry } from "@/lib/currency-map";
+import { CurrencyProvider } from "@/components/currency-provider";
 
 export default async function EmbedPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   
-  const headersList = await headers();
-  const detectedCountry = headersList.get('x-detected-country') || 'PK';
-  
   const service = createServiceClient();
 
-  const targetCurrency = currencyForCountry(detectedCountry);
-  let exchangeRate = 1;
-  if (targetCurrency !== 'PKR') {
-    const { data: rate } = await service.from('exchange_rates').select('rate_from_pkr').eq('currency_code', targetCurrency).single();
-    if (rate) exchangeRate = rate.rate_from_pkr;
+  // Fetch all exchange rates to pass to the client provider for ISR compatibility
+  const { data: rawRates } = await service.from('exchange_rates').select('currency_code, rate_from_pkr');
+  const ratesMap: Record<string, number> = {};
+  if (rawRates) {
+    rawRates.forEach(r => {
+      ratesMap[r.currency_code] = r.rate_from_pkr;
+    });
   }
 
   const { data: event, error } = await service
@@ -60,19 +58,19 @@ export default async function EmbedPage({ params }: { params: Promise<{ slug: st
   }
 
   return (
-    <div className="w-full bg-transparent p-1 font-sans">
-      <style dangerouslySetInnerHTML={{__html: `
-        body { background: transparent !important; }
-      `}} />
-      <RegistrationWidget 
-        eventId={event.id} 
-        eventTitle={event.title} 
-        ticketTypes={ticketTypes || []} 
-        targetCurrency={targetCurrency} 
-        exchangeRate={exchangeRate} 
-        seatingLayout={seatingLayout}
-        seats={seats}
-      />
-    </div>
+    <CurrencyProvider rates={ratesMap}>
+      <div className="w-full bg-transparent p-1 font-sans">
+        <style dangerouslySetInnerHTML={{__html: `
+          body { background: transparent !important; }
+        `}} />
+        <RegistrationWidget 
+          eventId={event.id} 
+          eventTitle={event.title} 
+          ticketTypes={ticketTypes || []} 
+          seatingLayout={seatingLayout}
+          seats={seats}
+        />
+      </div>
+    </CurrencyProvider>
   );
 }
