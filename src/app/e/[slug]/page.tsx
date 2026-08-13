@@ -236,7 +236,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <div className="h-[40vh] w-full theme-bg-soft border-b border-border flex items-center justify-center relative overflow-hidden">
             {event.hero_image_url ? (
                
-              <Image src={event.hero_image_url} alt={event.title} width={1920} height={1080} priority={true} className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay" />
+              <Image src={event.hero_image_url} alt={event.title} width={1920} height={1080} priority={true} className="absolute inset-0 w-full h-full object-cover opacity-40" />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-tr from-[rgba(var(--theme-primary),0.2)] to-transparent" />
             )}
