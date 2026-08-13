@@ -46,6 +46,8 @@ export function SeatPicker({ seatingLayout, seats, ticketTypes, selectedSeatIds,
           </div>
           
           <div 
+            role="group"
+            aria-label={`Seating chart, ${rows} rows by ${cols} columns. Use Tab to navigate between seats.`}
             className="grid gap-2"
             style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
           >
@@ -54,23 +56,36 @@ export function SeatPicker({ seatingLayout, seats, ticketTypes, selectedSeatIds,
                 const label = getLabel(r, c);
                 const seat = seats.find((s: any) => s.label === label);
                 const isSelected = selectedSeatIds.includes(seat?.id);
+                const isAvailable = seat && seat.ticket_type_id && seat.status === 'available';
+                const tierName = seat ? ticketTypes.find((t: any) => t.id === seat.ticket_type_id)?.name : null;
+
+                if (!seat) {
+                  return <div key={label} aria-hidden="true" className="w-8 h-8 sm:w-10 sm:h-10" />;
+                }
+
+                const seatState = isSelected ? 'Selected' : isAvailable ? 'Available' : 'Unavailable';
 
                 return (
-                  <div
+                  <button
                     key={label}
-                    onClick={() => {
-                      if (seat && seat.ticket_type_id && seat.status === 'available') {
-                        onSeatToggle(seat.id);
-                      }
-                    }}
+                    type="button"
+                    disabled={!isAvailable && !isSelected}
+                    onClick={() => isAvailable && onSeatToggle(seat.id)}
+                    aria-pressed={isSelected}
+                    aria-label={`Seat ${label}, ${tierName || 'General'}, ${seatState}`}
                     className={`
-                      w-8 h-8 sm:w-10 sm:h-10 rounded-t-lg rounded-b-sm border text-[10px] sm:text-xs font-medium flex flex-col items-center justify-center transition-all
+                      relative w-8 h-8 sm:w-10 sm:h-10 rounded-t-lg rounded-b-sm border text-[10px] sm:text-xs font-medium 
+                      flex flex-col items-center justify-center transition-all
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
                       ${getSeatColor(seat, isSelected)}
                     `}
-                    title={seat ? `${label} - ${ticketTypes.find((t: any) => t.id === seat.ticket_type_id)?.name || 'General'}` : 'Empty Space'}
+                    title={`${label} - ${tierName || 'General'}`}
                   >
-                    {seat ? label : ''}
-                  </div>
+                    {label}
+                    {seat.status !== 'available' && seat.ticket_type_id && (
+                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-destructive">✕</span>
+                    )}
+                  </button>
                 )
               })
             ))}

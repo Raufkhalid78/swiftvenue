@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { get, set } from "idb-keyval";
 import { syncAttendees, bulkCheckIn } from "./actions";
+import { WalkInModal } from "./walk-in-modal";
 
 interface AttendeeCache {
   id: string;
@@ -209,6 +210,7 @@ export default function CheckInPage({ params }: { params: Promise<{ id: string }
               {isSyncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
               Sync Data
             </Button>
+            <WalkInModal eventId={eventId} />
           </div>
         </div>
       </div>
