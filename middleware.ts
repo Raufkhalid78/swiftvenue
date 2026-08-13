@@ -1,4 +1,4 @@
-import { type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
@@ -56,6 +56,26 @@ export async function middleware(request: NextRequest) {
   response.headers.set('X-DNS-Prefetch-Control', 'on')
   response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
   
+  // ----------------------------------------------------
+  // Virtual Queue Logic (High-Traffic Protection)
+  // ----------------------------------------------------
+  if (request.nextUrl.pathname.startsWith('/e/') && !request.nextUrl.pathname.includes('/success') && !request.nextUrl.pathname.includes('/feedback')) {
+    const slug = request.nextUrl.pathname.split('/')[2];
+    
+    // In a production environment, this flag would ideally be read from an Edge Config 
+    // or Redis store like Upstash for instant global toggle during traffic spikes.
+    // Here we use an ENV var and a cookie to simulate clearing the queue.
+    const isHighTrafficMode = process.env.ENABLE_VIRTUAL_QUEUE === 'true';
+    const hasClearedQueue = request.cookies.get('swiftvenue_queue_cleared');
+
+    if (slug && isHighTrafficMode && !hasClearedQueue) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/queue';
+      url.searchParams.set('target', request.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+  }
+
   return response
 }
 

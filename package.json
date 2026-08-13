@@ -47,7 +47,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@react-email/components": "^1.0.12",
     "@reactuses/core": "^6.0.5",
-    "@sentry/nextjs": "^10.69.0",
+    "@sentry/nextjs": "^10.70.0",
     "@sfpy/checkout-components": "^1.0.1",
     "@sfpy/node-core": "^0.3.5",
     "@sfpy/node-sdk": "^3.0.2",
