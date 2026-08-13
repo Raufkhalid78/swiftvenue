@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { checkEventAccess } from "@/lib/team";
 
 export async function POST(
   request: NextRequest,
@@ -15,19 +16,21 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch the event to ensure the user owns it
+    // Verify team access (owner or coorganizer)
+    const hasAccess = await checkEventAccess(service, eventId, user.id, ['owner', 'coorganizer']);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Fetch event status
     const { data: event, error: eventErr } = await service
       .from("events")
-      .select("user_id, status")
+      .select("status")
       .eq("id", eventId)
       .single();
 
     if (eventErr || !event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
-    }
-
-    if (event.user_id !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (event.status === "published") {

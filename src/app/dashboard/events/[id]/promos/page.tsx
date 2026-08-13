@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { checkEventAccess } from '@/lib/team';
 import { PromosClient } from './promos-client';
 
 export const metadata = {
@@ -17,14 +18,11 @@ export default async function PromosPage({ params }: { params: Promise<{ id: str
     redirect('/login');
   }
 
-  // Verify ownership
-  const { data: event } = await supabase
-    .from('events')
-    .select('id, user_id')
-    .eq('id', eventId)
-    .single();
-
-  if (!event || event.user_id !== user.id) {
+  // Verify team access
+  const service = createServiceClient();
+  const hasAccess = await checkEventAccess(service, eventId, user.id, ['owner', 'coorganizer']);
+  
+  if (!hasAccess) {
     redirect('/dashboard');
   }
 

@@ -1,16 +1,18 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { checkEventAccess } from '@/lib/team';
 
 export async function saveSeatingLayout(eventId: string, layoutData: any, seatsToUpsert: any[]) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
 
-  // Verify ownership
-  const { data: event } = await supabase.from('events').select('user_id').eq('id', eventId).single();
-  if (!event || event.user_id !== user.id) throw new Error('Unauthorized');
+  // Verify team access
+  const service = createServiceClient();
+  const hasAccess = await checkEventAccess(service, eventId, user.id, ['owner', 'coorganizer']);
+  if (!hasAccess) throw new Error('Unauthorized');
 
   // Upsert layout
   let layoutId;

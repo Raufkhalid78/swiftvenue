@@ -1,15 +1,17 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { checkEventAccess } from '@/lib/team';
 
 export async function syncAttendees(eventId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
 
-  // Verify ownership
-  const { data: event } = await supabase.from('events').select('user_id').eq('id', eventId).single();
-  if (!event || event.user_id !== user.id) throw new Error('Unauthorized');
+  // Verify team access
+  const service = createServiceClient();
+  const hasAccess = await checkEventAccess(service, eventId, user.id, ['owner', 'coorganizer', 'checkin_staff']);
+  if (!hasAccess) throw new Error('Unauthorized');
 
   const { data: attendees, error } = await supabase
     .from('attendees')
@@ -33,9 +35,10 @@ export async function bulkCheckIn(eventId: string, outbox: string[]) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
 
-  // Verify ownership
-  const { data: event } = await supabase.from('events').select('user_id').eq('id', eventId).single();
-  if (!event || event.user_id !== user.id) throw new Error('Unauthorized');
+  // Verify team access
+  const service = createServiceClient();
+  const hasAccess = await checkEventAccess(service, eventId, user.id, ['owner', 'coorganizer', 'checkin_staff']);
+  if (!hasAccess) throw new Error('Unauthorized');
 
   const { error } = await supabase
     .from('attendees')
