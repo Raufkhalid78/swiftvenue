@@ -75,8 +75,13 @@ export default function TermsOfServicePage() {
 
           <h2>7. Contact Us</h2>
           <p>
-            If you have any questions about these Terms, please contact us at: <a href="mailto:legal@swiftvenuehq.com">legal@swiftvenuehq.com</a>
+            If you have any questions about these Terms, or need to escalate a dispute, please contact our parent company, TechyDez, at:
           </p>
+          <ul>
+            <li><strong>Email:</strong> <a href="mailto:hello@techydez.com">hello@techydez.com</a></li>
+            <li><strong>Phone:</strong> +447517879333</li>
+            <li><strong>Address:</strong> TechyDez, Jhelum, Punjab, Pakistan</li>
+          </ul>
         </div>
       </main>
 

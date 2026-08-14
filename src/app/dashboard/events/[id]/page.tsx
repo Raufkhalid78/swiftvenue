@@ -8,6 +8,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContai
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { duplicateEvent } from "./duplicate-action";
 
 export default function EventOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -20,6 +21,20 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
   const [ticketData, setTicketData] = useState<{ name: string; value: number }[]>([]);
   const [conversionRate, setConversionRate] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isDuplicating, setIsDuplicating] = useState(false);
+
+  const handleDuplicate = async () => {
+    setIsDuplicating(true);
+    toast.loading("Duplicating event...", { id: 'duplicate' });
+    try {
+      await duplicateEvent(eventId);
+      toast.dismiss('duplicate');
+      // The server action will redirect to the new event
+    } catch (err: any) {
+      toast.error(err.message || "Failed to duplicate event", { id: 'duplicate' });
+      setIsDuplicating(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -146,6 +161,11 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" className="h-8" onClick={handleDuplicate} disabled={isDuplicating}>
+            <Copy className="w-4 h-4 mr-2" />
+            {isDuplicating ? "Duplicating..." : "Duplicate Event"}
+          </Button>
+
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="h-8">

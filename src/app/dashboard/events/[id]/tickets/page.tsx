@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Trash2, Edit2, GripVertical, TicketIcon, Ban, CheckCircle2 } from "lucide-react";
+import { PlusCircle, Trash2, Edit2, GripVertical, TicketIcon, Ban, CheckCircle2, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
@@ -24,6 +24,7 @@ interface TicketType {
   sales_end: string | null;
   is_active: boolean;
   order_index: number;
+  waitlist_count?: number;
 }
 
 function SortableTicketItem({ 
@@ -78,8 +79,15 @@ function SortableTicketItem({
 
         {/* Progress Bar & Sales Info */}
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{item.quantity_sold} / {item.quantity_total} sold</span>
+          <div className="flex justify-between items-center text-xs text-muted-foreground">
+            <div className="flex items-center gap-3">
+              <span>{item.quantity_sold} / {item.quantity_total} sold</span>
+              {(item.waitlist_count || 0) > 0 && (
+                <span className="text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> {item.waitlist_count} waiting
+                </span>
+              )}
+            </div>
             <span>{Math.round(percentSold)}%</span>
           </div>
           <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
@@ -149,7 +157,26 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       .eq('event_id', resolvedParams.id)
       .order('order_index', { ascending: true });
     
-    if (data) setTickets(data);
+    if (data && data.length > 0) {
+      const { data: waitlistCounts } = await supabase
+        .from('waitlists')
+        .select('ticket_type_id')
+        .eq('status', 'waiting')
+        .in('ticket_type_id', data.map((t: any) => t.id));
+
+      const countByTier = waitlistCounts?.reduce((acc: any, w: any) => {
+        acc[w.ticket_type_id] = (acc[w.ticket_type_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const enhancedData = data.map((t: any) => ({
+        ...t,
+        waitlist_count: countByTier[t.id] || 0
+      }));
+      setTickets(enhancedData);
+    } else {
+      if (data) setTickets(data);
+    }
     setLoading(false);
   }
 

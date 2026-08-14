@@ -77,7 +77,7 @@ export function OrdersClient({ initialOrders }: { initialOrders: any[] }) {
       </div>
 
       <div className="bg-background rounded-xl border border-border overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto hidden sm:block">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
@@ -167,6 +167,74 @@ export function OrdersClient({ initialOrders }: { initialOrders: any[] }) {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="sm:hidden divide-y divide-border">
+          {orders.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">No orders found</div>
+          ) : orders.map((order) => (
+            <div key={order.id} className="p-4 space-y-3 hover:bg-muted/50 transition-colors">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="font-medium">{order.guest_name}</div>
+                  <div className="text-muted-foreground text-xs">{order.guest_email}</div>
+                  <div className="font-mono text-[10px] text-muted-foreground mt-1">ID: {order.id.split('-')[0]}...</div>
+                </div>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
+                  order.status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                  order.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                  'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                }`}>
+                  {order.status}
+                </span>
+              </div>
+              
+              <div className="text-sm border-l-2 border-border pl-3 py-1">
+                <div className="font-medium truncate" title={order.events?.title}>
+                  {order.events?.title || 'Unknown Event'}
+                </div>
+                {order.events?.slug && (
+                  <Link href={`/e/${order.events.slug}`} target="_blank" className="text-primary hover:underline text-xs flex items-center gap-1 mt-1">
+                    View Event <ExternalLink className="w-3 h-3" />
+                  </Link>
+                )}
+              </div>
+              
+              <div className="flex justify-between items-end pt-1">
+                <div>
+                  <div className="font-bold text-base">
+                    {order.amount == 0 ? 'Free' : `${order.currency} ${Number(order.amount).toLocaleString()}`}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</div>
+                </div>
+                
+                <div className="flex flex-col items-end gap-2">
+                  {order.refund_status !== 'none' && (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
+                      order.refund_status === 'requested' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
+                      'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+                    }`}>
+                      {order.refund_status}
+                    </span>
+                  )}
+                  {order.amount > 0 && order.refund_status !== 'refunded' && (
+                    <ConfirmAction
+                      description="Mark this order as refunded? Ensure you have processed this chargeback/refund with Safepay first."
+                      onConfirm={() => handleRefund(order.id)}
+                    >
+                      <button
+                        disabled={loadingId === order.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50 border border-border"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Mark Refunded
+                      </button>
+                    </ConfirmAction>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

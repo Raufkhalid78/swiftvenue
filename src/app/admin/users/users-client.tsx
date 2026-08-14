@@ -82,7 +82,7 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
       </div>
 
       <div className="bg-background rounded-xl border border-border overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto hidden sm:block">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 text-muted-foreground">
               <tr>
@@ -159,6 +159,74 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="sm:hidden divide-y divide-border">
+          {users.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">No users found</div>
+          ) : users.map((user) => (
+            <div key={user.id} className="p-4 space-y-3 hover:bg-muted/50 transition-colors">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="font-medium flex items-center gap-2">
+                    {user.full_name}
+                    {user.is_admin && <Shield className="w-3 h-3 text-primary" />}
+                  </div>
+                  <div className="text-muted-foreground text-xs">{user.email}</div>
+                </div>
+                {user.is_suspended ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wide">
+                    Suspended
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 uppercase tracking-wide">
+                    Active
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex justify-between items-center text-sm border-t border-border pt-2 mt-2">
+                <div className="text-xs text-muted-foreground">
+                  Joined: {new Date(user.created_at).toLocaleDateString()}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <select
+                    disabled={loadingId === user.id}
+                    className="bg-background text-foreground border border-border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    value={user.plan || 'free'}
+                    onChange={(e) => handlePlanChange(user.id, e.target.value)}
+                  >
+                    {plans.map(p => (
+                      <option key={p.id} value={p.id} className="bg-background text-foreground">{p.name}</option>
+                    ))}
+                  </select>
+                  
+                  <ConfirmAction
+                    destructive={!user.is_suspended}
+                    description={`Are you sure you want to ${user.is_suspended ? 'activate' : 'suspend'} this user?`}
+                    onConfirm={() => handleToggleSuspension(user.id, user.is_suspended)}
+                  >
+                    <button
+                      disabled={loadingId === user.id || user.is_admin}
+                      className={`inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        user.is_suspended 
+                          ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20' 
+                          : 'bg-red-500/10 text-red-600 hover:bg-red-500/20'
+                      } ${user.is_admin ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {user.is_suspended ? (
+                        <><CheckCircle2 className="w-3.5 h-3.5" /></>
+                      ) : (
+                        <><Ban className="w-3.5 h-3.5" /></>
+                      )}
+                    </button>
+                  </ConfirmAction>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

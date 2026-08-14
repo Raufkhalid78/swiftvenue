@@ -77,7 +77,7 @@ export function PlansClient({ initialPlans }: { initialPlans: any[] }) {
             </div>
 
             <div className="p-6 flex-grow space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Monthly Price (Rs)</label>
                   {isEditing ? (
@@ -107,7 +107,7 @@ export function PlansClient({ initialPlans }: { initialPlans: any[] }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border pt-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fee Percentage</label>
                   {isEditing ? (

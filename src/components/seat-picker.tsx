@@ -60,7 +60,7 @@ export function SeatPicker({ seatingLayout, seats, ticketTypes, selectedSeatIds,
                 const tierName = seat ? ticketTypes.find((t: any) => t.id === seat.ticket_type_id)?.name : null;
 
                 if (!seat) {
-                  return <div key={label} aria-hidden="true" className="w-8 h-8 sm:w-10 sm:h-10" />;
+                  return <div key={label} aria-hidden="true" className="w-11 h-11 sm:w-10 sm:h-10" />;
                 }
 
                 const seatState = isSelected ? 'Selected' : isAvailable ? 'Available' : 'Unavailable';
@@ -74,7 +74,7 @@ export function SeatPicker({ seatingLayout, seats, ticketTypes, selectedSeatIds,
                     aria-pressed={isSelected}
                     aria-label={`Seat ${label}, ${tierName || 'General'}, ${seatState}`}
                     className={`
-                      relative w-8 h-8 sm:w-10 sm:h-10 rounded-t-lg rounded-b-sm border text-[10px] sm:text-xs font-medium 
+                      relative w-11 h-11 sm:w-10 sm:h-10 rounded-t-lg rounded-b-sm border text-[10px] sm:text-xs font-medium 
                       flex flex-col items-center justify-center transition-all
                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
                       ${getSeatColor(seat, isSelected)}
