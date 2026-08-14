@@ -41,13 +41,14 @@ export async function duplicateEvent(sourceEventId: string) {
   if (error || !newEvent) throw new Error('Failed to duplicate event');
 
   // Clone related tables in parallel — none depend on each other
-  const [ticketTypes, agendaItems, speakers, sponsors, faqs, seatingLayout] = await Promise.all([
+  const [ticketTypes, agendaItems, speakers, sponsors, faqs, seatingLayout, collaborators] = await Promise.all([
     service.from('ticket_types').select('*').eq('event_id', sourceEventId),
     service.from('agenda_items').select('*').eq('event_id', sourceEventId),
     service.from('event_speakers').select('*').eq('event_id', sourceEventId),
     service.from('event_sponsors').select('*').eq('event_id', sourceEventId),
     service.from('event_faqs').select('*').eq('event_id', sourceEventId),
     service.from('seating_layouts').select('*').eq('event_id', sourceEventId).maybeSingle(),
+    service.from('event_collaborators').select('*').eq('event_id', sourceEventId),
   ]);
 
   const stripAndRetarget = (rows: any[] | null) =>
@@ -63,6 +64,7 @@ export async function duplicateEvent(sourceEventId: string) {
     speakers.data?.length ? service.from('event_speakers').insert(stripAndRetarget(speakers.data)) : null,
     sponsors.data?.length ? service.from('event_sponsors').insert(stripAndRetarget(sponsors.data)) : null,
     faqs.data?.length ? service.from('event_faqs').insert(stripAndRetarget(faqs.data)) : null,
+    collaborators.data?.length ? service.from('event_collaborators').insert(stripAndRetarget(collaborators.data)) : null,
   ]);
 
   // Seating is a bit more involved — clone the layout, then the seats referencing the new layout_id
