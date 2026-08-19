@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Pencil, Check, X, Loader2 } from 'lucide-react';
+import { Pencil, Check, X, Loader2, Send, Copy, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { WalletButtons } from '@/components/wallet-buttons';
 import { toast } from 'sonner';
 
@@ -19,6 +21,14 @@ export function AttendeeList({ initialAttendees }: { initialAttendees: Attendee[
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Transfer modal state
+  const [transferAttendee, setTransferAttendee] = useState<Attendee | null>(null);
+  const [transferEmail, setTransferEmail] = useState('');
+  const [transferName, setTransferName] = useState('');
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [generatedClaimUrl, setGeneratedClaimUrl] = useState<string | null>(null);
+  const [hasCopied, setHasCopied] = useState(false);
 
   const startEdit = (a: Attendee) => {
     setEditingId(a.id);
@@ -53,6 +63,42 @@ export function AttendeeList({ initialAttendees }: { initialAttendees: Attendee[
       toast.error('Could not update ticket details');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSendTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!transferAttendee || !transferEmail.trim()) return;
+
+    setIsTransferring(true);
+    try {
+      const res = await fetch(`/api/attendees/${transferAttendee.id}/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientEmail: transferEmail.trim(),
+          recipientName: transferName.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to initiate transfer');
+
+      setGeneratedClaimUrl(data.claimUrl);
+      toast.success(`Transfer invitation sent to ${transferEmail}!`);
+    } catch (err: any) {
+      toast.error(err.message || 'Transfer failed');
+    } finally {
+      setIsTransferring(false);
+    }
+  };
+
+  const copyClaimLink = () => {
+    if (generatedClaimUrl) {
+      navigator.clipboard.writeText(generatedClaimUrl);
+      setHasCopied(true);
+      toast.success('Claim link copied to clipboard!');
+      setTimeout(() => setHasCopied(false), 2500);
     }
   };
 
@@ -95,7 +141,7 @@ export function AttendeeList({ initialAttendees }: { initialAttendees: Attendee[
                   <button 
                     onClick={() => startEdit(a)}
                     className="text-muted-foreground hover:text-primary transition-colors p-1"
-                    title="Assign to a different guest"
+                    title="Edit name directly"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
@@ -107,7 +153,20 @@ export function AttendeeList({ initialAttendees }: { initialAttendees: Attendee[
             )}
 
             {!editingId || editingId !== a.id ? (
-              <div className="shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setTransferAttendee(a);
+                    setTransferEmail('');
+                    setTransferName('');
+                    setGeneratedClaimUrl(null);
+                  }}
+                >
+                  <Send className="w-3 h-3" /> Transfer
+                </Button>
                 <WalletButtons attendeeId={a.id} compact />
               </div>
             ) : null}
@@ -115,6 +174,71 @@ export function AttendeeList({ initialAttendees }: { initialAttendees: Attendee[
           </div>
         ))}
       </div>
+
+      {/* Transfer Dialog */}
+      <Dialog open={!!transferAttendee} onOpenChange={open => !open && setTransferAttendee(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Transfer Ticket</DialogTitle>
+            <DialogDescription>
+              Send this ticket to a friend or colleague. They will receive a unique claim link to claim and personalize their ticket.
+            </DialogDescription>
+          </DialogHeader>
+
+          {generatedClaimUrl ? (
+            <div className="space-y-4 py-2">
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs text-emerald-800 dark:text-emerald-300">
+                ✓ An email invitation was sent! You can also copy and share the direct claim link below:
+              </div>
+              <div className="flex gap-2">
+                <Input value={generatedClaimUrl} readOnly className="text-xs font-mono bg-muted" />
+                <Button size="sm" onClick={copyClaimLink} className="gap-1.5 shrink-0">
+                  {hasCopied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {hasCopied ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+              <Button variant="outline" className="w-full" onClick={() => setTransferAttendee(null)}>
+                Done
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSendTransfer} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="recipientEmail">Recipient Email Address</Label>
+                <Input 
+                  id="recipientEmail" 
+                  type="email" 
+                  required 
+                  placeholder="colleague@example.com"
+                  value={transferEmail}
+                  onChange={e => setTransferEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="recipientName">Recipient Name (Optional)</Label>
+                <Input 
+                  id="recipientName" 
+                  placeholder="e.g. Alex Smith"
+                  value={transferName}
+                  onChange={e => setTransferName(e.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="ghost" onClick={() => setTransferAttendee(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isTransferring} className="gap-2">
+                  {isTransferring ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Send Transfer Link
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

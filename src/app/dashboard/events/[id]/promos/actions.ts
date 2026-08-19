@@ -18,6 +18,9 @@ export async function createPromoCode(eventId: string, data: any) {
       max_uses: data.max_uses || null,
       valid_from: data.valid_from || null,
       valid_until: data.valid_until || null,
+      applicable_ticket_type_ids: data.applicable_ticket_type_ids?.length ? data.applicable_ticket_type_ids : null,
+      min_quantity: data.min_quantity ? Number(data.min_quantity) : 1,
+      min_order_amount: data.min_order_amount ? Number(data.min_order_amount) : 0,
       is_active: data.is_active ?? true
     });
 

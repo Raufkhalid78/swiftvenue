@@ -1,9 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { Resend } from "resend";
 import { checkEventAccess } from "@/lib/team";
+import { processBroadcastJob } from "@/lib/broadcast-queue";
 
-const resend = new Resend(process.env.RESEND_API_KEY || "re_mock_key");
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const eventId = searchParams.get('eventId');
+
+    if (!eventId) {
+      return NextResponse.json({ error: "Missing eventId" }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const service = createServiceClient();
+    const hasAccess = await checkEventAccess(service, eventId, user.id, ['owner', 'coorganizer']);
+    if (!hasAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const { data: jobs, error } = await service
+      .from('broadcast_jobs')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false });
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ jobs: jobs || [] });
+  } catch (error: any) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,41 +94,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No attendees found to email" }, { status: 400 });
     }
 
-    const emails = Array.from(new Set(attendees.map(a => a.guest_email)));
+    const emails = Array.from(new Set(attendees.map(a => a.guest_email).filter(Boolean)));
 
-    if (!process.env.RESEND_API_KEY) {
-      console.log(`[MOCK EMAIL] Broadcasting to ${emails.length} attendees for ${event.title}`);
-      console.log(`[MOCK EMAIL] Subject: ${subject}`);
-      
-      // Increment broadcast count
-      await service.from('events').update({ broadcast_count: (event.broadcast_count || 0) + 1 }).eq('id', eventId);
-      
-      return NextResponse.json({ success: true, count: emails.length, mock: true });
+    // Create queued broadcast job record
+    const { data: job, error: jobErr } = await service
+      .from('broadcast_jobs')
+      .insert({
+        event_id: eventId,
+        subject,
+        body,
+        total_recipients: emails.length,
+        status: 'queued',
+      })
+      .select()
+      .single();
+
+    if (jobErr || !job) {
+      return NextResponse.json({ error: "Failed to create broadcast job" }, { status: 500 });
     }
 
-    // Batch send using Resend in chunks of 50
-    const chunkSize = 50;
-    for (let i = 0; i < emails.length; i += chunkSize) {
-      const emailChunk = emails.slice(i, i + chunkSize);
-      
-      const { error: sendError } = await resend.emails.send({
-        from: `SwiftVenue <updates@swiftvenuehq.com>`,
-        to: ['updates@swiftvenuehq.com'], // The main to address
-        bcc: emailChunk, // Hide attendee emails from each other
-        subject: `${subject} - ${event.title}`,
-        text: body,
-      });
-
-      if (sendError) {
-        console.error(`Resend error on chunk ${i / chunkSize}:`, sendError);
-        // Continue sending other chunks, but log error
-      }
-    }
-
-    // Increment broadcast count
+    // Increment broadcast count on event
     await service.from('events').update({ broadcast_count: (event.broadcast_count || 0) + 1 }).eq('id', eventId);
 
-    return NextResponse.json({ success: true, count: emails.length });
+    // Process job
+    await processBroadcastJob(job.id, eventId, event.title, emails, subject, body);
+
+    return NextResponse.json({ success: true, jobId: job.id, count: emails.length });
   } catch (error: any) {
     console.error("POST /api/broadcast error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

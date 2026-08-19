@@ -34,6 +34,7 @@ export function RegistrationWidget({
   const [manualQuantity, setManualQuantity] = useState(1);
   const activeQuantity = seatingLayout ? selectedSeatIds.length : manualQuantity;
   const [attendeeDetails, setAttendeeDetails] = useState(Array(1).fill({ name: "", email: "" }));
+  const [customResponses, setCustomResponses] = useState<Record<string, any>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
@@ -72,7 +73,13 @@ export function RegistrationWidget({
       const res = await fetch('/api/promo/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode, eventId })
+        body: JSON.stringify({ 
+          code: promoCode, 
+          eventId, 
+          ticketTypeId: selectedTicketId, 
+          quantity: activeQuantity,
+          orderAmount: selectedTicket ? Number(selectedTicket.price) * activeQuantity : 0
+        })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -98,6 +105,16 @@ export function RegistrationWidget({
     if (!selectedTicketId || (seatingLayout && selectedSeatIds.length === 0)) {
       toast.error(seatingLayout ? "Please select at least one seat." : "Please select a ticket type.");
       return;
+    }
+
+    // Validate required custom questions
+    if (selectedTicket?.custom_questions && Array.isArray(selectedTicket.custom_questions)) {
+      for (const q of selectedTicket.custom_questions) {
+        if (q.required && (!customResponses[q.id] || customResponses[q.id] === "")) {
+          toast.error(`Please answer: "${q.label}"`);
+          return;
+        }
+      }
     }
 
     setLoading(true);
@@ -140,7 +157,8 @@ export function RegistrationWidget({
           quantity: activeQuantity,
           seatIds: seatingLayout ? selectedSeatIds : undefined,
           promoCode: promoData?.valid ? promoCode : undefined,
-          attendeeDetails: !isWaitlist ? attendeeDetails : undefined
+          attendeeDetails: !isWaitlist ? attendeeDetails : undefined,
+          customResponses: Object.keys(customResponses).length > 0 ? customResponses : undefined
         }),
       });
 
@@ -399,6 +417,74 @@ export function RegistrationWidget({
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Custom Registration Questions */}
+              {!isWaitlist && selectedTicket?.custom_questions && Array.isArray(selectedTicket.custom_questions) && selectedTicket.custom_questions.length > 0 && (
+                <div className="space-y-4 pt-4 border-t border-border mt-4">
+                  <h4 className="font-semibold text-sm">Attendee Information</h4>
+                  <div className="space-y-3 p-3.5 bg-muted/20 border border-border rounded-xl">
+                    {selectedTicket.custom_questions.map((q: any) => (
+                      <div key={q.id} className="space-y-1.5">
+                        <Label className="text-xs font-medium flex items-center justify-between">
+                          <span>{q.label}</span>
+                          {q.required ? (
+                            <span className="text-[10px] text-rose-500 font-semibold uppercase">Required</span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">Optional</span>
+                          )}
+                        </Label>
+
+                        {q.type === 'text' && (
+                          <Input 
+                            required={q.required}
+                            placeholder="Your answer"
+                            value={customResponses[q.id] || ''}
+                            onChange={e => setCustomResponses(prev => ({ ...prev, [q.id]: e.target.value }))}
+                            className="h-8 text-xs"
+                          />
+                        )}
+
+                        {q.type === 'number' && (
+                          <Input 
+                            type="number"
+                            required={q.required}
+                            placeholder="0"
+                            value={customResponses[q.id] || ''}
+                            onChange={e => setCustomResponses(prev => ({ ...prev, [q.id]: e.target.value }))}
+                            className="h-8 text-xs"
+                          />
+                        )}
+
+                        {q.type === 'select' && (
+                          <select
+                            required={q.required}
+                            value={customResponses[q.id] || ''}
+                            onChange={e => setCustomResponses(prev => ({ ...prev, [q.id]: e.target.value }))}
+                            className="w-full h-8 text-xs bg-background border border-border rounded-md px-2"
+                          >
+                            <option value="">Select an option...</option>
+                            {(q.options || []).map((opt: string, i: number) => (
+                              <option key={i} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        )}
+
+                        {q.type === 'checkbox' && (
+                          <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer pt-1">
+                            <input 
+                              type="checkbox"
+                              checked={!!customResponses[q.id]}
+                              onChange={e => setCustomResponses(prev => ({ ...prev, [q.id]: e.target.checked }))}
+                              className="rounded border-border"
+                            />
+                            <span>Yes, I agree / confirm</span>
+                          </label>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               

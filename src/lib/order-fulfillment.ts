@@ -15,6 +15,8 @@ export function calculateAttendeesToCreate(order: OrderData) {
   const quantity = Math.max(1, order.quantity || 1);
   const attendeeDetails = order.metadata?.attendeeDetails || [];
   
+  const customResponses = order.metadata?.customResponses || {};
+  
   return Array.from({ length: quantity }).map((_, i) => ({
     event_id: order.event_id,
     guest_name: attendeeDetails[i]?.name || order.guest_name,
@@ -22,7 +24,8 @@ export function calculateAttendeesToCreate(order: OrderData) {
     guest_phone: order.guest_phone || null,
     ticket_type_id: order.ticket_type_id,
     status: 'registered',
-    order_id: order.id
+    order_id: order.id,
+    custom_responses: customResponses
   }));
 }
 

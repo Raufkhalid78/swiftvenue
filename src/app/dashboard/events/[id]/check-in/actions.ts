@@ -42,7 +42,7 @@ export async function bulkCheckIn(eventId: string, outbox: string[]) {
 
   const { error } = await supabase
     .from('attendees')
-    .update({ status: 'checked_in' })
+    .update({ status: 'attended' })
     .in('id', outbox)
     .eq('event_id', eventId)
     // Only update if they weren't cancelled/refunded

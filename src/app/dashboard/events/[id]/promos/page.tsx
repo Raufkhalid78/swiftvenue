@@ -26,12 +26,20 @@ export default async function PromosPage({ params }: { params: Promise<{ id: str
     redirect('/dashboard');
   }
 
-  // Fetch promo codes
-  const { data: promos } = await supabase
-    .from('promo_codes')
-    .select('*')
-    .eq('event_id', eventId)
-    .order('created_at', { ascending: false });
+  // Fetch promo codes and ticket types in parallel
+  const [promosRes, ticketTypesRes] = await Promise.all([
+    supabase
+      .from('promo_codes')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('ticket_types')
+      .select('id, name, price')
+      .eq('event_id', eventId)
+      .eq('is_active', true)
+      .order('order_index', { ascending: true })
+  ]);
 
   return (
     <div className="space-y-6">
@@ -40,7 +48,11 @@ export default async function PromosPage({ params }: { params: Promise<{ id: str
         <p className="text-muted-foreground text-sm">Create and manage discount codes for your event.</p>
       </div>
 
-      <PromosClient eventId={eventId} initialPromos={promos || []} />
+      <PromosClient 
+        eventId={eventId} 
+        initialPromos={promosRes.data || []} 
+        ticketTypes={ticketTypesRes.data || []} 
+      />
     </div>
   );
 }

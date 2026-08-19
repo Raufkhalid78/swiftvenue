@@ -13,6 +13,14 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+export interface CustomQuestion {
+  id: string;
+  label: string;
+  type: 'text' | 'select' | 'checkbox' | 'number';
+  options?: string[];
+  required: boolean;
+}
+
 interface TicketType {
   id: string;
   name: string;
@@ -25,6 +33,7 @@ interface TicketType {
   is_active: boolean;
   order_index: number;
   waitlist_count?: number;
+  custom_questions?: CustomQuestion[];
 }
 
 function SortableTicketItem({ 
@@ -135,8 +144,50 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
     price: 0,
     quantity_total: 100,
     sales_start: "",
-    sales_end: ""
+    sales_end: "",
+    custom_questions: []
   });
+
+  const [newQuestion, setNewQuestion] = useState<{
+    label: string;
+    type: 'text' | 'select' | 'checkbox' | 'number';
+    optionsString: string;
+    required: boolean;
+  }>({
+    label: "",
+    type: "text",
+    optionsString: "",
+    required: false
+  });
+
+  const addCustomQuestion = () => {
+    if (!newQuestion.label.trim()) return toast.error("Question label is required");
+    const options = newQuestion.type === 'select'
+      ? newQuestion.optionsString.split(',').map(s => s.trim()).filter(Boolean)
+      : undefined;
+
+    const question: CustomQuestion = {
+      id: crypto.randomUUID(),
+      label: newQuestion.label.trim(),
+      type: newQuestion.type,
+      options,
+      required: newQuestion.required,
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      custom_questions: [...(prev.custom_questions || []), question]
+    }));
+
+    setNewQuestion({ label: "", type: "text", optionsString: "", required: false });
+  };
+
+  const removeCustomQuestion = (qId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_questions: (prev.custom_questions || []).filter(q => q.id !== qId)
+    }));
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -190,6 +241,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       ...formData,
       sales_start: formData.sales_start || null,
       sales_end: formData.sales_end || null,
+      custom_questions: formData.custom_questions || [],
     };
 
     if (editingId) {
@@ -210,7 +262,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
     
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ name: "", description: "", price: 0, quantity_total: 100, sales_start: "", sales_end: "" });
+    setFormData({ name: "", description: "", price: 0, quantity_total: 100, sales_start: "", sales_end: "", custom_questions: [] });
     fetchTickets();
   }
 
@@ -222,6 +274,7 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       quantity_total: item.quantity_total,
       sales_start: item.sales_start ? new Date(item.sales_start).toISOString().slice(0, 16) : "",
       sales_end: item.sales_end ? new Date(item.sales_end).toISOString().slice(0, 16) : "",
+      custom_questions: item.custom_questions || [],
     });
     setEditingId(item.id);
     setIsAdding(true);
@@ -317,6 +370,92 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
             <div className="space-y-2">
               <Label>Sales End (Optional)</Label>
               <Input type="datetime-local" value={formData.sales_end || ''} onChange={(e) => setFormData({...formData, sales_end: e.target.value})} />
+            </div>
+
+            {/* Custom Registration Questions Builder */}
+            <div className="md:col-span-2 pt-4 border-t border-border space-y-4">
+              <div>
+                <Label className="text-sm font-semibold">Custom Attendee Questions (Optional)</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Collect attendee intake information during checkout (e.g. Dietary preferences, T-shirt size, Job title).</p>
+              </div>
+
+              {/* Configured questions list */}
+              {formData.custom_questions && formData.custom_questions.length > 0 && (
+                <div className="space-y-2">
+                  {formData.custom_questions.map((q, idx) => (
+                    <div key={q.id || idx} className="flex items-center justify-between p-3 bg-muted/40 border border-border rounded-lg text-sm">
+                      <div>
+                        <div className="font-medium flex items-center gap-2">
+                          {q.label}
+                          {q.required && <span className="text-[10px] uppercase font-bold text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded">Required</span>}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          Type: {q.type.toUpperCase()} {q.options?.length ? `• Options: [${q.options.join(', ')}]` : ''}
+                        </div>
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => removeCustomQuestion(q.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* New question inputs */}
+              <div className="p-3.5 bg-muted/20 border border-border/70 rounded-xl space-y-3">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Add a Question</div>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2 space-y-1">
+                    <Label className="text-xs">Question Label</Label>
+                    <Input 
+                      placeholder="e.g. T-Shirt Size or Company Name"
+                      value={newQuestion.label}
+                      onChange={e => setNewQuestion(prev => ({ ...prev, label: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Field Type</Label>
+                    <select
+                      className="w-full h-8 text-xs bg-background border border-border rounded-md px-2"
+                      value={newQuestion.type}
+                      onChange={e => setNewQuestion(prev => ({ ...prev, type: e.target.value as any }))}
+                    >
+                      <option value="text">Text Input</option>
+                      <option value="select">Dropdown Select</option>
+                      <option value="checkbox">Checkbox (Yes/No)</option>
+                      <option value="number">Number</option>
+                    </select>
+                  </div>
+                </div>
+
+                {newQuestion.type === 'select' && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Options (comma-separated)</Label>
+                    <Input 
+                      placeholder="Small, Medium, Large, XL"
+                      value={newQuestion.optionsString}
+                      onChange={e => setNewQuestion(prev => ({ ...prev, optionsString: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                    <input 
+                      type="checkbox"
+                      checked={newQuestion.required}
+                      onChange={e => setNewQuestion(prev => ({ ...prev, required: e.target.checked }))}
+                      className="rounded border-border"
+                    />
+                    Required field
+                  </label>
+                  <Button type="button" size="sm" variant="secondary" className="h-7 text-xs gap-1" onClick={addCustomQuestion}>
+                    <PlusCircle className="w-3.5 h-3.5" /> Add Question
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
           

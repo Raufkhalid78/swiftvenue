@@ -3,7 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { code, eventId } = await request.json();
+    const { code, eventId, ticketTypeId, quantity = 1, orderAmount = 0 } = await request.json();
 
     if (!code || !eventId) {
       return NextResponse.json(
@@ -53,6 +53,32 @@ export async function POST(request: NextRequest) {
     if (promo.valid_until && new Date(promo.valid_until) < now) {
       return NextResponse.json(
         { error: "Promo code has expired" },
+        { status: 400 }
+      );
+    }
+
+    // Check tier restriction
+    if (promo.applicable_ticket_type_ids && Array.isArray(promo.applicable_ticket_type_ids) && promo.applicable_ticket_type_ids.length > 0) {
+      if (ticketTypeId && !promo.applicable_ticket_type_ids.includes(ticketTypeId)) {
+        return NextResponse.json(
+          { error: "This promo code is not valid for the selected ticket tier" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check min quantity requirement
+    if (promo.min_quantity && quantity < promo.min_quantity) {
+      return NextResponse.json(
+        { error: `This promo code requires a minimum of ${promo.min_quantity} tickets` },
+        { status: 400 }
+      );
+    }
+
+    // Check min order amount
+    if (promo.min_order_amount && orderAmount > 0 && orderAmount < Number(promo.min_order_amount)) {
+      return NextResponse.json(
+        { error: `This promo code requires a minimum order of Rs. ${Number(promo.min_order_amount).toLocaleString()}` },
         { status: 400 }
       );
     }

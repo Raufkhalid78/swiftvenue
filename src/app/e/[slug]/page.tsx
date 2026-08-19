@@ -14,6 +14,8 @@ import { headers } from "next/headers";
 import { PriceDisplay } from "@/components/price-display";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { EventTracker } from "@/components/event-tracker";
+import { PublicAgenda } from "@/components/public-agenda";
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -40,8 +42,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: event.description?.slice(0, 160) || `Join ${event.title} on SwiftVenue.`,
     openGraph: {
       title: event.title,
-      description: event.description?.slice(0, 160),
-      images: event.hero_image_url ? [event.hero_image_url] : undefined,
+      description: event.description?.slice(0, 160) || `Join ${event.title} on SwiftVenue.`,
+      images: event.hero_image_url ? [event.hero_image_url] : [`https://swiftvenuehq.com/e/${slug}/opengraph-image`],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: event.title,
+      description: event.description?.slice(0, 160) || `Join ${event.title} on SwiftVenue.`,
+      images: event.hero_image_url ? [event.hero_image_url] : [`https://swiftvenuehq.com/e/${slug}/opengraph-image`],
     },
     alternates: { canonical: `https://swiftvenuehq.com/e/${slug}` },
   };
@@ -165,6 +173,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
   return (
     <CurrencyProvider rates={ratesMap}>
+    <EventTracker eventId={event.id} />
     <div 
       className="min-h-screen bg-background"
       style={{
@@ -560,17 +569,8 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
           {agendaItems && agendaItems.length > 0 && (
             <div className="mx-auto max-w-2xl border-t border-border pt-12">
-              <h2 className="text-2xl font-display font-semibold mb-8 text-center">Schedule</h2>
-              <div className="space-y-4">
-                {agendaItems.map((item: any) => (
-                  <div key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 border border-border rounded-xl">
-                    <div className="font-semibold text-foreground">{item.title}</div>
-                    <div className="text-sm text-muted-foreground mt-2 sm:mt-0 font-medium">
-                      {item.start_time} - {item.end_time || "End"}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <h2 className="text-2xl font-display font-semibold mb-8 text-center">Schedule & Tracks</h2>
+              <PublicAgenda items={agendaItems} />
             </div>
           )}
 

@@ -265,6 +265,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 6. Dispatch outbound webhook to Zapier / Slack integrations
+    const { dispatchWebhook } = await import('@/lib/webhooks');
+    dispatchWebhook(order.event_id, 'order.paid', {
+      orderId: order.id,
+      guestName: order.guest_name,
+      guestEmail: order.guest_email,
+      amount: order.amount,
+      currency: order.currency,
+      quantity: order.quantity,
+      attendees: insertedAttendees || [],
+    });
+
     console.log("Safepay webhook successfully processed payment for order:", order.id)
 
     return NextResponse.json({ received: true, success: true })

@@ -109,7 +109,7 @@ export default function CheckInPage({ params }: { params: Promise<{ id: string }
       const localAttendee = cache.find(a => a.id === qrData);
 
       if (localAttendee) {
-        if (localAttendee.status === 'checked_in') {
+        if (localAttendee.status === 'attended') {
           setScanResult({
             success: false,
             message: "Already checked in",
@@ -118,7 +118,7 @@ export default function CheckInPage({ params }: { params: Promise<{ id: string }
           toast.error("Already checked in");
         } else if (localAttendee.status === 'registered') {
           // Check them in locally
-          localAttendee.status = 'checked_in';
+          localAttendee.status = 'attended';
           await set(`attendees_${eventId}`, cache); // update cache
           
           // Add to outbox

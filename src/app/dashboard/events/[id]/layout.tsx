@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, use } from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft, Shield, Image as ImageIcon, Mic2, Briefcase, HelpCircle, Megaphone, MessageSquare, QrCode, Send, Ticket, Tag, LayoutGrid, Activity } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, Settings, ArrowLeft, Shield, Image as ImageIcon, Mic2, Briefcase, HelpCircle, Megaphone, MessageSquare, QrCode, Send, Ticket, Tag, LayoutGrid, Activity, Webhook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -50,6 +50,7 @@ export default function EventDashboardLayout({
     { name: "Guests", href: `/dashboard/events/${eventId}/guests`, icon: Users },
     { name: "Check-in", href: `/dashboard/events/${eventId}/check-in`, icon: QrCode },
     { name: "Broadcast", href: `/dashboard/events/${eventId}/broadcast`, icon: Send },
+    { name: "Webhooks", href: `/dashboard/events/${eventId}/webhooks`, icon: Webhook },
     { name: "Team", href: `/dashboard/events/${eventId}/team`, icon: Shield },
     { name: "Feedback", href: `/dashboard/events/${eventId}/feedback`, icon: MessageSquare },
     { name: "Settings", href: `/dashboard/events/${eventId}/settings`, icon: Settings },

@@ -66,6 +66,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Database error while updating" }, { status: 500 });
     }
 
+    // Dispatch outbound webhook
+    const { dispatchWebhook } = await import('@/lib/webhooks');
+    dispatchWebhook(event.id || attendee.event_id, 'attendee.checked_in', {
+      attendeeId: attendee.id,
+      guestName: attendee.guest_name,
+      guestEmail: attendee.guest_email,
+      ticketTier: (attendee.ticket_types as any)?.name || 'General',
+      checkedInAt: new Date().toISOString(),
+    });
+
     return NextResponse.json({ success: true, attendee });
   } catch (error: any) {
     console.error("POST /api/check-in error:", error);

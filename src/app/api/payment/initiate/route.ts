@@ -7,7 +7,7 @@ import { createReferralCode } from '@/lib/referral';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { eventId, guestName, guestEmail, guestPhone, ticketTypeId, quantity = 1, promoCode, attendeeDetails, seatIds } = body;
+    const { eventId, guestName, guestEmail, guestPhone, ticketTypeId, quantity = 1, promoCode, attendeeDetails, seatIds, customResponses } = body;
 
     if (!eventId || !guestName || !guestEmail || !ticketTypeId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -112,8 +112,14 @@ export async function POST(request: NextRequest) {
         const isStarted = !validFrom || validFrom <= now;
         const isNotExpired = !validUntil || validUntil >= now;
         const hasUsesLeft = !promo.max_uses || promo.current_uses < promo.max_uses;
+        const tierValid = !promo.applicable_ticket_type_ids || 
+          !Array.isArray(promo.applicable_ticket_type_ids) || 
+          promo.applicable_ticket_type_ids.length === 0 || 
+          promo.applicable_ticket_type_ids.includes(ticketTypeId);
+        const qtyValid = !promo.min_quantity || quantity >= promo.min_quantity;
+        const minAmountValid = !promo.min_order_amount || amount >= Number(promo.min_order_amount);
 
-        if (isStarted && isNotExpired && hasUsesLeft) {
+        if (isStarted && isNotExpired && hasUsesLeft && tierValid && qtyValid && minAmountValid) {
           if (promo.discount_type === 'percentage') {
             discountAmount = amount * (Number(promo.discount_amount) / 100);
           } else if (promo.discount_type === 'fixed') {
@@ -152,7 +158,7 @@ export async function POST(request: NextRequest) {
         discount_amount: discountAmount,
         platform_fee_amount: platformFee,
         organizer_net_amount: amount,
-        metadata: { attendeeDetails: attendeeDetails || null, seatIds: seatIds || null, seatSessionId: sessionId }
+        metadata: { attendeeDetails: attendeeDetails || null, seatIds: seatIds || null, seatSessionId: sessionId, customResponses: customResponses || null }
       })
       .select()
       .single();
@@ -207,6 +213,7 @@ export async function POST(request: NextRequest) {
         ticket_type_id: ticketTypeId,
         status: 'registered',
         order_id: order.id,
+        custom_responses: customResponses || {},
         seat_id: seatIds ? seatIds[i] : null
       }));
       const { data: insertedAttendees } = await service.from('attendees').insert(attendeesToInsert).select();
