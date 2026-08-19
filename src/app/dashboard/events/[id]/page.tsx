@@ -130,7 +130,8 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
     return <div>Event not found.</div>;
   }
 
-  const embedCode = `<iframe \n  src="https://swiftvenuehq.com/embed/${event.slug}" \n  width="100%" \n  height="700px" \n  style="border: 1px solid #e2e8f0; border-radius: 12px;"\n></iframe>`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://swiftvenuehq.com';
+  const embedCode = `<iframe \n  src="${origin}/embed/${event.slug}" \n  width="100%" \n  height="700px" \n  style="border: 1px solid #e2e8f0; border-radius: 12px;"\n></iframe>`;
 
   const copyEmbedCode = () => {
     navigator.clipboard.writeText(embedCode);

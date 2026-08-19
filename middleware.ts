@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
     form-action 'self';
     frame-action 'self';
     frame-src 'self' https://swiftvenuehq.com https://www.swiftvenuehq.com https://www.youtube.com https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://maps.google.com https://www.google.com;
-    frame-ancestors ${allowIframe ? '*' : "'none'"};
+    frame-ancestors ${allowIframe ? '*' : "'self'"};
     connect-src 'self' ${supabaseUrl} ${supabaseWsUrl} https://*.getsafepay.com https://getsafepay.com https://*.getsafepay.pk https://getsafepay.pk https://unpkg.com https://*.sentry.io https://*.ingest.sentry.io https://nominatim.openstreetmap.org https://api.mapbox.com https://fastly.jsdelivr.net https://www.google-analytics.com;
     media-src 'self' blob: data:;
     worker-src 'self' blob:;
@@ -48,7 +48,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Content-Security-Policy', cspHeader)
   response.headers.set('Access-Control-Allow-Origin', '*')
   if (!allowIframe) {
-    response.headers.set('X-Frame-Options', 'DENY')
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN')
   }
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
