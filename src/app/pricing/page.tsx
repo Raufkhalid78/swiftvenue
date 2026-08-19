@@ -1,10 +1,9 @@
 export const revalidate = 300;
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/navbar";
 import { CheckCircle2, Sparkles } from "lucide-react";
-import Image from "next/image";
 
 import { createClient } from '@/lib/supabase/server';
 
@@ -15,10 +14,10 @@ export const metadata = {
 
 export default async function PricingPage() {
   const supabase = await createClient();
-  const { data: plans } = await supabase
-    .from('plans')
-    .select('*')
-    .order('monthly_price', { ascending: true, nullsFirst: true });
+  const [{ data: { user } }, { data: plans }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('plans').select('*').order('monthly_price', { ascending: true, nullsFirst: true })
+  ]);
 
   const freePlan = plans?.find(p => p.id === 'free');
   const proPlan = plans?.find(p => p.id === 'pro');
@@ -27,28 +26,7 @@ export default async function PricingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Navigation */}
-      <nav className="border-b border-border/40 backdrop-blur-md sticky top-0 z-50 bg-background/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.jpg" alt="SwiftVenue Logo" width={32} height={32} className="w-8 h-8 rounded-lg object-cover shadow-sm border border-border/50" />
-            <span className="font-display font-bold text-xl tracking-tight">SwiftVenue</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <Link href="/#how-it-works" className="hover:text-foreground transition-colors">How it Works</Link>
-            <Link href="/#features" className="hover:text-foreground transition-colors">Features</Link>
-            <Link href="/pricing" className="text-foreground transition-colors font-semibold">Pricing</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <Link href="/login" className="hidden sm:block">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/signup">
-              <Button>Get Started</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Navbar initialUser={user} />
 
       <main className="flex-1">
         <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

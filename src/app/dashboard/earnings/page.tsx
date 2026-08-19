@@ -1,10 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { DollarSign, ArrowUpRight, Wallet, History, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { RequestPayoutButton } from "@/components/request-payout-button";
+import { calculateRemainingDailyAllowance, MIN_PAYOUT_AMOUNT } from "@/lib/payout-limits";
 
 export const metadata = {
   title: "Earnings & Payouts - SwiftVenue",
@@ -12,19 +13,35 @@ export const metadata = {
 
 export default async function EarningsPage() {
   const supabase = await createClient();
+  const service = createServiceClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
 
   if (authErr || !user) {
     redirect("/login");
   }
 
-  // Fetch all events for this organizer to calculate earnings and payouts
-  const { data: events } = await supabase
-    .from('events')
-    .select('id, title, payout_status, date')
-    .eq('user_id', user.id);
+  // 1. Fetch user profile and events in parallel
+  const [profileRes, eventsRes, payoutsRes] = await Promise.all([
+    service.from('profiles').select('plan').eq('id', user.id).single(),
+    supabase.from('events').select('id, title, payout_status, date').eq('user_id', user.id),
+    service.from('payouts').select('id, amount, status, created_at').eq('user_id', user.id).order('created_at', { ascending: false })
+  ]);
 
-  const eventIds = events?.map(e => e.id) || [];
+  const userPlan = profileRes.data?.plan || 'free';
+  const events = eventsRes.data || [];
+  const allPayouts = payoutsRes.data || [];
+
+  // Filter 24h payouts
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const recent24hPayouts = allPayouts.filter(p => p.created_at >= twentyFourHoursAgo);
+  const hasPendingPayout = allPayouts.some(p => p.status === 'pending');
+
+  const { dailyLimit, usedInLast24h, remainingToday } = calculateRemainingDailyAllowance(
+    recent24hPayouts,
+    userPlan
+  );
+
+  const eventIds = events.map(e => e.id);
   
   let orders: any[] = [];
   if (eventIds.length > 0) {
@@ -48,8 +65,16 @@ export default async function EarningsPage() {
     return sum + net;
   }, 0);
 
-  // Generate payouts history from events with non-pending payouts
-  const payouts = (events || [])
+  // Generate payouts history from explicit payout requests and events
+  const explicitPayouts = allPayouts.map(p => ({
+    id: p.id,
+    title: `Withdrawal Request (PKR ${Number(p.amount).toLocaleString()})`,
+    amount: Number(p.amount),
+    status: p.status,
+    date: new Date(p.created_at).toLocaleDateString()
+  }));
+
+  const eventPayouts = (events || [])
     .map(event => {
       const eventOrders = validOrders.filter(o => o.event_id === event.id);
       const eventPayoutAmount = eventOrders.reduce((sum, o) => sum + Number(o.organizer_net_amount || 0), 0);
@@ -61,15 +86,17 @@ export default async function EarningsPage() {
         date: event.date
       };
     })
-    .filter(p => p.amount > 0) // Only show events with earnings
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .filter(p => p.amount > 0 && p.status === 'paid');
 
-  const totalPaidOut = payouts
+  const payouts = [...explicitPayouts, ...eventPayouts];
+
+  // Completed payouts
+  const totalPaidOut = allPayouts
     .filter(p => p.status === 'paid')
-    .reduce((sum, p) => sum + p.amount, 0);
+    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-  const pendingBalance = totalNet - totalPaidOut;
-  const recentPayout = payouts.find(p => p.status === 'paid');
+  const pendingBalance = Math.max(0, totalNet - totalPaidOut);
+  const recentPayout = allPayouts.find(p => p.status === 'paid');
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -79,10 +106,17 @@ export default async function EarningsPage() {
           <p className="text-muted-foreground mt-1">Track your ticket sales revenue and payouts.</p>
         </div>
         <div className="flex items-center gap-3">
-          {pendingBalance >= 5000 ? (
-            <RequestPayoutButton pendingBalance={pendingBalance} eventIds={eventIds} />
+          {pendingBalance >= MIN_PAYOUT_AMOUNT ? (
+            <RequestPayoutButton 
+              pendingBalance={pendingBalance} 
+              eventIds={eventIds}
+              dailyLimit={dailyLimit}
+              remainingDailyAllowance={remainingToday}
+              usedInLast24h={usedInLast24h}
+              hasPendingPayout={hasPendingPayout}
+            />
           ) : pendingBalance > 0 ? (
-            <p className="text-xs text-muted-foreground mr-2 border-r border-border pr-4">Min. payout is Rs 5,000</p>
+            <p className="text-xs text-muted-foreground mr-2 border-r border-border pr-4">Min. payout is Rs {MIN_PAYOUT_AMOUNT.toLocaleString()}</p>
           ) : null}
           <Button asChild variant="outline" className="gap-2 shrink-0">
             <Link href="/dashboard/settings">
@@ -96,7 +130,7 @@ export default async function EarningsPage() {
         <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 p-4 rounded-xl flex items-center gap-3">
           <CheckCircle2 className="w-5 h-5 shrink-0" />
           <p className="text-sm font-medium">
-            Success! Your payout of Rs {recentPayout.amount.toLocaleString()} for "{recentPayout.title}" has been wired to your bank account.
+            Success! Your payout of Rs {Number(recentPayout.amount).toLocaleString()} has been wired to your bank account.
           </p>
         </div>
       )}

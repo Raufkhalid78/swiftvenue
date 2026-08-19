@@ -102,9 +102,48 @@ export default function CreateEventWizard() {
     currency: "PKR",
     ticket_price: "1500",
     hero_image_url: "",
+    venue_lat: null as number | null,
+    venue_lng: null as number | null,
   });
 
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+
+  const autoGeocodeAddress = async (addressQuery: string) => {
+    if (!addressQuery || addressQuery.trim().length < 4) return;
+    setGeocoding(true);
+    try {
+      const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      let lat: number | null = null;
+      let lon: number | null = null;
+
+      if (mapboxToken) {
+        const res = await fetch(`https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(addressQuery)}&access_token=${mapboxToken}&limit=1`);
+        const data = await res.json();
+        if (data.features && data.features.length > 0) {
+          lon = data.features[0].geometry.coordinates[0];
+          lat = data.features[0].geometry.coordinates[1];
+        }
+      } else {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressQuery)}&format=json&limit=1`, {
+          headers: { 'User-Agent': 'SwiftVenue/1.0 (support@swiftvenuehq.com)' }
+        });
+        const data = await res.json();
+        if (data && data.length > 0) {
+          lat = parseFloat(data[0].lat);
+          lon = parseFloat(data[0].lon);
+        }
+      }
+
+      if (lat && lon) {
+        setFormData(prev => ({ ...prev, venue_lat: lat, venue_lng: lon }));
+      }
+    } catch (err) {
+      console.warn("Auto-geocoding background notice:", err);
+    } finally {
+      setGeocoding(false);
+    }
+  };
 
   // Debounced Slug Availability Checker
   const checkSlugAvailability = useCallback(async (slugToTest: string) => {
@@ -285,6 +324,8 @@ export default function CreateEventWizard() {
           timezone: formData.timezone,
           venue_name: formData.modality !== 'virtual' ? formData.venue_name.trim() : 'Virtual / Online Stream',
           venue_address: formData.modality !== 'virtual' ? formData.venue_address.trim() : 'Online Event',
+          venue_lat: formData.venue_lat || null,
+          venue_lng: formData.venue_lng || null,
           theme_color: formData.theme_color,
           hero_image_url: formData.hero_image_url || null,
           template_id: formData.template_id,
@@ -682,14 +723,23 @@ export default function CreateEventWizard() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="venue_address">Venue Full Address</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="venue_address">Venue Full Address</Label>
+                    {geocoding && <span className="text-xs text-muted-foreground animate-pulse">Detecting GPS coordinates...</span>}
+                  </div>
                   <Textarea 
                     id="venue_address" 
                     placeholder="Street address, city, and landmarks for map navigation..." 
                     value={formData.venue_address} 
                     onChange={(e) => updateForm("venue_address", e.target.value)} 
+                    onBlur={() => autoGeocodeAddress(formData.venue_address)}
                     rows={2}
                   />
+                  {formData.venue_lat && formData.venue_lng && (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5" /> Map coordinates auto-detected ({formData.venue_lat.toFixed(4)}, {formData.venue_lng.toFixed(4)})
+                    </p>
+                  )}
                 </div>
               </div>
             )}

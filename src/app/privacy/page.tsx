@@ -1,17 +1,10 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/navbar";
 
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <nav className="border-b border-border/40 backdrop-blur-md sticky top-0 z-50 bg-background/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
-          <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to Home
-          </Link>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="flex-1 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <h1 className="text-4xl font-display font-bold mb-4">Privacy Policy</h1>

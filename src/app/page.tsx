@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/navbar";
 import { CalendarDays, Users, CreditCard, Sparkles, CheckCircle2, QrCode } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
@@ -22,38 +22,7 @@ export default async function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 flex flex-col">
       {/* Navigation */}
-      <nav className="border-b border-border/40 backdrop-blur-md sticky top-0 z-50 bg-background/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.jpg" alt="SwiftVenue Logo" width={32} height={32} className="w-8 h-8 rounded-lg object-cover shadow-sm border border-border/50" />
-            <span className="font-display font-bold text-xl tracking-tight">SwiftVenue</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <Link href="#how-it-works" className="hover:text-foreground transition-colors">How it Works</Link>
-            <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
-            <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
-            <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
-            <Link href="/blog" className="hover:text-foreground transition-colors">Blog</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            {user ? (
-              <Link href={user.user_metadata?.is_admin ? "/admin" : "/dashboard"}>
-                <Button>Go to Dashboard</Button>
-              </Link>
-            ) : (
-              <>
-                <Link href="/login" className="hidden sm:block">
-                  <Button variant="ghost">Sign In</Button>
-                </Link>
-                <Link href="/signup">
-                  <Button>Get Started</Button>
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Navbar initialUser={user} />
 
       {/* Hero Section */}
       <main className="flex-1">

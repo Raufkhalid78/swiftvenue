@@ -47,7 +47,7 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
         { data: orders },
         { data: attendees }
       ] = await Promise.all([
-        supabase.from('events').select('*, profiles(plan)').eq('id', eventId).single(),
+        supabase.from('events').select('*').eq('id', eventId).single(),
         supabase.from('orders').select('amount, created_at').eq('event_id', eventId).eq('status', 'paid'),
         supabase.from('attendees').select('*, ticket_types(name)').eq('event_id', eventId).order('created_at', { ascending: false })
       ]);
@@ -60,10 +60,14 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
 
         setConversionRate(0);
 
-        const profiles = eventData.profiles as any;
-        const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
-        
-        if (organizerPlan) {
+        if (eventData.user_id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('plan')
+            .eq('id', eventData.user_id)
+            .single();
+
+          const organizerPlan = profile?.plan || 'free';
           const { data: planData } = await supabase
             .from('plans')
             .select('max_guests_per_event')

@@ -212,11 +212,26 @@ export default function EventSettingsPage({ params }: { params: Promise<{ id: st
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Venue Address</Label>
-            <Input value={event.venue_address || ''} onChange={e => setEvent({...event, venue_address: e.target.value})} required placeholder="123 Main St, City, Country" />
+            <Input 
+              value={event.venue_address || ''} 
+              onChange={e => setEvent({...event, venue_address: e.target.value})} 
+              onBlur={() => {
+                if (event.venue_address && (!event.venue_lat || !event.venue_lng)) {
+                  handleGeocode();
+                }
+              }}
+              required 
+              placeholder="123 Main St, City, Country" 
+            />
+            {event.venue_lat && event.venue_lng && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-1">
+                <MapPin className="w-3.5 h-3.5" /> Coordinates auto-detected ({Number(event.venue_lat).toFixed(4)}, {Number(event.venue_lng).toFixed(4)})
+              </p>
+            )}
           </div>
           <div className="space-y-2 md:col-span-2 flex justify-start mb-2">
             <Button type="button" variant="outline" size="sm" onClick={handleGeocode} disabled={geocoding}>
-              <MapPin className="w-4 h-4 mr-2" /> {geocoding ? 'Finding...' : 'Find Coordinates from Address'}
+              <MapPin className="w-4 h-4 mr-2" /> {geocoding ? 'Finding coordinates...' : 'Find Coordinates from Address'}
             </Button>
           </div>
           <div className="space-y-2">

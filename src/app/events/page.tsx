@@ -5,6 +5,8 @@ import { headers } from "next/headers";
 import { PriceDisplay } from "@/components/price-display";
 import { CurrencySwitcher } from "@/components/currency-switcher";
 import { currencyForCountry } from "@/lib/currency-map";
+import { Navbar } from "@/components/navbar";
+import { Footer } from "@/components/footer";
 import Image from "next/image";
 
 export const revalidate = 60; // Revalidate every minute
@@ -28,6 +30,7 @@ export default async function EventsDirectory({
   const detectedCountry = headersList.get('x-detected-country') || 'PK';
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   let query = supabase
     .from("events")
@@ -52,7 +55,8 @@ export default async function EventsDirectory({
   const categories = ["all", "corporate", "social", "cultural", "educational"];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar initialUser={user} />
       <div className="bg-primary/5 py-16 px-4 border-b border-border relative">
         <div className="absolute top-4 right-4">
           <CurrencySwitcher defaultCurrency={detectedCountry && currencyForCountry(detectedCountry)} />
@@ -181,6 +185,7 @@ export default async function EventsDirectory({
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

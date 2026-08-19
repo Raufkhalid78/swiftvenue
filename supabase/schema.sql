@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS public.events (
   hero_image_url        TEXT,
   status                TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
   theme_color           TEXT DEFAULT '#0f172a',
-  template_id           TEXT DEFAULT 'modern' CHECK (template_id IN ('modern', 'minimalist', 'classic', 'festival', 'gala', 'workshop')),
+  template_id           TEXT DEFAULT 'modern' CHECK (template_id IN ('modern', 'minimalist', 'classic', 'festival', 'gala', 'workshop', 'tech_summit', 'social_mixer', 'virtual_stream')),
   ticket_price          NUMERIC(10, 2) DEFAULT 0.00,
   broadcast_count       INT DEFAULT 0,
   created_at            TIMESTAMPTZ DEFAULT NOW(),
