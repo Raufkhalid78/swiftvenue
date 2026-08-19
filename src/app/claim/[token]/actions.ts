@@ -20,31 +20,61 @@ export async function claimTransferredTicket(
       id,
       order_id,
       event_id,
+      guest_name,
+      guest_email,
+      guest_phone,
+      transferred_at,
       events (
         title,
         date,
         time,
         venue_name,
         venue_address
+      ),
+      ticket_types (
+        name,
+        price
       )
     `)
     .eq('claim_token', token)
     .single();
 
   if (fetchErr || !attendee) {
-    return { success: false, error: 'Invalid or already claimed transfer link.' };
+    return { success: false, error: 'Invalid or expired transfer link.' };
   }
 
-  const { error: updateErr } = await service
+  // If already claimed by this email or claimed previously
+  const now = new Date().toISOString();
+  const { data: updatedAttendee, error: updateErr } = await service
     .from('attendees')
     .update({
       guest_name: formData.name.trim(),
       guest_email: formData.email.trim().toLowerCase(),
       guest_phone: formData.phone?.trim() || null,
-      transferred_at: new Date().toISOString(),
-      claim_token: null, // Revoke token so it cannot be claimed multiple times
+      transferred_at: attendee.transferred_at || now,
     })
-    .eq('id', attendee.id);
+    .eq('id', attendee.id)
+    .select(`
+      id,
+      guest_name,
+      guest_email,
+      guest_phone,
+      transferred_at,
+      events (
+        title,
+        date,
+        time,
+        venue_name,
+        venue_address,
+        slug,
+        hero_image_url
+      ),
+      ticket_types (
+        name,
+        price
+      )
+    `)
+    .single();
 
   if (updateErr) {
     console.error('Failed to claim ticket:', updateErr);
@@ -71,5 +101,9 @@ export async function claimTransferredTicket(
     }
   }
 
-  return { success: true, attendeeId: attendee.id };
+  return { 
+    success: true, 
+    attendeeId: attendee.id,
+    attendee: updatedAttendee 
+  };
 }

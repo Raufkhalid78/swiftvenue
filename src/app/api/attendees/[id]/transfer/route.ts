@@ -33,14 +33,15 @@ export async function POST(
       return NextResponse.json({ error: "Cannot transfer an already checked-in ticket" }, { status: 400 });
     }
 
-    // Generate claim token if not existing
-    const claimToken = attendee.claim_token || crypto.randomUUID();
+    // Generate fresh claim token
+    const claimToken = crypto.randomUUID();
     const originalPurchaser = attendee.original_purchaser_email || purchaserEmail || attendee.guest_email;
 
     const { error: updateErr } = await service
       .from("attendees")
       .update({
         claim_token: claimToken,
+        transferred_at: null,
         original_purchaser_email: originalPurchaser,
       })
       .eq("id", attendeeId);

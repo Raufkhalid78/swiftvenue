@@ -37,8 +37,9 @@ export function processTicketClaim(
     ...attendee,
     guest_name: newGuestName.trim(),
     guest_email: newGuestEmail.trim(),
-    claim_token: null, // Claim token is consumed to prevent double-claiming
-    transferred_at: new Date().toISOString(),
+    // Preserve claim_token so the URL remains a bookmarkable digital ticket pass
+    claim_token: attendee.claim_token,
+    transferred_at: attendee.transferred_at || new Date().toISOString(),
   };
 
   return { success: true, updatedAttendee: updated };
@@ -89,7 +90,7 @@ describe('Ticket Transfer & Claim Security Lifecycle', () => {
     expect(res.reason).toContain('Cancelled or refunded');
   });
 
-  it('successfully completes claim, updates attendee info, and invalidates claim token', () => {
+  it('successfully completes claim, updates attendee info, and preserves pass token', () => {
     const result = processTicketClaim(
       activeTicket,
       'Sarah Connor',
@@ -100,11 +101,11 @@ describe('Ticket Transfer & Claim Security Lifecycle', () => {
     expect(result.success).toBe(true);
     expect(result.updatedAttendee?.guest_name).toBe('Sarah Connor');
     expect(result.updatedAttendee?.guest_email).toBe('sarah@sky.net');
-    expect(result.updatedAttendee?.claim_token).toBeNull();
+    expect(result.updatedAttendee?.claim_token).toBe('token-uuid-abc-123');
     expect(result.updatedAttendee?.transferred_at).not.toBeNull();
   });
 
-  it('rejects claim when token does not match or is already consumed', () => {
+  it('rejects claim when token does not match', () => {
     const result = processTicketClaim(
       activeTicket,
       'Impostor',
