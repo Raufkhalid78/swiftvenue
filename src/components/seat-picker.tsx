@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 
 // Color palettes for different ticket tiers
 const tierColors = [

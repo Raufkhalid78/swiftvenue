@@ -52,7 +52,7 @@ export async function duplicateEvent(sourceEventId: string) {
   ]);
 
   const stripAndRetarget = (rows: any[] | null) =>
-    (rows || []).map(({ id, event_id, quantity_sold, ...rest }) => ({
+    (rows || []).map(({ id: _id, event_id: _event_id, quantity_sold, ...rest }) => ({
       ...rest,
       event_id: newEvent.id,
       ...(quantity_sold !== undefined ? { quantity_sold: 0 } : {}), // reset sales counts on the copy
@@ -69,12 +69,12 @@ export async function duplicateEvent(sourceEventId: string) {
 
   // Seating is a bit more involved — clone the layout, then the seats referencing the new layout_id
   if (seatingLayout.data) {
-    const { id: oldLayoutId, event_id, ...layoutRest } = seatingLayout.data;
+    const { id: oldLayoutId, event_id: _event_id, ...layoutRest } = seatingLayout.data;
     const { data: newLayout } = await service.from('seating_layouts').insert({ ...layoutRest, event_id: newEvent.id }).select().single();
     if (newLayout) {
       const { data: seats } = await service.from('seats').select('*').eq('layout_id', oldLayoutId);
       if (seats?.length) {
-        const clonedSeats = seats.map(({ id, layout_id, status, locked_by, locked_until, ...rest }) => ({
+        const clonedSeats = seats.map(({ id: _id, layout_id: _layout_id, status: _status, locked_by: _locked_by, locked_until: _locked_until, ...rest }) => ({
           ...rest, layout_id: newLayout.id, status: 'available', // every seat resets to available on the copy
         }));
         await service.from('seats').insert(clonedSeats);

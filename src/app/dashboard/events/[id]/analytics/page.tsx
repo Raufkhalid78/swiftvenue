@@ -16,7 +16,7 @@ import {
   Cell,
   Legend
 } from "recharts";
-import { MapPin, Users, Activity, Eye, ShoppingCart, CheckCircle2, Globe2 } from "lucide-react";
+import { MapPin, Users, Activity, Eye, Globe2 } from "lucide-react";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
 
@@ -47,7 +47,6 @@ export default function AnalyticsPage({ params }: { params: Promise<{ id: string
   });
   const [funnelData, setFunnelData] = useState<{ name: string; value: number }[]>([]);
   const [geoData, setGeoData] = useState<{ name: string; value: number }[]>([]);
-  const [deviceData, setDeviceData] = useState<{ name: string; value: number }[]>([]);
 
   useEffect(() => {
     async function loadRealAnalytics() {
@@ -102,15 +101,6 @@ export default function AnalyticsPage({ params }: { params: Promise<{ id: string
         const topCountryName = topCountryEntry ? topCountryEntry.name : 'PK';
         const topCountryPercent = topCountryEntry ? Math.round((topCountryEntry.value / totalGeoHits) * 100) : 100;
 
-        // Group by device
-        const deviceCounts: Record<string, number> = {};
-        telemetry.forEach(t => {
-          const d = t.device_type ? (t.device_type.charAt(0).toUpperCase() + t.device_type.slice(1)) : 'Desktop';
-          deviceCounts[d] = (deviceCounts[d] || 0) + 1;
-        });
-
-        const formattedDevices = Object.entries(deviceCounts).map(([name, value]) => ({ name, value }));
-
         setMetrics({
           pageViews,
           checkoutInitiated,
@@ -128,7 +118,6 @@ export default function AnalyticsPage({ params }: { params: Promise<{ id: string
         ]);
 
         setGeoData(sortedCountries.length > 0 ? sortedCountries.slice(0, 5) : [{ name: 'Direct Visits', value: 1 }]);
-        setDeviceData(formattedDevices.length > 0 ? formattedDevices : [{ name: 'Desktop', value: 1 }]);
       } catch (err) {
         console.error('Failed to load real analytics:', err);
       } finally {

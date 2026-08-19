@@ -1,5 +1,4 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
 import { Users, Clock, Mail, CheckCircle2 } from "lucide-react";
 import WaitlistClient from "./waitlist-client";
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Plus, Trash2, Tag, Percent, HandCoins } from 'lucide-react';
+import { Loader2, Plus, Trash2, Percent, HandCoins } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPromoCode, deletePromoCode, togglePromoCodeStatus } from './actions';
 import { Badge } from '@/components/ui/badge';

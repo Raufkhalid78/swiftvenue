@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Clock, MapPin, User, CalendarDays } from "lucide-react";
+import { Clock, MapPin, User } from "lucide-react";
 
 interface AgendaSession {
   id: string;

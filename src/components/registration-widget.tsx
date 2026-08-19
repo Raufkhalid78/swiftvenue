@@ -24,13 +24,12 @@ export function RegistrationWidget({
   seatingLayout?: any,
   seats?: any[],
 }) {
-  const { targetCurrency, exchangeRate, isHydrated } = useCurrency();
+  const { targetCurrency, exchangeRate } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
   const [selectedTicketId, setSelectedTicketId] = useState<string>(seatingLayout ? "" : (ticketTypes[0]?.id || ""));
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
-  const quantity = seatingLayout ? selectedSeatIds.length : (arguments[0] /* fallback */ ? 1 : 1);
   const [manualQuantity, setManualQuantity] = useState(1);
   const activeQuantity = seatingLayout ? selectedSeatIds.length : manualQuantity;
   const [attendeeDetails, setAttendeeDetails] = useState(Array(1).fill({ name: "", email: "" }));
@@ -169,11 +168,11 @@ export function RegistrationWidget({
       }
 
       if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+        window.location.assign(data.checkoutUrl);
       } else {
         // Handle free tickets
         toast.success("Ticket registered successfully!");
-        window.location.href = `${window.location.pathname}/success?order=${data.orderId}`;
+        window.location.assign(`${window.location.pathname}/success?order=${data.orderId}`);
       }
     } catch (error: any) {
       toast.error(error.message);

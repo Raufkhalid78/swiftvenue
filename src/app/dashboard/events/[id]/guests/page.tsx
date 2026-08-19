@@ -3,7 +3,7 @@
 import { useEffect, useState, use, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Download, UserPlus, MoreHorizontal, CheckCircle2, XCircle, Upload, Printer, Loader2 } from "lucide-react";
+import { Search, Download, MoreHorizontal, CheckCircle2, XCircle, Upload, Printer, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -117,7 +117,7 @@ export default function GuestsPage({ params }: { params: Promise<{ id: string }>
         format: 'grid_6',
       });
       toast.success('Generated printable badge sheet!');
-    } catch (err: any) {
+    } catch {
       toast.error('Failed to generate badges');
     } finally {
       setIsPrinting(false);

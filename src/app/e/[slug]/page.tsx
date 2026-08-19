@@ -10,7 +10,6 @@ import { SocialShare } from "@/components/social-share";
 import { SaveButton } from "@/components/save-button";
 import { EventWeather } from "@/components/event-weather";
 import { LiveUpdatesWidget } from "@/components/live-updates";
-import { headers } from "next/headers";
 import { PriceDisplay } from "@/components/price-display";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { ThemeToggle } from "@/components/theme-toggle";

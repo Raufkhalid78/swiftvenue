@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, useCallback, use } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle, XCircle, WifiOff, Wifi, RefreshCw } from "lucide-react";
@@ -34,52 +34,18 @@ export default function CheckInPage({ params }: { params: Promise<{ id: string }
     ticketType?: string;
   } | null>(null);
 
-  // Network listener
-  useEffect(() => {
-    setIsOnline(navigator.onLine);
-    const handleOnline = () => { setIsOnline(true); syncOutbox(); };
-    const handleOffline = () => setIsOnline(false);
-    
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    
-    // Initial outbox check
-    checkOutboxCount();
-    
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  const checkOutboxCount = async () => {
-    const outbox: string[] = await get(`outbox_${eventId}`) || [];
-    setOutboxCount(outbox.length);
-  };
-
-  const handleSyncAttendees = async () => {
-    if (!isOnline) {
-      toast.error("You must be online to sync event data.");
-      return;
-    }
-    setIsSyncing(true);
+  const checkOutboxCount = useCallback(async () => {
     try {
-      // First sync outbox if any
-      await syncOutbox();
-      
-      const attendees = await syncAttendees(eventId);
-      await set(`attendees_${eventId}`, attendees);
-      toast.success(`Successfully cached ${attendees.length} attendees for offline check-in.`);
-    } catch (err: any) {
-      toast.error(`Sync failed: ${err.message}`);
-    } finally {
-      setIsSyncing(false);
+      const outbox: string[] = (await get(`outbox_${eventId}`)) || [];
+      setOutboxCount(outbox.length);
+    } catch {
+      // ignore in SSR
     }
-  };
+  }, [eventId]);
 
-  const syncOutbox = async () => {
+  const syncOutbox = useCallback(async () => {
     try {
-      const outbox: string[] = await get(`outbox_${eventId}`) || [];
+      const outbox: string[] = (await get(`outbox_${eventId}`)) || [];
       if (outbox.length > 0) {
         const res = await bulkCheckIn(eventId, outbox);
         if (res.success) {
@@ -90,6 +56,47 @@ export default function CheckInPage({ params }: { params: Promise<{ id: string }
       }
     } catch (e) {
       console.error("Failed to sync outbox", e);
+    }
+  }, [eventId]);
+
+  // Network listener
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncOutbox();
+    };
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Initial outbox check
+    checkOutboxCount();
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [checkOutboxCount, syncOutbox]);
+
+  const handleSyncAttendees = async () => {
+    if (!isOnline) {
+      toast.error("You must be online to sync event data.");
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      // First sync outbox if any
+      await syncOutbox();
+
+      const attendees = await syncAttendees(eventId);
+      await set(`attendees_${eventId}`, attendees);
+      toast.success(`Successfully cached ${attendees.length} attendees for offline check-in.`);
+    } catch (err: any) {
+      toast.error(`Sync failed: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
     }
   };
 

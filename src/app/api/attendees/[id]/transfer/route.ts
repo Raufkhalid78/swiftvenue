@@ -68,7 +68,7 @@ export async function POST(
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #ffffff; color: #1e293b;">
               <div style="text-align: center; margin-bottom: 24px;">
                 <h1 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0;">You've received a ticket!</h1>
-                <p style="color: #64748b; font-size: 15px; margin-top: 8px;">${originalPurchaser} has transferred a ticket to you for <strong>${event?.title}</strong>.</p>
+                <p style="color: #64748b; font-size: 15px; margin-top: 8px;">Hi ${recipientName || 'there'}, ${originalPurchaser} has transferred a ticket to you for <strong>${event?.title}</strong>.</p>
               </div>
 
               <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0;">

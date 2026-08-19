@@ -24,9 +24,6 @@ export async function generateBadgePDF({
     format: 'a4',
   });
 
-  const pageWidth = 210;
-  const pageHeight = 297;
-
   if (format === 'grid_6') {
     // 2 columns x 3 rows (6 badges per A4 sheet)
     // Badge dimension: 90mm width x 80mm height

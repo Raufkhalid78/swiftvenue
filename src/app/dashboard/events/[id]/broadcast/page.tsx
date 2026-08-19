@@ -1,19 +1,18 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, ArrowLeft, CheckCircle2, XCircle, Clock, History } from "lucide-react";
+import { Loader2, Send, ArrowLeft, CheckCircle2, XCircle, History } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
 export default function BroadcastPage() {
   const params = useParams();
-  const router = useRouter();
   const eventId = params.id as string;
   
   const [loading, setLoading] = useState(false);

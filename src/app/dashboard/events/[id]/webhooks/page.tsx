@@ -15,9 +15,7 @@ import {
   Clock, 
   Play, 
   Copy, 
-  ExternalLink,
   ShieldCheck,
-  Radio
 } from "lucide-react";
 import { toast } from "sonner";
 import { getWebhooks, createWebhook, toggleWebhook, deleteWebhook, sendTestPing } from "./actions";
@@ -85,7 +83,7 @@ export default function WebhooksPage({ params }: { params: Promise<{ id: string 
       await toggleWebhook(wh.id, eventId, !wh.is_active);
       toast.success(wh.is_active ? "Webhook paused" : "Webhook activated");
       loadData();
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to update status");
     }
   };
@@ -96,7 +94,7 @@ export default function WebhooksPage({ params }: { params: Promise<{ id: string 
       await deleteWebhook(id, eventId);
       toast.success("Webhook deleted");
       loadData();
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to delete webhook");
     }
   };
@@ -107,7 +105,7 @@ export default function WebhooksPage({ params }: { params: Promise<{ id: string 
       await sendTestPing(id, eventId);
       toast.success("Test ping dispatched! Refresh logs in a moment.");
       setTimeout(loadData, 1500);
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to send test ping");
     }
   };
