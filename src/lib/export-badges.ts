@@ -1,6 +1,3 @@
-import jsPDF from 'jspdf';
-import QRCode from 'qrcode';
-
 export interface BadgeAttendee {
   id: string;
   guest_name: string;
@@ -18,6 +15,11 @@ export async function generateBadgePDF({
   attendees: BadgeAttendee[];
   format?: 'grid_6' | 'grid_4';
 }) {
+  const [{ default: jsPDF }, { default: QRCode }] = await Promise.all([
+    import('jspdf'),
+    import('qrcode'),
+  ]);
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',

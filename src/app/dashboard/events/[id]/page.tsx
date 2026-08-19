@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { duplicateEvent } from "./duplicate-action";
+import { PreviewDrawer } from "./preview-drawer";
 
 export default function EventOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -40,41 +41,24 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
     async function fetchData() {
       const supabase = createClient();
       
-      // Fetch Event
-      const { data: eventData } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', eventId)
-        .single();
+      // Fetch Event, Orders, and Attendees in parallel
+      const [
+        { data: eventData },
+        { data: orders },
+        { data: attendees }
+      ] = await Promise.all([
+        supabase.from('events').select('*, profiles(plan)').eq('id', eventId).single(),
+        supabase.from('orders').select('amount, created_at').eq('event_id', eventId).eq('status', 'paid'),
+        supabase.from('attendees').select('*, ticket_types(name)').eq('event_id', eventId).order('created_at', { ascending: false })
+      ]);
       
       if (eventData) {
         setEvent(eventData);
 
-        // Fetch Attendees count
-        const { count: rsvpCount } = await supabase
-          .from('attendees')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_id', eventId);
-
-        // Fetch Ticket Sales
-        const { data: orders } = await supabase
-          .from('orders')
-          .select('amount, created_at')
-          .eq('event_id', eventId)
-          .eq('status', 'paid');
-        
+        const rsvpCount = attendees?.length || 0;
         const totalSales = orders?.reduce((acc, order) => acc + Number(order.amount), 0) || 0;
 
-        // Calculate Conversion Rate (Mock page views since we don't have tracking yet, so just say 0 or calculate based on rsvps)
-        // If we have views, it would be (rsvps / views) * 100
         setConversionRate(0);
-
-        // Fetch Recent Attendees
-        const { data: attendees } = await supabase
-          .from('attendees')
-          .select('*, ticket_types(name)')
-          .eq('event_id', eventId)
-          .order('created_at', { ascending: false });
 
         const profiles = eventData.profiles as any;
         const organizerPlan = Array.isArray(profiles) ? profiles[0]?.plan : profiles?.plan;
@@ -161,6 +145,8 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <PreviewDrawer slug={event.slug} eventTitle={event.title} />
+
           <Button variant="outline" size="sm" className="h-8" onClick={handleDuplicate} disabled={isDuplicating}>
             <Copy className="w-4 h-4 mr-2" />
             {isDuplicating ? "Duplicating..." : "Duplicate Event"}

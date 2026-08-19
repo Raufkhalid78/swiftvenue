@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Calendar, MapPin, Clock, Banknote, ArrowUpRight, Users } from "lucide-react";
+import { Calendar, MapPin, Banknote, ArrowUpRight, Users } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -15,6 +15,10 @@ import { CurrencyProvider } from "@/components/currency-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { EventTracker } from "@/components/event-tracker";
 import { PublicAgenda } from "@/components/public-agenda";
+import { TechSummitTemplate } from "@/components/templates/tech-summit-template";
+import { SocialMixerTemplate } from "@/components/templates/social-mixer-template";
+import { VirtualStreamTemplate } from "@/components/templates/virtual-stream-template";
+import { StickyMobileBookingBar } from "@/components/sticky-mobile-booking-bar";
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -170,11 +174,27 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   let seatingLayout = sl ? sl.layout_data_json : null;
   let seats: any[] = seatsRes.data || [];
 
+  const templateProps = {
+    event,
+    ticketTypes: ticketTypes || [],
+    seatingLayout,
+    seats,
+    speakers: speakers || [],
+    agendaItems: agendaItems || [],
+    sponsors: sponsors || [],
+    faqs: faqs || [],
+    gallery,
+    attendeeCount,
+    lowestPrice,
+    isFree,
+    priceRangeLabel,
+  };
+
   return (
     <CurrencyProvider rates={ratesMap}>
     <EventTracker eventId={event.id} />
     <div 
-      className="min-h-screen bg-background"
+      className="min-h-screen bg-background pb-20 sm:pb-0"
       style={{
         // @ts-ignore
         '--theme-primary': rgbTheme,
@@ -221,6 +241,21 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />
       </div>
+
+      {/* --- TECH SUMMIT & HACKATHON TEMPLATE --- */}
+      {template === 'tech_summit' && (
+        <TechSummitTemplate {...templateProps} />
+      )}
+
+      {/* --- SOCIAL MIXER / LUMA TEMPLATE --- */}
+      {template === 'social_mixer' && (
+        <SocialMixerTemplate {...templateProps} />
+      )}
+
+      {/* --- VIRTUAL STREAM & WEBINAR TEMPLATE --- */}
+      {template === 'virtual_stream' && (
+        <VirtualStreamTemplate {...templateProps} />
+      )}
 
       {/* --- MODERN TEMPLATE --- */}
       {template === 'modern' && (
@@ -783,20 +818,8 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
                 {agendaItems && agendaItems.length > 0 && (
                   <div>
-                    <h2 className="text-3xl font-serif font-bold border-b-2 theme-border pb-2 inline-block mb-6">Schedule</h2>
-                    <div className="space-y-6">
-                      {agendaItems.map((item: any) => (
-                        <div key={item.id} className="bg-card p-6 rounded-xl border border-border shadow-sm">
-                          <div className="flex items-center gap-3 text-primary mb-2">
-                            <Clock className="w-4 h-4" />
-                            <span className="font-semibold">{item.start_time} - {item.end_time || "End"}</span>
-                          </div>
-                          <h3 className="text-xl font-bold mb-1">{item.title}</h3>
-                          {item.speaker_name && <p className="text-muted-foreground mb-3">by {item.speaker_name}</p>}
-                          {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
-                        </div>
-                      ))}
-                    </div>
+                    <h2 className="text-3xl font-serif font-bold border-b-2 theme-border pb-2 inline-block mb-6">Schedule & Tracks</h2>
+                    <PublicAgenda items={agendaItems} />
                   </div>
                 )}
 
@@ -1028,25 +1051,22 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
                 {agendaItems && agendaItems.length > 0 && (
                   <section>
-                    <h2 className="text-2xl font-light uppercase tracking-widest text-yellow-600 mb-8">Program</h2>
-                    <div className="space-y-8">
-                      {agendaItems.map((item: any) => (
-                        <div key={item.id} className="border-b border-zinc-800 pb-8 last:border-0">
-                          <div className="text-yellow-600/80 mb-2 font-mono text-sm tracking-wider">{item.start_time} - {item.end_time || "Concludes"}</div>
-                          <h3 className="text-xl font-medium mb-2">{item.title}</h3>
-                          {item.speaker_name && <p className="text-zinc-400 italic">Featuring {item.speaker_name}</p>}
-                          {item.description && <p className="text-zinc-500 mt-3 text-sm">{item.description}</p>}
-                        </div>
-                      ))}
-                    </div>
+                    <h2 className="text-2xl font-light uppercase tracking-widest text-yellow-600 mb-8">Program & Schedule</h2>
+                    <PublicAgenda items={agendaItems} />
                   </section>
                 )}
               </div>
 
               <div className="md:col-span-5 space-y-16">
                 <div className="bg-zinc-900/50 border border-zinc-800 p-8 rounded-sm">
-                  <h2 className="text-2xl font-light text-center mb-8">RSVP</h2>
-                  <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
+                  <h2 className="text-2xl font-light text-center mb-8">RSVP & Reserved Seating</h2>
+                  <RegistrationWidget 
+                    eventId={event.id} 
+                    eventTitle={event.title} 
+                    ticketTypes={ticketTypes || []} 
+                    seatingLayout={seatingLayout} 
+                    seats={seats} 
+                  />
                   {attendeeCount !== null && attendeeCount >= 3 && (
                     <p className="text-sm text-zinc-400 flex items-center justify-center gap-1.5 mt-6">
                       <Users className="w-4 h-4" />
@@ -1153,18 +1173,8 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
               {agendaItems && agendaItems.length > 0 && (
                 <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-                  <h2 className="text-lg font-bold border-b border-slate-100 pb-2 mb-4">Agenda</h2>
-                  <div className="relative border-l-2 border-slate-100 ml-3 space-y-6">
-                    {agendaItems.map((item: any) => (
-                      <div key={item.id} className="relative pl-6">
-                        <div className="absolute w-3 h-3 bg-white border-2 border-primary rounded-full -left-[7px] top-1.5" />
-                        <div className="text-sm font-semibold text-primary mb-1">{item.start_time} - {item.end_time || 'End'}</div>
-                        <h3 className="font-bold text-slate-900">{item.title}</h3>
-                        {item.speaker_name && <p className="text-sm text-slate-600 mt-1">Led by: {item.speaker_name}</p>}
-                        {item.description && <p className="text-sm text-slate-500 mt-2">{item.description}</p>}
-                      </div>
-                    ))}
-                  </div>
+                  <h2 className="text-lg font-bold border-b border-slate-100 pb-2 mb-4">Agenda & Schedule</h2>
+                  <PublicAgenda items={agendaItems} />
                 </div>
               )}
             </div>
@@ -1172,7 +1182,13 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
             <div className="md:col-span-4 space-y-6">
               <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                 <h2 className="text-lg font-bold border-b border-slate-100 pb-2 mb-4">Registration</h2>
-                <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} />
+                <RegistrationWidget 
+                  eventId={event.id} 
+                  eventTitle={event.title} 
+                  ticketTypes={ticketTypes || []} 
+                  seatingLayout={seatingLayout} 
+                  seats={seats} 
+                />
                 {attendeeCount !== null && attendeeCount >= 3 && (
                   <p className="text-sm text-slate-500 flex items-center justify-center gap-1.5 mt-4">
                     <Users className="w-4 h-4" />
@@ -1283,6 +1299,14 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           </Link>
         </div>
       )}
+
+      {/* Floating Sticky Mobile Booking Bar */}
+      <StickyMobileBookingBar 
+        lowestPrice={lowestPrice} 
+        isFree={isFree} 
+        hasMultipleTiers={hasMultipleTiers} 
+        eventTitle={event.title} 
+      />
 
     </div>
     </CurrencyProvider>

@@ -19,23 +19,15 @@ export default function DashboardOverview() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', session.user.id)
-        .single();
+      // Fetch profile and events in parallel
+      const [{ data: profile }, { data: events }] = await Promise.all([
+        supabase.from('profiles').select('full_name').eq('id', session.user.id).single(),
+        supabase.from('events').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false })
+      ]);
 
       if (profile?.full_name) {
         setUserName(profile.full_name.split(' ')[0]);
       }
-
-      // Events
-      const { data: events } = await supabase
-        .from('events')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
 
       if (events) {
         setRecentEvents(events.slice(0, 5));

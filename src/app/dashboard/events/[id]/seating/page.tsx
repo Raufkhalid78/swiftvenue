@@ -6,36 +6,23 @@ export default async function SeatingPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, title")
-    .eq("id", id)
-    .single();
+  const [
+    { data: event },
+    { data: layout },
+    { data: ticketTypes }
+  ] = await Promise.all([
+    supabase.from("events").select("id, title").eq("id", id).single(),
+    supabase.from("seating_layouts").select("id, layout_data_json").eq("event_id", id).single(),
+    supabase.from("ticket_types").select("id, name, price").eq("event_id", id).eq("is_active", true)
+  ]);
 
   if (!event) notFound();
 
-  // Fetch existing layout
-  const { data: layout } = await supabase
-    .from("seating_layouts")
-    .select("layout_data_json")
-    .eq("event_id", id)
-    .single();
-
-  // Fetch ticket types to assign to seats
-  const { data: ticketTypes } = await supabase
-    .from("ticket_types")
-    .select("id, name, price")
-    .eq("event_id", id)
-    .eq("is_active", true);
-
-  // Fetch existing seats
+  // Fetch existing seats if layout exists
   let seats: any[] = [];
-  if (layout) {
-    const { data: existingLayout } = await supabase.from('seating_layouts').select('id').eq('event_id', id).single();
-    if (existingLayout) {
-      const { data: s } = await supabase.from('seats').select('*').eq('layout_id', existingLayout.id);
-      seats = s || [];
-    }
+  if (layout?.id) {
+    const { data: s } = await supabase.from('seats').select('*').eq('layout_id', layout.id);
+    seats = s || [];
   }
 
   return (

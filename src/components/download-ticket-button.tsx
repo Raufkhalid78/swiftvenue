@@ -4,8 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
-import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/client";
 import { getOrderAttendees } from "@/lib/get-order-attendees";
 
@@ -16,6 +14,11 @@ export function DownloadTicketButton({ orderId, removeBranding = false }: { orde
   const handleDownload = async () => {
     setIsGenerating(true);
     try {
+      const [{ default: jsPDF }, { default: QRCode }] = await Promise.all([
+        import("jspdf"),
+        import("qrcode"),
+      ]);
+
       const { event, attendees } = await getOrderAttendees(supabase, orderId);
 
       const doc = new jsPDF({

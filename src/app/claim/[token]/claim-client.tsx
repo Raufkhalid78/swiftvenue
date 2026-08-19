@@ -22,8 +22,6 @@ import { claimTransferredTicket } from './actions';
 import { WalletButtons } from '@/components/wallet-buttons';
 import Image from 'next/image';
 import Link from 'next/link';
-import QRCode from 'qrcode';
-import jsPDF from 'jspdf';
 
 interface ClaimClientProps {
   attendee: any;
@@ -48,11 +46,13 @@ export function ClaimClient({ attendee: initialAttendee, token }: ClaimClientPro
   // Generate QR Code when claimed
   useEffect(() => {
     if (isClaimed && attendee.id) {
-      QRCode.toDataURL(attendee.id, {
-        width: 320,
-        margin: 1,
-        color: { dark: '#0f172a', light: '#ffffff' },
-      }).then(setQrDataUrl).catch(console.error);
+      import('qrcode').then(({ default: QRCode }) => {
+        QRCode.toDataURL(attendee.id, {
+          width: 320,
+          margin: 1,
+          color: { dark: '#0f172a', light: '#ffffff' },
+        }).then(setQrDataUrl).catch(console.error);
+      });
     }
   }, [isClaimed, attendee.id]);
 
@@ -89,6 +89,11 @@ export function ClaimClient({ attendee: initialAttendee, token }: ClaimClientPro
   const handleDownloadPDF = async () => {
     setDownloadingPdf(true);
     try {
+      const [{ default: jsPDF }, { default: QRCode }] = await Promise.all([
+        import('jspdf'),
+        import('qrcode'),
+      ]);
+
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',

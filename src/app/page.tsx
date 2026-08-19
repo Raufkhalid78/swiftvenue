@@ -135,6 +135,7 @@ export default async function LandingPage() {
                   src="/mockups/agenda_builder_mockup_1786220553907.jpg"
                   alt="SwiftVenue drag-and-drop agenda builder interface"
                   fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
                   className="object-cover object-center"
                 />
               </div>
@@ -157,6 +158,7 @@ export default async function LandingPage() {
                   src="/mockups/safepay_ticketing_mockup_1786220564427.jpg"
                   alt="SwiftVenue ticket checkout flow with Safepay"
                   fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
                   className="object-cover object-center"
                 />
               </div>
@@ -179,6 +181,7 @@ export default async function LandingPage() {
                   src="/mockups/waitlist_management_mockup_1786220574365.jpg"
                   alt="SwiftVenue waitlist and capacity management interface"
                   fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
                   className="object-cover object-center"
                 />
               </div>
@@ -201,6 +204,7 @@ export default async function LandingPage() {
                   src="/mockups/checkin_management_mockup_1786220585615.jpg"
                   alt="SwiftVenue check-in and QR scanner interface"
                   fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
                   className="object-cover object-center"
                 />
               </div>
@@ -226,7 +230,7 @@ export default async function LandingPage() {
                 <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Safepay ticketing</li>
               </ul>
             </div>
-            <div className="p-8 rounded-3xl bg-primary text-primary-foreground shadow-md flex flex-col relative scale-105">
+            <div className="p-8 rounded-3xl bg-primary text-primary-foreground shadow-md flex flex-col relative md:scale-105">
               <div className="absolute top-0 right-8 transform -translate-y-1/2">
                 <span className="bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-full">Most Popular</span>
               </div>

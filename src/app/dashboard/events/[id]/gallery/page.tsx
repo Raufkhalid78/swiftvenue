@@ -207,7 +207,7 @@ export default function GalleryPage({ params }: { params: Promise<{ id: string }
           items.map((item) => (
             <div key={item.id} className="group relative aspect-square rounded-xl overflow-hidden border border-border bg-muted">
               <Image src={item.image_url} alt={item.caption || "Gallery image"} fill className="object-cover" />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-4">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/60 sm:bg-black/50 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3 sm:p-4">
                 <div className="flex justify-between items-start">
                   <span className="text-xs font-medium bg-background/90 text-foreground px-2 py-1 rounded">
                     {item.is_post_event ? 'Post-Event' : 'Promo'}

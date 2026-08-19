@@ -115,7 +115,7 @@ function SortableTicketItem({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onEdit(item)}>
           <Edit2 className="w-4 h-4" />
         </Button>
