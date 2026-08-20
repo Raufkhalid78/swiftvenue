@@ -28,8 +28,7 @@ const VirtualStreamTemplate = dynamic(() =>
   import("@/components/templates/virtual-stream-template").then((m) => m.VirtualStreamTemplate)
 );
 const EventAiConcierge = dynamic(() =>
-  import("@/components/event-ai-concierge").then((m) => m.EventAiConcierge),
-  { ssr: false }
+  import("@/components/event-ai-concierge").then((m) => m.EventAiConcierge)
 );
 
 function hexToRgb(hex: string) {
