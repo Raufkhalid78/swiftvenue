@@ -16,13 +16,17 @@ export async function duplicateEvent(sourceEventId: string) {
   const { data: source } = await service.from('events').select('*').eq('id', sourceEventId).single();
   if (!source) throw new Error('Event not found');
 
-  // Generate a unique slug — append a short suffix and check for collision
+  // Generate a unique slug in a single query
   const baseSlug = `${source.slug}-copy`;
+  const { data: matchingSlugs } = await service
+    .from('events')
+    .select('slug')
+    .ilike('slug', `${baseSlug}%`);
+
+  const existingSlugSet = new Set((matchingSlugs || []).map(s => s.slug));
   let newSlug = baseSlug;
   let suffix = 1;
-  while (true) {
-    const { data: existing } = await service.from('events').select('id').eq('slug', newSlug).maybeSingle();
-    if (!existing) break;
+  while (existingSlugSet.has(newSlug)) {
     newSlug = `${baseSlug}-${++suffix}`;
   }
 

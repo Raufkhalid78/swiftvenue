@@ -18,11 +18,11 @@ export async function approveUpgradeRequest(requestId: string) {
     const { data: req } = await service.from('upgrade_requests').select('*').eq('id', requestId).single();
     if (!req) return { error: 'Request not found' };
 
-    // Update the user's plan
-    await service.from('profiles').update({ plan: req.plan_id }).eq('id', req.user_id);
-    
-    // Mark request as approved
-    await service.from('upgrade_requests').update({ status: 'approved' }).eq('id', requestId);
+    // Update the user's plan and mark request as approved in parallel
+    await Promise.all([
+      service.from('profiles').update({ plan: req.plan_id }).eq('id', req.user_id),
+      service.from('upgrade_requests').update({ status: 'approved' }).eq('id', requestId),
+    ]);
 
     revalidatePath('/admin/upgrade-requests');
     return { success: true };

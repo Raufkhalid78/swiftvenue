@@ -15,10 +15,22 @@ import { CurrencyProvider } from "@/components/currency-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { EventTracker } from "@/components/event-tracker";
 import { PublicAgenda } from "@/components/public-agenda";
-import { TechSummitTemplate } from "@/components/templates/tech-summit-template";
-import { SocialMixerTemplate } from "@/components/templates/social-mixer-template";
-import { VirtualStreamTemplate } from "@/components/templates/virtual-stream-template";
 import { StickyMobileBookingBar } from "@/components/sticky-mobile-booking-bar";
+import dynamic from "next/dynamic";
+
+const TechSummitTemplate = dynamic(() =>
+  import("@/components/templates/tech-summit-template").then((m) => m.TechSummitTemplate)
+);
+const SocialMixerTemplate = dynamic(() =>
+  import("@/components/templates/social-mixer-template").then((m) => m.SocialMixerTemplate)
+);
+const VirtualStreamTemplate = dynamic(() =>
+  import("@/components/templates/virtual-stream-template").then((m) => m.VirtualStreamTemplate)
+);
+const EventAiConcierge = dynamic(() =>
+  import("@/components/event-ai-concierge").then((m) => m.EventAiConcierge),
+  { ssr: false }
+);
 
 function hexToRgb(hex: string) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -86,10 +98,10 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     notFound();
   }
 
-  if (event.status !== "published") {
+  if (event.status !== "published" && event.status !== "archived") {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || user.id !== event.user_id) {
-      notFound(); // Hide unpublished events from public visitors
+      notFound(); // Hide unpublished draft events from public visitors
     }
   }
 
@@ -132,8 +144,8 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const { data: profile } = profileRes;
   const { data: sl } = seatingLayoutRes;
 
-  // Auto-heal missing ticket types for old events that were created without one
-  if (!ticketTypes || ticketTypes.length === 0) {
+  // Auto-heal missing ticket types only for active published events
+  if (event.status === 'published' && (!ticketTypes || ticketTypes.length === 0)) {
     const { data: newTicket } = await service.from("ticket_types").insert([
       {
         event_id: event.id,
@@ -149,7 +161,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     }
   }
 
-  const activeTickets = ticketTypes?.filter(t => t.is_active) || [];
+  const activeTickets = event.status === 'archived' ? [] : (ticketTypes?.filter(t => t.is_active) || []);
   const lowestPrice = activeTickets.length > 0
     ? Math.min(...activeTickets.map(t => Number(t.price)))
     : (event.ticket_price || 0);
@@ -237,6 +249,13 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
         }}
       />
       
+      {/* Archived Event Notification Banner */}
+      {event.status === 'archived' && (
+        <div className="w-full bg-amber-500/10 border-b border-amber-500/20 text-amber-900 dark:text-amber-300 py-3 px-4 text-center text-sm font-medium sticky top-0 z-40 backdrop-blur-md">
+          🏛️ <strong>Event Concluded & Archived:</strong> This event concluded on {event.date || 'a past date'}. Ticket sales and registrations are now closed.
+        </div>
+      )}
+
       {/* Floating Theme Toggle */}
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />
@@ -418,31 +437,33 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                       <MapPin className="w-5 h-5 text-primary shrink-0" />
                       <div>
                         <p className="font-medium text-foreground">{event.venue_name}</p>
-                        {event.venue_lat && event.venue_lng ? (
-<>
-<div className="mt-2 space-y-2">
+                        {(event.venue_lat && event.venue_lng) || event.venue_address || event.venue_name ? (
+                          <div className="mt-2 space-y-2">
                             <div className="rounded-xl overflow-hidden border border-border">
                               <iframe
-                                src={`https://maps.google.com/maps?q=${event.venue_lat},${event.venue_lng}&z=15&output=embed`}
+                                src={`https://maps.google.com/maps?q=${encodeURIComponent(event.venue_lat && event.venue_lng ? `${event.venue_lat},${event.venue_lng}` : `${event.venue_name || ''} ${event.venue_address || ''}`.trim())}&z=15&output=embed`}
                                 className="w-full aspect-video"
                                 loading="lazy"
-                                title={`Map showing ${event.venue_name}`}
+                                title={`Map showing ${event.venue_name || 'event venue'}`}
                               />
                             </div>
-                            <div className="flex items-center justify-between mt-1">
-                              <p className="text-sm text-muted-foreground">{event.venue_address}</p>
+                            <div className="flex items-center justify-between mt-1 text-xs">
+                              {event.venue_address && (
+                                <p className="text-sm text-muted-foreground">{event.venue_address}</p>
+                              )}
                               <a
-                                href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue_lat && event.venue_lng ? `${event.venue_lat},${event.venue_lng}` : `${event.venue_name || ''} ${event.venue_address || ''}`.trim())}`}
                                 target="_blank" rel="noopener noreferrer"
-                                className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
+                                className="font-semibold text-primary hover:underline inline-flex items-center gap-1 shrink-0 ml-auto"
                               >
-                                Get Directions <ArrowUpRight className="w-4 h-4" />
+                                View on Google Maps <ArrowUpRight className="w-3.5 h-3.5" />
                               </a>
                             </div>
+                            {event.venue_lat && event.venue_lng && (
+                              <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+                            )}
                           </div>
-                          <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
-</>
-) : (
+                        ) : (
                           event.venue_address && (
                             <p className="text-sm text-muted-foreground">{event.venue_address}</p>
                           )
@@ -461,7 +482,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                   </div>
                 </div>
 
-                <div className="bg-card rounded-2xl border border-border p-1">
+                <div id="tickets" data-tickets-section className="bg-card rounded-2xl border border-border p-1 scroll-mt-24">
                   <RegistrationWidget eventId={event.id} eventTitle={event.title} ticketTypes={ticketTypes || []} seatingLayout={seatingLayout} seats={seats} />
                   {attendeeCount !== null && attendeeCount >= 3 && (
                     <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5 pb-2">
@@ -533,28 +554,30 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
               <span className="font-medium flex flex-col">
                 {event.venue_name}
                 {event.venue_address && <span className="text-sm text-muted-foreground font-normal mt-1">{event.venue_address}</span>}
-                {event.venue_lat && event.venue_lng && (
-<>
-<div className="mt-2 space-y-2 max-w-sm">
+                {((event.venue_lat && event.venue_lng) || event.venue_address || event.venue_name) && (
+                  <div className="mt-2 space-y-2 max-w-sm">
                     <div className="rounded-xl overflow-hidden border border-border">
                       <iframe
-                        src={`https://maps.google.com/maps?q=${event.venue_lat},${event.venue_lng}&z=15&output=embed`}
+                        src={`https://maps.google.com/maps?q=${encodeURIComponent(event.venue_lat && event.venue_lng ? `${event.venue_lat},${event.venue_lng}` : `${event.venue_name || ''} ${event.venue_address || ''}`.trim())}&z=15&output=embed`}
                         className="w-full aspect-video"
                         loading="lazy"
-                        title={`Map showing ${event.venue_name}`}
+                        title={`Map showing ${event.venue_name || 'event venue'}`}
                       />
                     </div>
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1 mt-1"
-                    >
-                      Get Directions <ArrowUpRight className="w-3 h-3" />
-                    </a>
+                    <div className="flex items-center justify-between mt-1 text-xs">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue_lat && event.venue_lng ? `${event.venue_lat},${event.venue_lng}` : `${event.venue_name || ''} ${event.venue_address || ''}`.trim())}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        View on Google Maps <ArrowUpRight className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                    {event.venue_lat && event.venue_lng && (
+                      <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+                    )}
                   </div>
-                  <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
-</>
-)}
+                )}
               </span>
             </div>
             <div className="hidden sm:block text-muted-foreground">•</div>
@@ -1305,6 +1328,13 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
         lowestPrice={lowestPrice} 
         isFree={isFree} 
         hasMultipleTiers={hasMultipleTiers} 
+        eventTitle={event.title} 
+      />
+
+      {/* Floating Attendee AI Concierge */}
+      <EventAiConcierge 
+        eventId={event.id} 
+        slug={event.slug} 
         eventTitle={event.title} 
       />
 

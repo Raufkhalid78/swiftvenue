@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { Switch } from "@/components/ui/switch";
-import imageCompression from 'browser-image-compression';
 
 export default function GalleryPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -24,7 +23,6 @@ export default function GalleryPage({ params }: { params: Promise<{ id: string }
 
   useEffect(() => {
     loadGallery();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedParams.id]);
 
   async function loadGallery() {
@@ -36,7 +34,7 @@ export default function GalleryPage({ params }: { params: Promise<{ id: string }
       .eq('event_id', resolvedParams.id)
       .order('order_index', { ascending: true });
     
-    if (data) setItems(data);
+    setItems(data || []);
     setLoading(false);
   }
 
@@ -51,6 +49,7 @@ export default function GalleryPage({ params }: { params: Promise<{ id: string }
         maxWidthOrHeight: 1920,
         useWebWorker: true,
       };
+      const { default: imageCompression } = await import('browser-image-compression');
       const compressedFile = await imageCompression(file, options);
       
       const supabase = createClient();

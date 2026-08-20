@@ -43,19 +43,21 @@ export async function saveSeatingLayout(eventId: string, layoutData: any, seatsT
     }
   }
 
-  // Insert/Update seats
-  for (const seat of seatsToUpsert) {
-    const existing = existingSeats?.find(s => s.label === seat.label);
-    if (existing) {
-      await supabase.from('seats').update({
-        ticket_type_id: seat.ticket_type_id || null
-      }).eq('id', existing.id);
-    } else {
-      await supabase.from('seats').insert({
-        layout_id: layoutId,
-        label: seat.label,
-        ticket_type_id: seat.ticket_type_id || null
-      });
+  // Bulk Insert/Update seats in a single fast query
+  if (seatsToUpsert.length > 0) {
+    const records = seatsToUpsert.map(seat => ({
+      layout_id: layoutId,
+      label: seat.label,
+      ticket_type_id: seat.ticket_type_id || null,
+    }));
+
+    const { error: upsertErr } = await supabase
+      .from('seats')
+      .upsert(records, { onConflict: 'layout_id,label' });
+
+    if (upsertErr) {
+      console.error('Error bulk saving seats:', upsertErr);
+      throw new Error(`Failed to save seats: ${upsertErr.message}`);
     }
   }
 

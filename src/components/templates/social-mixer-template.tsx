@@ -6,6 +6,7 @@ import {
   MapPin, 
   Sparkles, 
   Heart, 
+  ArrowUpRight,
 } from 'lucide-react';
 import { RegistrationWidget } from '@/components/registration-widget';
 import { EventCountdown } from '@/components/event-countdown';
@@ -218,17 +219,29 @@ export function SocialMixerTemplate({
                 <p className="text-xs text-slate-400">{event.venue_address}</p>
               </div>
 
-              {event.venue_lat && event.venue_lng && (
+              {((event.venue_lat && event.venue_lng) || event.venue_address || event.venue_name) && (
                 <div className="space-y-3 pt-1">
                   <div className="rounded-2xl overflow-hidden border border-slate-800 w-full aspect-video">
                     <iframe
-                      src={`https://maps.google.com/maps?q=${event.venue_lat},${event.venue_lng}&z=15&output=embed`}
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(event.venue_lat && event.venue_lng ? `${event.venue_lat},${event.venue_lng}` : `${event.venue_name || ''} ${event.venue_address || ''}`.trim())}&z=15&output=embed`}
                       className="w-full h-full opacity-80 hover:opacity-100 transition-opacity"
                       loading="lazy"
                       title="Mixer Venue Map"
                     />
                   </div>
-                  <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+                  <div className="flex items-center justify-between text-xs">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue_lat && event.venue_lng ? `${event.venue_lat},${event.venue_lng}` : `${event.venue_name || ''} ${event.venue_address || ''}`.trim())}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-indigo-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      View on Google Maps <ArrowUpRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                  {event.venue_lat && event.venue_lng && (
+                    <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+                  )}
                 </div>
               )}
             </div>

@@ -1,64 +1,48 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { processPayout } from './actions';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { ConfirmAction } from '@/components/confirm-action';
-import { createClient } from '@/lib/supabase/client';
 
 const PAGE_SIZE = 25;
 
 export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
-  const [payouts, setPayouts] = useState(initialPayouts);
+  const [allPayouts, setAllPayouts] = useState(initialPayouts);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const [count, setCount] = useState(initialPayouts.length);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const supabase = createClient();
 
-  useEffect(() => {
-    async function fetchPayouts() {
-      let query = supabase
-        .from('payouts')
-        .select(`
-          *,
-          profiles!inner (
-            full_name,
-            email
-          )
-        `, { count: 'exact' });
+  const filteredPayouts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allPayouts;
+    return allPayouts.filter((payout) => {
+      const profile = Array.isArray(payout.profiles) ? payout.profiles[0] : payout.profiles;
+      const organizerName = (profile?.full_name || '').toLowerCase();
+      const organizerEmail = (profile?.email || '').toLowerCase();
+      const eventTitle = (payout.title || '').toLowerCase();
+      const bankName = (payout.bank_name || '').toLowerCase();
+      return organizerName.includes(q) || organizerEmail.includes(q) || eventTitle.includes(q) || bankName.includes(q);
+    });
+  }, [allPayouts, search]);
 
-      if (search) {
-        query = query.or(`profiles.email.ilike.%${search}%,profiles.full_name.ilike.%${search}%`);
-      }
+  const paginatedPayouts = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return filteredPayouts.slice(start, start + PAGE_SIZE);
+  }, [filteredPayouts, page]);
 
-      const { data, count: totalCount, error } = await query
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        setPayouts(data);
-        if (totalCount !== null) setCount(totalCount);
-      }
-    }
-
-    const timer = setTimeout(() => {
-      fetchPayouts();
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [search, page, supabase]);
+  const totalPages = Math.ceil(filteredPayouts.length / PAGE_SIZE) || 1;
 
   const handleProcess = async (eventId: string) => {
     setLoadingId(eventId);
     const result = await processPayout(eventId);
     if (result.success) {
-      setPayouts(payouts.map(p => p.id === eventId ? { ...p, payout_status: 'paid' } : p));
+      setAllPayouts(prev => prev.map(p => p.id === eventId ? { ...p, payout_status: 'paid' } : p));
       toast.success('Payout marked as processed');
     } else {
-      toast.error(result.error);
+      toast.error(result.error || 'Failed to process payout');
     }
     setLoadingId(null);
   };
@@ -89,11 +73,14 @@ export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {payouts.length === 0 ? (
+              {paginatedPayouts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No pending payouts found</td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    {search ? 'No matching payouts found' : 'No pending payouts found'}
+                  </td>
                 </tr>
-              ) : payouts.map((payout) => {
+              ) : paginatedPayouts.map((payout) => {
+                const profile = Array.isArray(payout.profiles) ? payout.profiles[0] : payout.profiles;
                 const totalOrders = payout.orders?.[0]?.count || payout.order_ids?.length || 0;
                 
                 return (
@@ -117,8 +104,8 @@ export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium">{payout.profiles?.full_name}</div>
-                      <div className="text-muted-foreground text-xs">{payout.profiles?.email}</div>
+                      <div className="font-medium">{profile?.full_name || 'Unknown'}</div>
+                      <div className="text-muted-foreground text-xs">{profile?.email || 'No email'}</div>
                       <div className="mt-2 text-xs p-2 bg-muted rounded border border-border">
                         {payout.payout_method ? (
                           <div>
@@ -136,7 +123,7 @@ export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium text-lg text-green-600">
-                        Rs. {Number(payout.amount || payout.total_payout).toLocaleString()}
+                        Rs. {Number(payout.amount || payout.total_payout || 0).toLocaleString()}
                       </div>
                       <div className="text-muted-foreground text-xs">
                         From {totalOrders} paid tickets
@@ -160,8 +147,8 @@ export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
                           onConfirm={() => handleProcess(payout.id)}
                         >
                           <button
-                            disabled={loadingId === payout.id || (!payout.profiles?.bank_details && !payout.payout_method)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                            disabled={loadingId === payout.id || (!profile?.bank_details && !payout.payout_method)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" /> Mark Processed
                           </button>
@@ -178,20 +165,20 @@ export function PayoutsClient({ initialPayouts }: { initialPayouts: any[] }) {
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Page {page + 1} of {Math.ceil(count / PAGE_SIZE) || 1}
+          Page {page + 1} of {totalPages} ({filteredPayouts.length} total)
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={() => setPage(p => p + 1)}
-            disabled={(page + 1) * PAGE_SIZE >= count}
-            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+            disabled={page + 1 >= totalPages}
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50 cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>

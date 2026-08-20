@@ -67,23 +67,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tickets sold out or unavailable' }, { status: 409 });
     }
 
-    // Handle Seat Locking
+    // Handle Seat Locking concurrently
     const sessionId = crypto.randomUUID();
     let lockedSeats: string[] = [];
     if (seatIds && Array.isArray(seatIds) && seatIds.length > 0) {
-      for (const seatId of seatIds) {
-        const { data: locked } = await service.rpc('lock_seat', { p_seat_id: seatId, p_session_id: sessionId });
-        if (locked) {
-          lockedSeats.push(seatId);
-        } else {
-          // Rollback locks
-          if (lockedSeats.length > 0) {
-            await service.from('seats').update({ status: 'available', locked_by_session: null, locked_until: null }).in('id', lockedSeats);
-          }
-          await service.rpc('reserve_ticket', { p_ticket_type_id: ticketTypeId, p_qty: -quantity });
-          return NextResponse.json({ error: 'One or more selected seats are no longer available. Please select different seats.' }, { status: 409 });
+      const lockResults = await Promise.all(
+        seatIds.map(async (seatId: string) => {
+          const { data: locked } = await service.rpc('lock_seat', { p_seat_id: seatId, p_session_id: sessionId });
+          return { seatId, locked: !!locked };
+        })
+      );
+
+      const allLocked = lockResults.every(r => r.locked);
+      if (!allLocked) {
+        const successfulLocks = lockResults.filter(r => r.locked).map(r => r.seatId);
+        if (successfulLocks.length > 0) {
+          await service.from('seats').update({ status: 'available', locked_by_session: null, locked_until: null }).in('id', successfulLocks);
         }
+        await service.rpc('reserve_ticket', { p_ticket_type_id: ticketTypeId, p_qty: -quantity });
+        return NextResponse.json({ error: 'One or more selected seats are no longer available. Please select different seats.' }, { status: 409 });
       }
+
+      lockedSeats = seatIds;
     }
 
     if (reserveError || !reserved) {

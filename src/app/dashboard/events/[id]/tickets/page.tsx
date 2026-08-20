@@ -316,9 +316,11 @@ export default function TicketsPage({ params }: { params: Promise<{ id: string }
       order_index: index,
     }));
 
-    for (const update of updates) {
-      await supabase.from('ticket_types').update({ order_index: update.order_index }).eq('id', update.id);
-    }
+    await Promise.all(
+      updates.map(update =>
+        supabase.from('ticket_types').update({ order_index: update.order_index }).eq('id', update.id)
+      )
+    );
   }
 
   return (

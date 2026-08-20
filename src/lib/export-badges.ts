@@ -36,11 +36,19 @@ export async function generateBadgePDF({
     const gapX = 10;
     const gapY = 10;
 
+    // Pre-generate all QR codes concurrently for maximum speed
+    const qrCodes = await Promise.all(
+      attendees.map(a => 
+        QRCode.toDataURL(a.id, { margin: 0, width: 150 }).catch(() => null)
+      )
+    );
+
     let col = 0;
     let row = 0;
 
     for (let i = 0; i < attendees.length; i++) {
       const attendee = attendees[i];
+      const qrDataUrl = qrCodes[i];
 
       if (i > 0 && i % 6 === 0) {
         doc.addPage();
@@ -64,15 +72,13 @@ export async function generateBadgePDF({
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      const truncatedEvent = eventTitle.length > 32 ? eventTitle.slice(0, 30) + '...' : eventTitle;
-      doc.text(truncatedEvent.toUpperCase(), x + badgeWidth / 2, y + 9, { align: 'center' });
+      doc.text(eventTitle.toUpperCase().slice(0, 30), x + 6, y + 9);
 
-      // Attendee Name
+      // Guest Name
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      const truncatedName = attendee.guest_name.length > 20 ? attendee.guest_name.slice(0, 18) + '...' : attendee.guest_name;
-      doc.text(truncatedName, x + 8, y + 30);
+      doc.text(attendee.guest_name.slice(0, 22), x + 8, y + 27);
 
       // Company / Title from custom responses if available
       let subTitle = '';
@@ -100,14 +106,8 @@ export async function generateBadgePDF({
       doc.text(tierName.slice(0, 14), x + 27, y + 51, { align: 'center' });
 
       // QR Code
-      try {
-        const qrDataUrl = await QRCode.toDataURL(attendee.id, {
-          margin: 0,
-          width: 150,
-        });
+      if (qrDataUrl) {
         doc.addImage(qrDataUrl, 'PNG', x + badgeWidth - 36, y + 24, 28, 28);
-      } catch (err) {
-        console.error('QR generation failed for badge:', err);
       }
 
       // Cut guideline dashes

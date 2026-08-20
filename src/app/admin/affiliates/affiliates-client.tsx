@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { processAffiliateApplication, processCommission } from './actions';
 import { CheckCircle2, XCircle, DollarSign, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmAction } from '@/components/confirm-action';
-import { createClient } from '@/lib/supabase/client';
 
 const PAGE_SIZE = 25;
 
@@ -20,37 +19,25 @@ export function AffiliatesClient({
   const [commissions, setCommissions] = useState(initialCommissions);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const [count, setCount] = useState(initialApplications.length);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const supabase = createClient();
 
-  useEffect(() => {
-    async function fetchApplications() {
-      let query = supabase
-        .from('affiliate_applications')
-        .select('*', { count: 'exact' })
-        .eq('status', 'pending');
+  const filteredApplications = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return applications;
+    return applications.filter((app) => {
+      const name = (app.name || '').toLowerCase();
+      const email = (app.email || '').toLowerCase();
+      const website = (app.website || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || website.includes(q);
+    });
+  }, [applications, search]);
 
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
-      }
+  const paginatedApplications = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return filteredApplications.slice(start, start + PAGE_SIZE);
+  }, [filteredApplications, page]);
 
-      const { data, count: totalCount, error } = await query
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        setApplications(data);
-        if (totalCount !== null) setCount(totalCount);
-      }
-    }
-
-    const timer = setTimeout(() => {
-      fetchApplications();
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [search, page, supabase]);
+  const totalPages = Math.ceil(filteredApplications.length / PAGE_SIZE) || 1;
 
   const handleApprove = async (id: string) => {
     setLoadingId(id);
@@ -59,7 +46,7 @@ export function AffiliatesClient({
       setApplications(apps => apps.map(a => a.id === id ? { ...a, status: 'approved' } : a));
       toast.success('Application approved');
     } else {
-      toast.error(res.error);
+      toast.error(res.error || 'Failed to approve application');
     }
     setLoadingId(null);
   };
@@ -71,7 +58,7 @@ export function AffiliatesClient({
       setApplications(apps => apps.map(a => a.id === id ? { ...a, status: 'rejected' } : a));
       toast.success('Application rejected');
     } else {
-      toast.error(res.error);
+      toast.error(res.error || 'Failed to reject application');
     }
     setLoadingId(null);
   };
@@ -83,7 +70,7 @@ export function AffiliatesClient({
       setCommissions(comms => comms.map(c => c.id === id ? { ...c, status: 'paid' } : c));
       toast.success('Commission marked as paid');
     } else {
-      toast.error(res.error);
+      toast.error(res.error || 'Failed to process commission');
     }
     setLoadingId(null);
   };
@@ -117,11 +104,13 @@ export function AffiliatesClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {applications.length === 0 ? (
+                {paginatedApplications.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No pending applications</td>
+                    <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                      {search ? 'No matching applications' : 'No pending applications'}
+                    </td>
                   </tr>
-                ) : applications.map((app) => (
+                ) : paginatedApplications.map((app) => (
                   <tr key={app.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="font-medium">{app.name}</div>
@@ -141,14 +130,14 @@ export function AffiliatesClient({
                         <button
                           disabled={loadingId === app.id}
                           onClick={() => handleApprove(app.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-green-500/10 text-green-700 hover:bg-green-500/20 transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-green-500/10 text-green-700 hover:bg-green-500/20 transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" /> Approve
                         </button>
                         <button
                           disabled={loadingId === app.id}
                           onClick={() => handleReject(app.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-red-500/10 text-red-700 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-red-500/10 text-red-700 hover:bg-red-500/20 transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           <XCircle className="w-3.5 h-3.5" /> Reject
                         </button>
@@ -162,20 +151,20 @@ export function AffiliatesClient({
         </div>
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Page {page + 1} of {Math.ceil(count / PAGE_SIZE) || 1}
+            Page {page + 1} of {totalPages} ({filteredApplications.length} total)
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+              className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage(p => p + 1)}
-              disabled={(page + 1) * PAGE_SIZE >= count}
-              className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+              disabled={page + 1 >= totalPages}
+              className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

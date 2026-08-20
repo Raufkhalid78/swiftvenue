@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send, ArrowLeft, CheckCircle2, XCircle, History } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { OrganizerAiCopilot } from "@/components/organizer-ai-copilot";
 
 export default function BroadcastPage() {
   const params = useParams();
@@ -88,11 +89,28 @@ export default function BroadcastPage() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>New Broadcast Message</CardTitle>
-            <CardDescription>
-              Emails are sent via secure BCC in rate-limited batches to guarantee 100% inbox delivery.
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <div>
+              <CardTitle>New Broadcast Message</CardTitle>
+              <CardDescription className="mt-1">
+                Emails are sent via secure BCC in rate-limited batches to guarantee 100% inbox delivery.
+              </CardDescription>
+            </div>
+            <OrganizerAiCopilot 
+              eventId={eventId} 
+              defaultAction="generate_email"
+              triggerButtonText="Draft Email with AI"
+              onApplyResult={(content) => {
+                const subjectMatch = content.match(/Subject:\s*(.*)/i);
+                if (subjectMatch && subjectMatch[1]) {
+                  setSubject(subjectMatch[1].trim());
+                  const cleanedBody = content.replace(/Subject:\s*.*\n*/i, '').trim();
+                  setBody(cleanedBody);
+                } else {
+                  setBody(content);
+                }
+              }}
+            />
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSend} className="space-y-6">

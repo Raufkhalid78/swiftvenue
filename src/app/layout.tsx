@@ -59,41 +59,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <Script
-        id="theme-init"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{
-          __html: `
-            try {
-              var t = localStorage.getItem('theme');
-              if (t === 'dark' || ((t === 'system' || !t) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-                document.documentElement.style.colorScheme = 'dark';
-              } else {
-                document.documentElement.classList.remove('dark');
-                document.documentElement.style.colorScheme = 'light';
-              }
-            } catch(e) {}
-          `,
-        }}
-      />
-      
-      {/* Google Analytics 4 */}
-      <Script src={`https://www.googletagmanager.com/gtag/js?id=G-3GQWSQ4VJF`} strategy="afterInteractive" />
-      <Script id="ga-init" strategy="afterInteractive">
-        {`window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'G-3GQWSQ4VJF');`}
-      </Script>
-
-      {/* Organization Structured Data */}
-      <Script
-        id="organization-schema"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-      />
-
       <body className={`${inter.variable} ${outfit.variable} antialiased bg-background text-foreground font-inter`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
@@ -116,6 +81,22 @@ export default function RootLayout({
             }}
           />
         </ThemeProvider>
+
+        {/* Google Analytics 4 */}
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-3GQWSQ4VJF" strategy="afterInteractive" />
+        <Script id="ga-init" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-3GQWSQ4VJF');`}
+        </Script>
+
+        {/* Organization Structured Data */}
+        <Script
+          id="organization-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
       </body>
     </html>
   );

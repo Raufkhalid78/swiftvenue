@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { duplicateEvent } from "./duplicate-action";
 import { PreviewDrawer } from "./preview-drawer";
+import { OrganizerAiCopilot } from "@/components/organizer-ai-copilot";
 
 export default function EventOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -150,6 +151,7 @@ export default function EventOverviewPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <OrganizerAiCopilot eventId={eventId} triggerButtonText="AI Assistant" />
           <PreviewDrawer slug={event.slug} eventTitle={event.title} />
 
           <Button variant="outline" size="sm" className="h-8" onClick={handleDuplicate} disabled={isDuplicating}>

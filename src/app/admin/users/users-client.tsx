@@ -1,57 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, Shield, Ban, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { updateUserPlan, toggleUserSuspension } from './actions';
 import { toast } from 'sonner';
 import { ConfirmAction } from '@/components/confirm-action';
-import { createClient } from '@/lib/supabase/client';
 
 const PAGE_SIZE = 25;
 
 export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plans: any[] }) {
-  const [users, setUsers] = useState(initialUsers);
+  const [allUsers, setAllUsers] = useState(initialUsers);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const [count, setCount] = useState(initialUsers.length);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const supabase = createClient();
 
-  useEffect(() => {
-    async function fetchUsers() {
-      let query = supabase
-        .from('profiles')
-        .select('*', { count: 'exact' });
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allUsers;
+    return allUsers.filter((user) => {
+      const name = (user.full_name || '').toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      const plan = (user.plan || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || plan.includes(q);
+    });
+  }, [allUsers, search]);
 
-      if (search) {
-        query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
-      }
+  const paginatedUsers = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return filteredUsers.slice(start, start + PAGE_SIZE);
+  }, [filteredUsers, page]);
 
-      const { data, count: totalCount, error } = await query
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        setUsers(data);
-        if (totalCount !== null) setCount(totalCount);
-      }
-    }
-
-    const timer = setTimeout(() => {
-      fetchUsers();
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [search, page, supabase]);
+  const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE) || 1;
 
   const handlePlanChange = async (userId: string, newPlanId: string) => {
     setLoadingId(userId);
     const result = await updateUserPlan(userId, newPlanId);
     if (result.success) {
-      setUsers(users.map(u => u.id === userId ? { ...u, plan: newPlanId, plans: plans.find(p => p.id === newPlanId) } : u));
+      setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, plan: newPlanId, plans: plans.find(p => p.id === newPlanId) } : u));
       toast.success('User plan updated');
     } else {
-      toast.error(result.error);
+      toast.error(result.error || 'Failed to update user plan');
     }
     setLoadingId(null);
   };
@@ -60,10 +48,10 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
     setLoadingId(userId);
     const result = await toggleUserSuspension(userId, !currentStatus);
     if (result.success) {
-      setUsers(users.map(u => u.id === userId ? { ...u, is_suspended: !currentStatus } : u));
+      setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, is_suspended: !currentStatus } : u));
       toast.success(`User ${currentStatus ? 'activated' : 'suspended'} successfully`);
     } else {
-      toast.error(result.error);
+      toast.error(result.error || 'Failed to update user status');
     }
     setLoadingId(null);
   };
@@ -94,11 +82,13 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {users.length === 0 ? (
+              {paginatedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No users found</td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    {search ? 'No matching users found' : 'No users found'}
+                  </td>
                 </tr>
-              ) : users.map((user) => (
+              ) : paginatedUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="font-medium flex items-center gap-2">
@@ -124,7 +114,7 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
                   <td className="px-4 py-3">
                     <select
                       disabled={loadingId === user.id}
-                      className="bg-background text-foreground border border-border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="bg-background text-foreground border border-border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                       value={user.plan || 'free'}
                       onChange={(e) => handlePlanChange(user.id, e.target.value)}
                     >
@@ -141,7 +131,7 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
                     >
                       <button
                         disabled={loadingId === user.id || user.is_admin}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                           user.is_suspended 
                             ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20' 
                             : 'bg-red-500/10 text-red-600 hover:bg-red-500/20'
@@ -161,12 +151,14 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
           </table>
         </div>
 
-        {/* Mobile View */}
-        <div className="sm:hidden divide-y divide-border">
-          {users.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">No users found</div>
-          ) : users.map((user) => (
-            <div key={user.id} className="p-4 space-y-3 hover:bg-muted/50 transition-colors">
+        {/* Mobile View: Cards */}
+        <div className="md:hidden divide-y divide-border">
+          {paginatedUsers.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground text-sm">
+              {search ? 'No matching users found' : 'No users found'}
+            </div>
+          ) : paginatedUsers.map((user) => (
+            <div key={user.id} className="p-4 space-y-3">
               <div className="flex justify-between items-start">
                 <div>
                   <div className="font-medium flex items-center gap-2">
@@ -194,7 +186,7 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
                 <div className="flex items-center gap-2">
                   <select
                     disabled={loadingId === user.id}
-                    className="bg-background text-foreground border border-border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="bg-background text-foreground border border-border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                     value={user.plan || 'free'}
                     onChange={(e) => handlePlanChange(user.id, e.target.value)}
                   >
@@ -210,7 +202,7 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
                   >
                     <button
                       disabled={loadingId === user.id || user.is_admin}
-                      className={`inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      className={`inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                         user.is_suspended 
                           ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20' 
                           : 'bg-red-500/10 text-red-600 hover:bg-red-500/20'
@@ -232,20 +224,20 @@ export function UsersClient({ initialUsers, plans }: { initialUsers: any[], plan
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Page {page + 1} of {Math.ceil(count / PAGE_SIZE) || 1}
+          Page {page + 1} of {totalPages} ({filteredUsers.length} total)
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={() => setPage(p => p + 1)}
-            disabled={(page + 1) * PAGE_SIZE >= count}
-            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+            disabled={page + 1 >= totalPages}
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50 cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>

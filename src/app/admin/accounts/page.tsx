@@ -20,12 +20,18 @@ export default async function AccountsPage() {
     redirect('/dashboard');
   }
 
-  // 1. Fetch Ticketing Data
-  const { data: orders } = await service
-    .from('orders')
-    .select('id, amount, platform_fee_amount, organizer_net_amount, created_at')
-    .eq('status', 'paid')
-    .neq('refund_status', 'refunded');
+  // 1. Fetch Ticketing and Subscription Data in Parallel
+  const [{ data: orders }, { data: upgradeRequests }] = await Promise.all([
+    service
+      .from('orders')
+      .select('id, amount, platform_fee_amount, organizer_net_amount, created_at')
+      .eq('status', 'paid')
+      .neq('refund_status', 'refunded'),
+    service
+      .from('upgrade_requests')
+      .select('id, plan_id, status, created_at, plans(monthly_price)')
+      .eq('status', 'approved')
+  ]);
 
   let grossTicketingVolume = 0;
   let ticketingProfit = 0;
@@ -43,13 +49,6 @@ export default async function AccountsPage() {
       organizerLiabilities += net;
     });
   }
-
-  // 2. Fetch Subscription Data
-  // We need to join upgrade_requests with plans to get the monthly_price
-  const { data: upgradeRequests } = await service
-    .from('upgrade_requests')
-    .select('id, plan_id, status, created_at, plans(monthly_price)')
-    .eq('status', 'approved');
 
   let subscriptionProfit = 0;
 

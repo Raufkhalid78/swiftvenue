@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import Link from "next/link";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import imageCompression from 'browser-image-compression';
 
 export default function SponsorsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -52,6 +51,7 @@ export default function SponsorsPage({ params }: { params: Promise<{ id: string 
         maxWidthOrHeight: 800,
         useWebWorker: true,
       };
+      const { default: imageCompression } = await import('browser-image-compression');
       const compressedFile = await imageCompression(file, options);
       
       const supabase = createClient();

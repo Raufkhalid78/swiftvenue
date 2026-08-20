@@ -36,12 +36,19 @@ export async function GET(request: NextRequest) {
 
   if (waitlistErr) {
     results.waitlistError = waitlistErr.message;
+  } else if (expiredWaitlist && expiredWaitlist.length > 0) {
+    const expiredIds = expiredWaitlist.map(e => e.id);
+    const uniqueTicketTypeIds = Array.from(new Set(expiredWaitlist.map(e => e.ticket_type_id)));
+
+    await Promise.all([
+      service.from('waitlists').update({ status: 'expired' }).in('id', expiredIds),
+      ...uniqueTicketTypeIds.map(ticketTypeId => 
+        service.rpc('notify_next_waitlist_entry', { p_ticket_type_id: ticketTypeId })
+      )
+    ]);
+    results.waitlistExpired = expiredWaitlist.length;
   } else {
-    for (const entry of expiredWaitlist ?? []) {
-      await service.from('waitlists').update({ status: 'expired' }).eq('id', entry.id);
-      await service.rpc('notify_next_waitlist_entry', { p_ticket_type_id: entry.ticket_type_id });
-    }
-    results.waitlistExpired = expiredWaitlist?.length ?? 0;
+    results.waitlistExpired = 0;
   }
 
   // 3. Send event reminders for tomorrow's events
@@ -55,6 +62,10 @@ export async function GET(request: NextRequest) {
 
   // 6. Storage Cleanup: Orphaned images
   results.storageCleanup = await cleanupOrphanedImages(service);
+
+  // 7. Event Lifecycle: Auto-archive events concluded over 6 months ago (180 days)
+  const { archiveConcludedEvents } = await import('@/lib/event-archival');
+  results.archivedEvents = await archiveConcludedEvents(service);
 
   return NextResponse.json({ ok: true, results });
 }
@@ -77,8 +88,8 @@ async function refreshExchangeRates(service: SupabaseClient) {
         updated_at: new Date().toISOString() 
       }));
 
-    for (const update of updates) {
-      await service.from('exchange_rates').upsert(update, { onConflict: 'currency_code' });
+    if (updates.length > 0) {
+      await service.from('exchange_rates').upsert(updates, { onConflict: 'currency_code' });
     }
     return { updated: updates.length };
   } catch (e) {
@@ -100,31 +111,36 @@ async function sendEventReminders(service: SupabaseClient) {
     .is('reminder_sent_at', null);
 
   for (const event of upcomingEvents ?? []) {
-    for (const attendee of event.attendees ?? []) {
-      try {
+    const attendees = event.attendees ?? [];
+    await Promise.allSettled(
+      attendees.map(async (attendee: any) => {
+        const promises: Promise<any>[] = [];
         if (attendee.guest_email) {
-          await sendEventReminderEmail({
-            to: attendee.guest_email,
-            guestName: attendee.guest_name,
-            eventName: event.title,
-            eventTime: event.time || 'TBD',
-            venueName: event.venue_name || 'TBD',
-            venueAddress: event.venue_address || '',
-          });
+          promises.push(
+            sendEventReminderEmail({
+              to: attendee.guest_email,
+              guestName: attendee.guest_name,
+              eventName: event.title,
+              eventTime: event.time || 'TBD',
+              venueName: event.venue_name || 'TBD',
+              venueAddress: event.venue_address || '',
+            })
+          );
         }
         
         if (attendee.guest_phone) {
-          await sendEventReminderWhatsApp(
-            attendee.guest_phone,
-            attendee.guest_name,
-            event.title,
-            `https://swiftvenuehq.com/e/${event.slug}`
+          promises.push(
+            sendEventReminderWhatsApp(
+              attendee.guest_phone,
+              attendee.guest_name,
+              event.title,
+              `https://swiftvenuehq.com/e/${event.slug}`
+            )
           );
         }
-      } catch (e) {
-        console.error(`Reminder failed for ${attendee.guest_name}:`, e);
-      }
-    }
+        return Promise.allSettled(promises);
+      })
+    );
     // Mark as sent to prevent duplicate sending (idempotency)
     await service.from('events').update({ reminder_sent_at: new Date().toISOString() }).eq('id', event.id);
   }
@@ -144,20 +160,17 @@ async function sendFeedbackEmails(service: SupabaseClient) {
     .is('feedback_sent_at', null);
 
   for (const event of pastEvents ?? []) {
-    for (const attendee of event.attendees ?? []) {
-      if (!attendee.guest_email) continue;
-      
-      try {
-        await sendEventFeedbackEmail({
+    const attendees = (event.attendees ?? []).filter((a: any) => !!a.guest_email);
+    await Promise.allSettled(
+      attendees.map(async (attendee: any) => {
+        return sendEventFeedbackEmail({
           to: attendee.guest_email,
           guestName: attendee.guest_name,
           eventName: event.title,
           feedbackUrl: `https://swiftvenuehq.com/e/${event.slug}/feedback`,
         });
-      } catch (e) {
-        console.error(`Feedback email failed for ${attendee.guest_email}:`, e);
-      }
-    }
+      })
+    );
     // Mark as sent to prevent duplicate sending
     await service.from('events').update({ feedback_sent_at: new Date().toISOString() }).eq('id', event.id);
   }

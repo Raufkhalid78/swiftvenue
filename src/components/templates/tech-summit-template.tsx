@@ -232,25 +232,29 @@ export function TechSummitTemplate({
                 <p className="text-xs text-slate-400 mt-1">{event.venue_address}</p>
               </div>
 
-              {event.venue_lat && event.venue_lng && (
+              {((event.venue_lat && event.venue_lng) || event.venue_address || event.venue_name) && (
                 <div className="space-y-3">
                   <div className="rounded-xl overflow-hidden border border-slate-800 w-full aspect-video">
                     <iframe
-                      src={`https://maps.google.com/maps?q=${event.venue_lat},${event.venue_lng}&z=15&output=embed`}
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(event.venue_lat && event.venue_lng ? `${event.venue_lat},${event.venue_lng}` : `${event.venue_name || ''} ${event.venue_address || ''}`.trim())}&z=15&output=embed`}
                       className="w-full h-full grayscale opacity-80 hover:opacity-100 hover:grayscale-0 transition-all"
                       loading="lazy"
                       title="Summit Venue Map"
                     />
                   </div>
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${event.venue_lat},${event.venue_lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-mono text-cyan-400 hover:underline"
-                  >
-                    Launch Navigation <ArrowUpRight className="w-3.5 h-3.5" />
-                  </a>
-                  <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+                  <div className="flex items-center justify-between text-xs">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue_lat && event.venue_lng ? `${event.venue_lat},${event.venue_lng}` : `${event.venue_name || ''} ${event.venue_address || ''}`.trim())}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-mono text-cyan-400 hover:underline"
+                    >
+                      View on Google Maps <ArrowUpRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                  {event.venue_lat && event.venue_lng && (
+                    <EventWeather lat={event.venue_lat} lng={event.venue_lng} date={event.date} />
+                  )}
                 </div>
               )}
             </div>

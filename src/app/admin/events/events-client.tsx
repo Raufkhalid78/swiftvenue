@@ -1,71 +1,48 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, Trash2, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { deleteEvent } from './actions';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { ConfirmAction } from '@/components/confirm-action';
-import { createClient } from '@/lib/supabase/client';
 
 const PAGE_SIZE = 25;
 
 export function EventsClient({ initialEvents }: { initialEvents: any[] }) {
-  const [events, setEvents] = useState(initialEvents);
+  const [allEvents, setAllEvents] = useState(initialEvents);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const [count, setCount] = useState(initialEvents.length);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const supabase = createClient();
 
-  useEffect(() => {
-    async function fetchEvents() {
-      let query = supabase
-        .from('events')
-        .select(`
-          id,
-          title,
-          slug,
-          type,
-          date,
-          time,
-          status,
-          created_at,
-          profiles!inner (
-            full_name,
-            email
-          )
-        `, { count: 'exact' });
+  const filteredEvents = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allEvents;
+    return allEvents.filter((event) => {
+      const profile = Array.isArray(event.profiles) ? event.profiles[0] : event.profiles;
+      const title = (event.title || '').toLowerCase();
+      const slug = (event.slug || '').toLowerCase();
+      const organizerName = (profile?.full_name || '').toLowerCase();
+      const organizerEmail = (profile?.email || '').toLowerCase();
+      return title.includes(q) || slug.includes(q) || organizerName.includes(q) || organizerEmail.includes(q);
+    });
+  }, [allEvents, search]);
 
-      if (search) {
-        query = query.or(`title.ilike.%${search}%,profiles.email.ilike.%${search}%`);
-      }
+  const paginatedEvents = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return filteredEvents.slice(start, start + PAGE_SIZE);
+  }, [filteredEvents, page]);
 
-      const { data, count: totalCount, error } = await query
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        setEvents(data);
-        if (totalCount !== null) setCount(totalCount);
-      }
-    }
-
-    const timer = setTimeout(() => {
-      fetchEvents();
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [search, page, supabase]);
+  const totalPages = Math.ceil(filteredEvents.length / PAGE_SIZE) || 1;
 
   const handleDelete = async (eventId: string) => {
     setLoadingId(eventId);
     const result = await deleteEvent(eventId);
     if (result.success) {
-      setEvents(events.filter(e => e.id !== eventId));
+      setAllEvents(prev => prev.filter(e => e.id !== eventId));
       toast.success('Event deleted');
     } else {
-      toast.error(result.error);
+      toast.error(result.error || 'Failed to delete event');
     }
     setLoadingId(null);
   };
@@ -96,58 +73,67 @@ export function EventsClient({ initialEvents }: { initialEvents: any[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {events.length === 0 ? (
+              {paginatedEvents.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No events found</td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    {search ? 'No matching events found' : 'No events found'}
+                  </td>
                 </tr>
-              ) : events.map((event) => (
-                <tr key={event.id} className="hover:bg-muted/50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{event.title}</div>
-                    <div className="text-muted-foreground text-xs capitalize">{event.type}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{event.profiles?.full_name || 'Unknown'}</div>
-                    <div className="text-muted-foreground text-xs">{event.profiles?.email}</div>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    <div>{event.date}</div>
-                    <div className="text-xs">{event.time}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {event.status === 'published' ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                        Published
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
-                        Draft
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right space-x-2">
-                    <Link 
-                      href={`/e/${event.slug}`} 
-                      target="_blank"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" /> View
-                    </Link>
-                    <ConfirmAction
-                      destructive
-                      description="Are you sure you want to delete this event? This action cannot be undone and will delete all associated tickets, waitlists, and records."
-                      onConfirm={() => handleDelete(event.id)}
-                    >
-                      <button
-                        disabled={loadingId === event.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+              ) : paginatedEvents.map((event) => {
+                const profile = Array.isArray(event.profiles) ? event.profiles[0] : event.profiles;
+                return (
+                  <tr key={event.id} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{event.title}</div>
+                      <div className="text-muted-foreground text-xs capitalize">{event.type}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{profile?.full_name || 'Unknown'}</div>
+                      <div className="text-muted-foreground text-xs">{profile?.email || 'No email'}</div>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      <div>{event.date || 'TBD'}</div>
+                      <div className="text-xs">{event.time || ''}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {event.status === 'published' ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          Published
+                        </span>
+                      ) : event.status === 'archived' ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                          Archived
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
+                          Draft
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      <Link 
+                        href={`/e/${event.slug}`} 
+                        target="_blank"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
                       >
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                      </button>
-                    </ConfirmAction>
-                  </td>
-                </tr>
-              ))}
+                        <ExternalLink className="w-3.5 h-3.5" /> View
+                      </Link>
+                      <ConfirmAction
+                        destructive
+                        description="Are you sure you want to delete this event? This action cannot be undone and will delete all associated tickets, waitlists, and records."
+                        onConfirm={() => handleDelete(event.id)}
+                      >
+                        <button
+                          disabled={loadingId === event.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      </ConfirmAction>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -155,20 +141,20 @@ export function EventsClient({ initialEvents }: { initialEvents: any[] }) {
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Page {page + 1} of {Math.ceil(count / PAGE_SIZE) || 1}
+          Page {page + 1} of {totalPages} ({filteredEvents.length} total)
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={() => setPage(p => p + 1)}
-            disabled={(page + 1) * PAGE_SIZE >= count}
-            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+            disabled={page + 1 >= totalPages}
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50 cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>

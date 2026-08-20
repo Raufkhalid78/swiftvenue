@@ -14,28 +14,25 @@ export default async function BillingPage() {
     redirect("/login");
   }
 
-  // Fetch the user's current plan
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('plan')
-    .eq('id', user.id)
-    .single();
+  // Fetch user profile, plans, and upgrade requests in parallel
+  const [{ data: profile }, { data: plans }, { data: upgradeRequests }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .single(),
+    supabase
+      .from('plans')
+      .select('*')
+      .order('monthly_price', { ascending: true }),
+    supabase
+      .from('upgrade_requests')
+      .select('plan_id, status, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+  ]);
 
   const currentPlan = profile?.plan || 'free';
-
-  // Fetch all available plans
-  const { data: plans } = await supabase
-    .from('plans')
-    .select('*')
-    .order('monthly_price', { ascending: true });
-
-  // Fetch any pending upgrade requests
-  const { data: upgradeRequests } = await supabase
-    .from('upgrade_requests')
-    .select('plan_id, status, created_at')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
   const pendingRequest = upgradeRequests?.find(req => req.status === 'pending');
 
   return (

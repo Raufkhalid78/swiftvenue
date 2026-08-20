@@ -1,15 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Minus, Ticket, Tag } from "lucide-react";
+import { Loader2, Plus, Minus, Ticket, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SeatPicker } from "./seat-picker";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCurrency } from "./currency-provider";
+
+const SeatPicker = dynamic(
+  () => import("./seat-picker").then((m) => m.SeatPicker),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
+        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading interactive seating map...
+      </div>
+    ),
+  }
+);
 
 export function RegistrationWidget({ 
   eventId, 
@@ -25,7 +38,23 @@ export function RegistrationWidget({
   seats?: any[],
 }) {
   const { targetCurrency, exchangeRate } = useCurrency();
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
   const [selectedTicketId, setSelectedTicketId] = useState<string>(seatingLayout ? "" : (ticketTypes[0]?.id || ""));
@@ -201,10 +230,11 @@ export function RegistrationWidget({
 
   return (
     <>
-      <div className="p-6 rounded-2xl bg-primary/10 border border-primary/20 text-center">
+      <div id="tickets" data-tickets-section className="p-6 rounded-2xl bg-primary/10 border border-primary/20 text-center scroll-mt-24">
         <h3 className="font-semibold text-lg mb-2 text-foreground">Secure your spot</h3>
         <p className="text-sm text-muted-foreground mb-4">Tickets for {eventTitle} are available now.</p>
         <Button 
+          id="get-tickets-btn"
           onClick={() => setIsOpen(true)} 
           className="w-full"
           disabled={!hasTickets}
@@ -213,11 +243,29 @@ export function RegistrationWidget({
         </Button>
       </div>
 
-      {isOpen && hasTickets && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-bold font-display mb-2">Register for Event</h3>
-            <p className="text-muted-foreground mb-6">Select your ticket tier and enter your details.</p>
+      {mounted && isOpen && hasTickets && createPortal(
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={(e) => e.target === e.currentTarget && setIsOpen(false)}
+        >
+          <div className={`bg-card text-foreground w-full ${seatingLayout ? 'max-w-2xl lg:max-w-3xl' : 'max-w-md'} rounded-3xl shadow-2xl border border-border p-6 sm:p-8 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto relative`}>
+            
+            {/* Top Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              aria-label="Close registration dialog"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="pr-8 mb-6">
+              <h3 className="text-2xl font-bold font-display tracking-tight text-foreground">Register for Event</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {seatingLayout ? "Select your preferred seat on the map and complete registration." : "Select your ticket tier and enter your details."}
+              </p>
+            </div>
             
             <form onSubmit={handleCheckout} className="space-y-4">
               <div className="space-y-3 mb-6">
@@ -567,7 +615,8 @@ export function RegistrationWidget({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

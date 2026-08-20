@@ -18,37 +18,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No event IDs provided' }, { status: 400 });
     }
 
-    // Verify all events belong to this organizer
-    const { data: events, error: eventsErr } = await service
-      .from('events')
-      .select('id')
-      .eq('user_id', user.id)
-      .in('id', eventIds);
+    // Stage 1: Fetch events verification, user profile plan, and all payouts in parallel
+    const [eventsRes, profileRes, payoutsRes] = await Promise.all([
+      service.from('events').select('id').eq('user_id', user.id).in('id', eventIds),
+      service.from('profiles').select('plan').eq('id', user.id).single(),
+      service.from('payouts').select('id, amount, status, created_at').eq('user_id', user.id)
+    ]);
 
-    if (eventsErr || !events || events.length === 0) {
+    if (eventsRes.error || !eventsRes.data || eventsRes.data.length === 0) {
       return NextResponse.json({ error: 'No valid events found' }, { status: 403 });
     }
 
-    const validEventIds = events.map(e => e.id);
-
-    // Fetch user profile for plan details
-    const { data: profile } = await service
-      .from('profiles')
-      .select('plan')
-      .eq('id', user.id)
-      .single();
-
-    const userPlan = profile?.plan || 'free';
+    const validEventIds = eventsRes.data.map(e => e.id);
+    const userPlan = profileRes.data?.plan || 'free';
+    const allPayouts = payoutsRes.data || [];
 
     // 1. Check for an existing pending payout to avoid concurrent double requests
-    const { data: existingPending } = await service
-      .from('payouts')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('status', 'pending')
-      .limit(1)
-      .single();
-
+    const existingPending = allPayouts.find(p => p.status === 'pending');
     if (existingPending) {
       return NextResponse.json({ 
         error: 'You already have a pending payout request in review. Please wait for it to be processed before requesting another.' 
@@ -57,14 +43,10 @@ export async function POST(request: NextRequest) {
 
     // 2. Query payouts created in the last 24 hours to enforce daily limit
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: recentPayouts } = await service
-      .from('payouts')
-      .select('amount, status, created_at')
-      .eq('user_id', user.id)
-      .gte('created_at', twentyFourHoursAgo);
+    const recentPayouts = allPayouts.filter(p => p.created_at >= twentyFourHoursAgo);
 
     const { dailyLimit, usedInLast24h, remainingToday } = calculateRemainingDailyAllowance(
-      recentPayouts || [],
+      recentPayouts,
       userPlan
     );
 
@@ -89,14 +71,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No paid orders found to pay out' }, { status: 400 });
     }
 
-    // Fetch previous completed or processing payouts to determine true available balance
-    const { data: pastPayouts } = await service
-      .from('payouts')
-      .select('amount, status')
-      .eq('user_id', user.id)
-      .in('status', ['paid', 'processing']);
-
-    const totalPaidOrProcessing = (pastPayouts || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    // Calculate previously paid/processing total from already fetched payouts
+    const totalPaidOrProcessing = allPayouts
+      .filter(p => p.status === 'paid' || p.status === 'processing')
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     // Calculate total net revenue
     const totalNetRevenue = orders.reduce((sum, order) => {

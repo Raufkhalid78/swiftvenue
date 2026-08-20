@@ -28,7 +28,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import imageCompression from 'browser-image-compression';
 import { TEMPLATES_REGISTRY } from "@/lib/templates-registry";
 import { STOCK_BANNERS } from "@/lib/stock-banners";
 
@@ -199,6 +198,7 @@ export default function CreateEventWizard() {
         maxWidthOrHeight: 1920,
         useWebWorker: true,
       };
+      const { default: imageCompression } = await import('browser-image-compression');
       const compressedFile = await imageCompression(file, options);
       
       const supabase = createClient();

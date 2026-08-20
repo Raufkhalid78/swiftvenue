@@ -1,57 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { updateMessageStatus } from './actions';
 import { CheckCircle2, Search, MailOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { createClient } from '@/lib/supabase/client';
-
 const PAGE_SIZE = 25;
 
 export function MessagesClient({ initialMessages }: { initialMessages: any[] }) {
-  const [messages, setMessages] = useState(initialMessages);
+  const [allMessages, setAllMessages] = useState(initialMessages);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const [count, setCount] = useState(initialMessages.length);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const supabase = createClient();
 
-  useEffect(() => {
-    async function fetchMessages() {
-      let query = supabase
-        .from('contact_messages')
-        .select('*', { count: 'exact' });
+  const filteredMessages = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allMessages;
+    return allMessages.filter((msg) => {
+      const name = (msg.name || '').toLowerCase();
+      const email = (msg.email || '').toLowerCase();
+      const content = (msg.message || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || content.includes(q);
+    });
+  }, [allMessages, search]);
 
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,message.ilike.%${search}%`);
-      }
+  const paginatedMessages = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return filteredMessages.slice(start, start + PAGE_SIZE);
+  }, [filteredMessages, page]);
 
-      const { data, count: totalCount, error } = await query
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        setMessages(data);
-        if (totalCount !== null) setCount(totalCount);
-      }
-    }
-
-    const timer = setTimeout(() => {
-      fetchMessages();
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [search, page, supabase]);
+  const totalPages = Math.ceil(filteredMessages.length / PAGE_SIZE) || 1;
 
   const handleUpdate = async (id: string, status: 'read' | 'resolved') => {
     setLoadingId(id);
     const res = await updateMessageStatus(id, status);
     if (res.success) {
-      setMessages(msgs => msgs.map(m => m.id === id ? { ...m, status } : m));
+      setAllMessages(msgs => msgs.map(m => m.id === id ? { ...m, status } : m));
       toast.success(`Message marked as ${status}`);
     } else {
-      toast.error(res.error);
+      toast.error(res.error || `Failed to mark message as ${status}`);
     }
     setLoadingId(null);
   };
@@ -81,11 +68,13 @@ export function MessagesClient({ initialMessages }: { initialMessages: any[] }) 
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {messages.length === 0 ? (
+              {paginatedMessages.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No messages found</td>
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                    {search ? 'No matching messages found' : 'No messages found'}
+                  </td>
                 </tr>
-              ) : messages.map((msg) => (
+              ) : paginatedMessages.map((msg) => (
                 <tr key={msg.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="font-medium">{msg.name}</div>
@@ -114,7 +103,7 @@ export function MessagesClient({ initialMessages }: { initialMessages: any[] }) 
                         <button
                           disabled={loadingId === msg.id}
                           onClick={() => handleUpdate(msg.id, 'read')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:bg-muted transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:bg-muted transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           <MailOpen className="w-3.5 h-3.5" /> Mark Read
                         </button>
@@ -123,7 +112,7 @@ export function MessagesClient({ initialMessages }: { initialMessages: any[] }) 
                         <button
                           disabled={loadingId === msg.id}
                           onClick={() => handleUpdate(msg.id, 'resolved')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-green-500/10 text-green-700 hover:bg-green-500/20 transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-green-500/10 text-green-700 hover:bg-green-500/20 transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" /> Resolve
                         </button>
@@ -139,20 +128,20 @@ export function MessagesClient({ initialMessages }: { initialMessages: any[] }) 
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Page {page + 1} of {Math.ceil(count / PAGE_SIZE) || 1}
+          Page {page + 1} of {totalPages} ({filteredMessages.length} total)
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={() => setPage(p => p + 1)}
-            disabled={(page + 1) * PAGE_SIZE >= count}
-            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50"
+            disabled={page + 1 >= totalPages}
+            className="p-2 rounded-md border border-border bg-background hover:bg-muted disabled:opacity-50 cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
           </button>

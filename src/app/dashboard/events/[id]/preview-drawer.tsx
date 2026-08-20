@@ -80,11 +80,13 @@ export function PreviewDrawer({ slug, eventTitle }: PreviewDrawerProps) {
             {deviceMode === 'mobile' && (
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-slate-700 rounded-full z-20" />
             )}
-            <iframe
-              src={previewUrl}
-              title="Event Preview"
-              className="w-full h-full border-0"
-            />
+            {isOpen && (
+              <iframe
+                src={previewUrl}
+                title="Event Preview"
+                className="w-full h-full border-0"
+              />
+            )}
           </div>
         </div>
       </DialogContent>

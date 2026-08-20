@@ -17,18 +17,19 @@ export async function POST(
     }
 
     // Verify team access (owner or coorganizer)
-    const hasAccess = await checkEventAccess(service, eventId, user.id, ['owner', 'coorganizer']);
+    // Parallelize access check, event lookup, and ticket type lookup
+    const [hasAccess, eventRes, ticketsRes, profileRes] = await Promise.all([
+      checkEventAccess(service, eventId, user.id, ['owner', 'coorganizer']),
+      service.from("events").select("status, user_id").eq("id", eventId).single(),
+      service.from("ticket_types").select("price").eq("event_id", eventId).eq("is_active", true),
+      service.from("profiles").select("plan, plans(max_concurrent_paid_events)").eq("id", user.id).single(),
+    ]);
+
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Fetch event status
-    const { data: event, error: eventErr } = await service
-      .from("events")
-      .select("status")
-      .eq("id", eventId)
-      .single();
-
+    const { data: event, error: eventErr } = eventRes;
     if (eventErr || !event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
@@ -37,40 +38,18 @@ export async function POST(
       return NextResponse.json({ success: true, message: "Event is already published" });
     }
 
-    // Check if the event has any paid tickets
-    const { data: ticketTypes, error: ticketErr } = await service
-      .from("ticket_types")
-      .select("price")
-      .eq("event_id", eventId)
-      .eq("is_active", true);
-
+    const { data: ticketTypes, error: ticketErr } = ticketsRes;
     if (ticketErr) {
       return NextResponse.json({ error: "Failed to fetch ticket types" }, { status: 500 });
     }
 
     const hasPaidTickets = ticketTypes && ticketTypes.some(t => Number(t.price) > 0);
 
-    // If it's a paid event, we need to enforce the concurrent limit
+    // If it's a paid event, enforce the concurrent limit
     if (hasPaidTickets) {
-      // 1. Get the user's plan
-      const { data: profile } = await service
-        .from("profiles")
-        .select("plan")
-        .eq("id", user.id)
-        .single();
+      const planData = profileRes.data?.plans as any;
+      const maxConcurrent = Array.isArray(planData) ? planData[0]?.max_concurrent_paid_events : planData?.max_concurrent_paid_events;
 
-      const userPlan = profile?.plan || "free";
-
-      // 2. Get the plan limits
-      const { data: planConfig } = await service
-        .from("plans")
-        .select("max_concurrent_paid_events")
-        .eq("id", userPlan)
-        .single();
-
-      const maxConcurrent = planConfig?.max_concurrent_paid_events;
-
-      // 3. If there is a limit (not null), check current active paid events
       if (maxConcurrent !== null && maxConcurrent !== undefined) {
         // Find all published events by this user
         const { data: publishedEvents } = await service
@@ -80,7 +59,6 @@ export async function POST(
           .eq("status", "published");
 
         if (publishedEvents && publishedEvents.length > 0) {
-          // We need to see how many of these published events are *paid* events
           const eventIds = publishedEvents.map(e => e.id);
           
           const { data: activePaidTickets } = await service
@@ -90,7 +68,6 @@ export async function POST(
             .eq("is_active", true)
             .gt("price", 0);
 
-          // Count unique events that have at least one paid ticket
           const uniquePaidEventsCount = new Set((activePaidTickets || []).map(t => t.event_id)).size;
 
           if (uniquePaidEventsCount >= maxConcurrent) {
