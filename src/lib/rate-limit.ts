@@ -55,3 +55,8 @@ export const resolveLimiter = createLimiter({
   redis,
   limiter: Ratelimit.slidingWindow(5, '1 m'),
 });
+
+export const aiConciergeLimiter = createLimiter({
+  redis,
+  limiter: Ratelimit.slidingWindow(15, '1 m'),
+});

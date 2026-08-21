@@ -64,6 +64,17 @@ export function EventAiConcierge({ eventId, slug, eventTitle }: EventAiConcierge
       });
 
       const data = await res.json();
+      if (res.status === 429) {
+        toast.error(data.error || 'Please slow down a little before sending another message.');
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '⏳ **Too many messages**: You are asking questions a bit quickly. Please wait a few seconds before asking another question.',
+          },
+        ]);
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to get answer');
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
@@ -119,10 +130,10 @@ export function EventAiConcierge({ eventId, slug, eventTitle }: EventAiConcierge
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-40 sm:z-50 flex flex-col items-end">
       {/* Chat Window */}
       {isOpen && (
-        <div className="w-[360px] sm:w-[400px] h-[520px] max-h-[85vh] bg-card border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden mb-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="w-[calc(100vw-2rem)] max-w-[360px] sm:w-[400px] h-[500px] sm:h-[520px] max-h-[75vh] sm:max-h-[85vh] bg-card border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden mb-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Header */}
           <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-2.5">
@@ -236,7 +247,7 @@ export function EventAiConcierge({ eventId, slug, eventTitle }: EventAiConcierge
       {/* Floating Toggle Button */}
       <Button
         onClick={() => setIsOpen(!isOpen)}
-        className="rounded-full h-13 px-4 shadow-xl gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm border border-primary/20 hover:scale-105 transition-transform"
+        className="rounded-full h-12 px-4 shadow-xl gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm border border-primary/20 hover:scale-105 transition-transform"
       >
         <Sparkles className="w-4 h-4 animate-pulse text-amber-300" />
         <span>Ask Event AI</span>

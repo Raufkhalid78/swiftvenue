@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { callOpenRouter, buildEventConciergeSystemPrompt, OpenRouterMessage } from '@/lib/openrouter';
+import { aiConciergeLimiter } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'anonymous';
+    const { success } = await aiConciergeLimiter.limit(`ai_concierge_${ip}`);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many messages, please wait a moment before trying again.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { eventId, slug, messages } = body;
 
@@ -26,12 +36,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
-    // 2. Fetch Tickets, Speakers, Agenda, and FAQs in parallel
+    // 2. Fetch Tickets, Speakers, Agenda, and FAQs in parallel using actual database table names
     const [ticketsRes, speakersRes, agendaRes, faqsRes] = await Promise.all([
       supabase.from('ticket_types').select('name, price, currency, description').eq('event_id', event.id),
-      supabase.from('speakers').select('name, title, company, bio').eq('event_id', event.id),
+      supabase.from('event_speakers').select('name, title, bio').eq('event_id', event.id).order('order_index', { ascending: true }),
       supabase.from('agenda_items').select('title, start_time, end_time, description').eq('event_id', event.id).order('start_time', { ascending: true }),
-      supabase.from('faqs').select('question, answer').eq('event_id', event.id),
+      supabase.from('event_faqs').select('question, answer').eq('event_id', event.id).order('order_index', { ascending: true }),
     ]);
 
     const systemPrompt = buildEventConciergeSystemPrompt({
@@ -114,7 +124,7 @@ export async function POST(request: NextRequest) {
       // 5. Speakers
       else if (lastUserMsg.includes('speaker') || lastUserMsg.includes('who is speaking') || lastUserMsg.includes('host') || lastUserMsg.includes('presenter')) {
         if (speakers.length > 0) {
-          const list = speakers.map(s => `• **${s.name}**${s.title ? ` — ${s.title}` : ''}${s.company ? ` (${s.company})` : ''}`).join('\n');
+          const list = speakers.map(s => `• **${s.name}**${s.title ? ` — _${s.title}_` : ''}${s.bio ? ` (${s.bio})` : ''}`).join('\n');
           fallbackReply = `Featured speakers for **${event.title}**:\n\n${list}\n\nCheck out the full speaker section on this page for their complete bios!`;
         } else {
           fallbackReply = `Speaker announcements for **${event.title}** are coming soon. Check back on this page for the latest updates!`;
@@ -129,7 +139,21 @@ export async function POST(request: NextRequest) {
           fallbackReply = `The detailed schedule for **${event.title}** will be published shortly. Please check the Agenda section on this page.`;
         }
       }
-      // 7. General inquiry
+      // 7. FAQs
+      else if (lastUserMsg.includes('faq') || lastUserMsg.includes('question') || (faqs.length > 0 && faqs.some(f => lastUserMsg.includes(f.question?.toLowerCase().slice(0, 15) || '')))) {
+        if (faqs.length > 0) {
+          const matchingFaq = faqs.find(f => lastUserMsg.includes(f.question?.toLowerCase() || '') || (f.question?.toLowerCase() || '').includes(lastUserMsg));
+          if (matchingFaq) {
+            fallbackReply = `**${matchingFaq.question}**\n\n${matchingFaq.answer}`;
+          } else {
+            const list = faqs.map(f => `• **${f.question}**\n  ${f.answer}`).join('\n\n');
+            fallbackReply = `Frequently Asked Questions for **${event.title}**:\n\n${list}`;
+          }
+        } else {
+          fallbackReply = `For any specific inquiries about **${event.title}**, feel free to ask or contact the event organizers directly.`;
+        }
+      }
+      // 8. General inquiry
       else {
         fallbackReply = `For **${event.title}**, you can explore full details including available tickets, schedule, venue directions, and featured speakers directly on this page.\n\nFeel free to ask me specific questions about tickets, timings, or location!`;
       }
